@@ -1,0 +1,98 @@
+.selectButton {
+    width: 130px;
+    height: 50px;
+    background: #FFFFFF;
+    border-radius: 10px;
+   
+    display:flex;
+    flex-direction:row;
+    align-items:center;
+    justify-content:center;
+    gap:5px;
+    cursor:pointer;
+    user-select: none;
+
+
+    &.active {
+        border:2px solid #D23B38;
+     
+
+
+        img {
+            width:16px;
+            height:16px;
+            opacity: 0;
+            animation: fade-in 0.2s ease-in-out forwards;
+        }
+
+        h3 {
+            font-family: 'Poppins';
+            font-style: normal;
+            font-weight: 500;
+            font-size: 20px;
+            line-height: 30px;
+      
+
+
+            color: #D23B38;
+        }
+
+    }
+    &.passive {
+        border:2px solid #C8DAEA;
+        
+
+
+        h3 {
+            font-family: 'Poppins';
+            font-style: normal;
+            font-weight: 500;
+            font-size: 20px;
+            line-height: 30px;
+          
+
+
+            color: #304C5F;
+
+        }
+        img {
+            width: 16px;
+            height: 16px;
+            opacity: 1;
+            animation: fade-out 0.2s ease-in-out forwards;
+    }
+
+}
+}
+
+@keyframes fade-in {
+    0% {
+      opacity: 0;
+      scale: 0;
+    }
+    80% {
+      opacity: 1;
+      scale: 1.2;
+    }
+    100% {
+      opacity: 1;
+      scale: 1;
+    }
+  }
+  
+  @keyframes fade-out {
+    0% {
+      opacity: 1;
+      scale: 1;
+     
+    }
+    80% {
+      opacity: 1;
+      scale: 1.2;
+    }
+    100% {
+      opacity: 0;
+      scale: 0;
+        
+    }
+  }

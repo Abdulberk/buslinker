@@ -1,0 +1,108 @@
+.container {
+
+    display:flex;
+    flex-direction:column;
+    gap:64px;
+    width:100%;
+    height:auto;
+    align-items:center;
+    justify-content:center;
+    background: url("../../../public/worldmap.png");
+    background-blend-mode: darken;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+    padding-top:32px;
+    box-sizing: border-box;
+
+
+
+    .header {
+
+        display:flex;
+        flex-direction:row;
+        align-items:center;
+        justify-content:center;
+        gap:13px;
+
+        h1 {
+            font-family: 'Poppins';
+            font-family: 'Poppins';
+            font-style: normal;
+            font-weight: 400;
+            font-size: 24px;
+            line-height: 36px;
+            color: #283350;
+        }
+        img {
+            width:20px;
+            height:20px;
+
+        }
+    }
+
+    .grid {
+        display:grid;
+        grid-template-columns: repeat(4, 320px);
+        grid-template-rows: repeat(3, 200px);
+        gap:48px;
+
+        .destination {
+            border-radius: 10px;
+            
+            img{
+                width:100%;
+                height:100%;
+                object-fit:cover;
+                transition: all 0.2s ease-in-out;
+
+
+
+                &:hover {
+                    cursor:pointer;
+                    transition: all 0.2s ease-in-out;
+                    transform: scale(1.03);
+                }
+
+
+            }
+            h3 {
+                
+            font-family: 'Poppins';
+            font-style: normal;
+            font-weight: 400;
+            font-size: 20px;
+            line-height: 36px;
+            text-align: center;
+            color: #283350;
+            }
+        }
+
+
+        @media (max-width: 1200px) {
+            grid-template-columns: repeat(3, 320px);
+            grid-template-rows: repeat(4, 200px);
+            
+
+            
+        }
+
+        @media (max-width: 900px) {
+            grid-template-columns: repeat(2, 320px);
+            grid-template-rows: repeat(6, 200px);
+        }
+
+        @media (max-width: 600px) {
+            grid-template-columns: repeat(1, 320px);
+            grid-template-rows: repeat(12, 200px);
+        }
+
+
+
+
+
+
+    }
+
+
+}

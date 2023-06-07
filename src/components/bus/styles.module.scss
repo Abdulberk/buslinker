@@ -1,0 +1,373 @@
+
+.mainBus {
+
+    width:auto;
+    height:100%;
+    display:flex;
+    flex-direction:row;
+    align-items:center;
+    justify-content:center;
+    user-select: none;
+
+
+
+.busContainer {
+
+    width:auto;
+    height:100%;
+    display:flex;
+    flex-direction: column;
+    align-items:center;
+    justify-content:center;
+    border:2px solid #EEEEEE;
+    border-top-left-radius: 0;
+    border-top-right-radius: 20px;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 20px;
+    padding:15px;
+    border-left:none;
+    
+
+
+
+
+   .firstRow {
+    width:100%;
+    height:100%;
+    display:flex;
+    flex-direction:row;
+    align-items:center;
+    justify-content:center;
+    gap:12px;
+    padding-left:15px;
+    padding-right:15px;
+    
+  
+
+    .seat {
+        width:32px;
+        height:32px;
+        background: #FFFFFF;
+       
+        
+        cursor:pointer;
+      
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        justify-content:center;
+
+
+    
+       }
+
+   }
+
+    .secondRow {
+     width:100%;
+     height:100%;
+     display:flex;
+     flex-direction:row;
+     align-items:center;
+     justify-content:center;
+     gap:12px;
+     padding-left: 15px;
+        padding-right: 15px;
+
+     
+   
+    
+     .seat {
+          width:32px;
+          height:32px;
+          background: #FFFFFF;
+         
+         
+          cursor:pointer;
+          
+          display:flex;
+            flex-direction:column;
+            align-items:center;
+            justify-content:center;
+
+        
+     
+         }
+    
+    }
+
+    .thirdRow {
+        width:100%;
+        height:100%;
+        display:flex;
+        flex-direction:row;
+        align-items:center;
+        justify-content:center;
+        gap:12px;
+        padding-left: 15px;
+        padding-right: 15px;
+
+      
+        
+        .seat {
+            width:32px;
+            height:32px;
+            background: #FFFFFF;
+          
+           
+            cursor:pointer;
+          
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            justify-content:center;
+
+          
+        
+           }
+    }
+
+
+
+}
+
+
+.frontBus{
+    height:100%;
+    width:auto;
+    min-width:91px;
+   
+
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    justify-content:flex-start;
+    position: relative;
+    user-select: none;
+    img,svg {
+        width:100%;
+        height:100%;
+    }
+
+    &:after {
+        content: '';
+        position: absolute;
+        width:22px;
+        height: 0;
+        top:198px;
+        left : 77%;
+        border: 1px solid #EEEEEE;
+  
+       
+      }
+
+
+}
+
+}
+
+
+.selection {
+    width: 200px;
+    height: 100px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    position: relative;
+    top: -60px;
+    background : #FFFFFF;
+    box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.25);
+    border-radius: 20px;
+    padding: 15px;
+
+    &:after{
+    	content: '';
+	position: absolute;
+	width: 0;
+	height: 0;
+    top: 100%;
+    transform: rotate(180deg);
+	border: .75rem solid transparent;
+	border-top: none;
+
+	border-bottom-color: #fff;
+	filter: drop-shadow(0 -0.0625rem 0.0625rem rgba(0, 0, 0, .2));
+
+
+      }
+    
+
+  
+  
+    .person {
+      width: auto;
+      height: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0px;
+      cursor: pointer;
+      transition: transform 0.05s ease-in-out;
+  
+      &:active {
+        transform: scale(0.95);
+        transition: transform 0.05s ease-in-out;
+      }
+  
+      &:hover {
+        .active {
+          color: #d23b38;
+        }
+      }
+  
+      .active {
+        font-family: 'Poppins';
+        font-style: normal;
+        font-weight: 400;
+        font-size: 12px;
+        line-height: 18px;
+        display: flex;
+        align-items: center;
+        text-align: center;
+        color: #304c5f;
+      }
+  
+      .passive {
+        font-family: 'Poppins';
+        font-style: normal;
+        font-weight: 400;
+        font-size: 12px;
+        line-height: 18px;
+        display: flex;
+        align-items: center;
+        text-align: center;
+        color: rgba(48, 76, 95, 0.5);
+      }
+  
+      img {
+        width: 64px;
+        height: 64px;
+      }
+    }
+  }
+
+.selectedSeats {
+
+    width:300px;
+    height:200px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    background: #FFFFFF;
+    box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.25);
+    border-radius: 20px;
+    gap:12px;
+    
+    .upper {
+        width:100%;
+        height:100%;
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+        justify-content:center;
+        gap:8px;
+
+        .title {
+          
+
+            display: flex;
+            align-items: center;
+          justify-content: center;
+          
+
+            h1 {
+                font-family: 'Poppins';
+                font-style: normal;
+                font-weight: 500;
+                font-size: 14px;
+                line-height: 21px;
+
+                display: flex;
+                align-items: center;
+                text-align: center;
+
+                color: #606060;
+            }
+        }
+
+        .seats {
+            width:100%;
+          
+            display:flex;
+            flex-direction:row;
+            align-items:center;
+            justify-content:center;
+            gap:18px;
+
+
+        }
+
+
+
+      
+    }
+      .bottom {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap:8px;
+
+            .title {
+                font-family: 'Poppins';
+                font-style: normal;
+                font-weight: 500;
+                font-size: 14px;
+                line-height: 21px;
+                text-align:center;
+
+
+                display: flex;
+                align-items: center;
+                text-align: center;
+
+                color: #606060;
+
+            }
+
+            .totalPrice {
+             
+                width:100%;
+              
+                display:flex;
+                flex-direction:row;
+                align-items:center;
+                justify-content:center;
+
+                h1 
+                {
+                    font-family: 'Poppins' !important;
+                    font-style: normal !important;
+                    font-weight: 500 !important;
+                    font-size: 20px !important;
+                    line-height: 30px !important;
+
+                    text-align: center !important;
+
+                    color: #5F717A !important;
+                }
+                
+            }
+
+
+        }
+
+
+
+}

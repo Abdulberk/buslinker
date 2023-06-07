@@ -1,0 +1,114 @@
+.filterContainer {
+    width: auto;
+    min-width: 270px;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 60px;
+  
+    border: none;
+    background: none;
+    outline: none;
+    padding: 0;
+    margin: 0;
+    max-width: 270px;
+  }
+  
+  .filterItem {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 30px;
+    width: 100%;
+  }
+  
+  .filter {
+    width: 100%;
+    height: auto;
+    min-height: 24px;
+    max-width: 270px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+  
+    .left {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 16px;
+  
+      img {
+        width: 24px;
+        height: 24px;
+      }
+  
+      h1 {
+        font-family: 'Poppins';
+        font-style: normal;
+        font-weight: 500;
+        font-size: 18px;
+        line-height: 21px;
+        text-align: center;
+        letter-spacing: -0.32px;
+        color: #293241;
+      }
+    }
+  
+    .right {
+      transition: transform 0.2s ease-in-out;
+  
+      img {
+        width: auto;
+        height: auto;
+      }
+  
+      &.active {
+        img {
+          transform: rotate(180deg);
+          transition: transform 0.2s ease-in-out;
+        }
+      }
+  
+      &.passive {
+        img {
+          transform: rotate(0deg);
+          transition: transform 0.2s ease-in-out;
+        }
+      }
+    }
+  }
+  
+  .content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 270px;
+   
+    border-radius: 10px;
+    padding: 10px 20px;
+    height: auto;
+    min-height:60px;
+
+  
+    &.normal {
+    
+    display: none;
+      
+
+    }
+  
+    &.extended {
+     
+        display: flex;
+      
+    }
+  }
+  

@@ -1,0 +1,183 @@
+
+.navbar {
+
+background-color: $navbar-color;
+height:80px;
+width:100%;
+display:flex;
+align-items: center;
+justify-content: space-between;
+padding: 1.25rem 3.125rem;
+user-select: none;
+
+.logo {
+
+    display:flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-direction: row;
+    width:100%;
+    height:100%;
+
+
+    svg,img {
+        width:150.65px;
+        height:37.29px;
+
+    }
+
+} 
+
+.menu {
+
+    display:flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: row;
+    width:auto;
+    max-width:500px;
+    font-weight: 500;
+    color: #FFFFFF;
+    height:100%;
+    line-height: 30px;
+    font-size: 1.25rem;
+    column-gap: 62px;
+    
+
+    .currency {
+
+        display:flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: row;
+        flex-wrap: nowrap;
+     
+        border-radius: 30px;
+        border: 1px solid #FFFFFF;
+    
+        background-color: #F2F5F7;
+        width:100px;
+        height:40px;
+        gap: 7px;
+
+        h1 {
+            color:#304C5F;
+            font-weight: 500;
+            line-height: 24px;
+            font-size: 1rem;
+        }
+
+        svg,img {
+            width:36px;
+            height:26.61px;
+            
+
+        }
+
+        
+
+
+
+    }
+
+    .links {
+
+        display:flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: nowrap;
+        flex-direction: row;
+        width:300px;
+        height:100%;
+
+        ul {
+
+            display:flex;
+            align-items: center;
+            justify-content: flex-start;
+            flex-direction: row;
+            width:300px;
+            height:100%;
+            column-gap:2rem;
+
+            .register {
+
+                border: 2px solid white;
+                border-radius: 30px;
+                display:flex;
+                flex-direction: row;
+                align-items: center;
+                justify-content: center;
+                padding:5px 17px;
+                font-size: 1.25rem;
+                font-weight: 500;
+                max-width:116px;
+                max-height: 40px;
+
+            }
+          
+
+            li {
+
+                display:flex;
+                align-items:center;
+                justify-content:flex-end;
+                flex-direction: row;
+                
+                width: auto;
+                height:100%;
+                cursor: pointer;
+                font-size: 1.25rem;
+                font-weight: 500;
+                line-height: 30px;
+                color: #FFFFFF;
+                &:first-child {
+                      
+                    position: relative;
+
+                    &::after {
+                        content: "";
+                        position: absolute;
+                        display: block;
+                        width: 8px;
+                        height: 8px;
+                        background: rgb(255, 255, 255);
+                        left:110%;
+                        clip-path: polygon(50% 0, 100% 100%, 0 100%);
+                        transform: rotate(180deg);
+                        top: 45%;
+                       
+
+
+
+
+                        
+
+                        
+                    }
+
+                }
+            }
+
+           
+
+
+          
+
+        }
+
+
+
+
+
+    }
+
+  
+
+    
+
+}
+
+
+
+} 
