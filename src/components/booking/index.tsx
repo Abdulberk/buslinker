@@ -6,6 +6,14 @@ import "./Calendar.scss"
 import { useRef } from "react";
 import Tabs from "../tabs";
 import { Tab } from "../tabs";
+import '../../fonts/Poppins-Regular.ttf';
+import '../../fonts/Poppins-Bold.ttf';
+import '../../fonts/Poppins-Medium.ttf';
+import '../../fonts/Poppins-SemiBold.ttf';
+import '../../fonts/Poppins-Light.ttf';
+import '../../fonts/Poppins-ExtraLight.ttf';
+
+
 
 
 const tabs: Tab[] = [
