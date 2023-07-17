@@ -3,15 +3,18 @@ import styles from './styles.module.scss';
 import { useMediaQuery } from 'react-responsive';
 import hamburger from '../../icons/hamburger.svg';
 import mobileLogo from '../../icons/mobile-logo.svg';
+import {useNavigate} from 'react-router-dom';
+
 
 const Navbar = () => {
 
+  const navigate = useNavigate();
   const isTabletOrMobile = useMediaQuery({ query: '(max-width: 1024px)' });
 
   return (
     <div>
       <nav className={isTabletOrMobile ? styles.mobile : styles.navbar}>
-        <div className={styles.logo}>
+        <div className={styles.logo} onClick = {() => navigate('/')}>
           {isTabletOrMobile ? (
             <img src={mobileLogo} alt="logo" />
           ) : (

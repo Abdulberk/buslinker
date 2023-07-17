@@ -233,6 +233,12 @@
     justify-content: center;
     gap: 10px;
 
+    &:hover {
+      cursor: pointer;
+      background-color: #d23b38da;
+      
+    }
+
     span {
       font-family: 'Poppins', sans-serif;
       font-style: normal;

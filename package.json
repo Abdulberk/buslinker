@@ -61,6 +61,7 @@
   "devDependencies": {
     "@craco/craco": "^7.1.0",
     "@types/react-modal": "^3.16.0",
-    "@types/react-transition-group": "^4.4.6"
+    "@types/react-transition-group": "^4.4.6",
+    "copy-webpack-plugin": "^11.0.0"
   }
 }

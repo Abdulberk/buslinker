@@ -12,6 +12,9 @@ import '../../fonts/Poppins-Medium.ttf';
 import '../../fonts/Poppins-SemiBold.ttf';
 import '../../fonts/Poppins-Light.ttf';
 import '../../fonts/Poppins-ExtraLight.ttf';
+import { useNavigate } from "react-router-dom";
+import swapIcon from "../../icons/swap.svg";
+
 
 
 
@@ -64,6 +67,9 @@ function Booking() {
     to: "",
     date: "",
   }) 
+
+  const redirect = useNavigate();
+
 
 
 
@@ -179,7 +185,7 @@ function Booking() {
                 />
               </div>
 
-              <img src={process.env.PUBLIC_URL + "/swap.svg"} alt="logo" onClick={swapHandler}/>
+              <img src={swapIcon} alt="logo" onClick={swapHandler}/>
 
               <div className={styles.textBoxContainer}>
                 <input type="text" placeholder="İstanbul - Otogar" name= "to" value={choice.to}
@@ -282,7 +288,12 @@ function Booking() {
           </div>
         </div>
 
-        <div className={styles.booking__find}>
+        <div className={styles.booking__find} onClick = {() =>
+
+                redirect("/results")
+           
+        } >
+        
           <img src={process.env.PUBLIC_URL + "/magnify.svg"} alt="logo" />
 
           <span>Bilet Bul</span>
@@ -304,7 +315,7 @@ function Booking() {
                         </div>
 
                         <div className = {styles.swap} >
-                        <img src={process.env.PUBLIC_URL + "/swap.svg"} alt="logo" onClick={swapHandler}/>
+                        <img src={swapIcon} alt="logo" onClick={swapHandler}/>
                         </div>
                        
                         <div className =  {styles.inputText} >
