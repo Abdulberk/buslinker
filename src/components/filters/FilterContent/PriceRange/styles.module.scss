@@ -1,0 +1,61 @@
+.container {
+
+    width:100%;
+    height:auto;
+    display:flex;
+    flex-direction: column;
+    justify-content: center;
+    gap:2rem;
+
+    &__priceSection{
+
+        width:100%;
+        height:auto;
+        display:flex;
+        flex-direction:row;
+        justify-content: space-between;
+        align-items: center;
+
+        .highestPrice {
+
+            font-family: 'Poppins';
+            font-style: normal;
+            font-weight: 400;
+            font-size: 15px;
+            line-height: 22px;
+            text-align: center;
+            color: #304C5F;
+
+
+        }
+
+        .highestPriceLabel {
+            font-family: 'Poppins';
+            font-style: normal;
+            font-weight: 500;
+            font-size: 15px;
+            line-height: 22px;
+            text-align: center;
+            color: #283350;
+        }
+
+
+    }
+
+    &__rangeSection {
+
+        width: 100%;
+        height: auto;
+        max-width: 253px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+
+
+
+    }
+
+
+
+}

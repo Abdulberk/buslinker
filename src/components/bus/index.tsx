@@ -610,8 +610,8 @@ function Bus() {
       return;
     }
 
-    if (selectedSeats.length > 3) {
-      alert("En fazla 3 koltuk seçebilirsiniz.");
+    if (selectedSeats.length > 4) {
+      alert("En fazla 4 koltuk seçebilirsiniz.");
       return;
 
     }

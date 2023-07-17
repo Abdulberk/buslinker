@@ -135,11 +135,13 @@ function Footer() {
         <h1>Follow us on social media</h1>
         <div className={styles.icons}>
           {socialMediaIcons.map((icon, index) => (
+            <div className = {styles.icon} key={index}>
             <img
               key={index}
               src={process.env.PUBLIC_URL + "/" + icon}
               alt={icon}
             />
+            </div>
           ))}
         </div>
       </div>

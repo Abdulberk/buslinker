@@ -12,6 +12,7 @@ justify-content: space-between;
 padding: 1.25rem 3.125rem;
 user-select: none;
 
+
 .logo {
 
     display:flex;
@@ -20,6 +21,8 @@ user-select: none;
     flex-direction: row;
     width:100%;
     height:100%;
+
+
 
 
     svg,img {
@@ -182,4 +185,55 @@ user-select: none;
 
 
 
+
+
 } 
+
+
+
+.mobile {
+
+    width:100%;
+    height:50px;
+    display:flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-direction: row;
+    padding: 2rem 2rem;
+
+
+    .logo {
+
+        width: 151px;
+        height: 38px;
+
+        svg,img {
+            width:100%;
+            height:100%;
+        }
+
+    }
+
+    .menu {
+
+        width:30px;
+        height:30px;
+        display:flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: row;
+        cursor: pointer;
+        
+
+       img,svg {
+            width:100%;
+            height:100%;
+
+       }
+
+        
+    }
+
+
+
+}

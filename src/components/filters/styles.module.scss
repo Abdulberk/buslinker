@@ -9,7 +9,7 @@
     flex-direction: column;
     align-items: flex-start;
     justify-content: flex-start;
-    gap: 60px;
+    gap: 30px;
   
     border: none;
     background: none;
@@ -17,6 +17,19 @@
     padding: 0;
     margin: 0;
     max-width: 270px;
+
+
+
+    @media (max-width: 966px) {
+      display: none;
+      
+
+    }
+
+
+
+    
+    
   }
   
   .filterItem {
@@ -26,6 +39,8 @@
     justify-content: flex-start;
     gap: 30px;
     width: 100%;
+    border-bottom: 2px solid #F7F7F7;
+    padding-bottom: 2rem;
   }
   
   .filter {
@@ -44,7 +59,7 @@
       flex-direction: row;
       align-items: center;
       justify-content: flex-start;
-      gap: 16px;
+      gap: 1.5rem;
   
       img {
         width: 24px;
@@ -96,7 +111,7 @@
     max-width: 270px;
    
     border-radius: 10px;
-    padding: 10px 20px;
+  
     height: auto;
     min-height:60px;
 
@@ -114,4 +129,5 @@
       
     }
   }
+  
   

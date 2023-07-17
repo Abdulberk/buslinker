@@ -3,7 +3,8 @@
 
 
 .selectButton {
-    width: 130px;
+    min-width: 130px;
+    width: auto;
     height: 50px;
     background: #FFFFFF;
     border-radius: 10px;
@@ -15,7 +16,10 @@
     gap:5px;
     cursor:pointer;
     user-select: none;
+    
 
+
+      
 
     &.active {
         border:2px solid #D23B38;

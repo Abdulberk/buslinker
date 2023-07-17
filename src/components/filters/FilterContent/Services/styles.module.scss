@@ -1,0 +1,61 @@
+.container {
+    width: 100%;
+    height:auto;
+    display:flex;
+
+    
+
+   &__services {
+    width:100%;
+    height:auto;
+    display:flex;
+    flex-direction: column;
+    justify-content: center;
+    gap:1rem;
+
+    
+
+
+    .service {
+        display:flex;
+        flex-direction:row;
+        justify-content: flex-start;
+    
+        width:100%;
+        height: auto;
+        max-height: 1.5rem;
+        gap:1.5rem;
+
+
+        &__checkbox {
+            width: 1.5rem;
+            height:1.5rem;
+
+            img {
+                width:100%;
+                height:100%;
+
+            }
+
+        }
+        &__serviceLabel {
+            font-family: 'Poppins';
+            font-style: normal;
+            font-weight: 400;
+            font-size: 15px;
+            line-height: 22px;
+           
+
+
+            color: #283350;
+        }
+
+    }
+
+
+
+
+   }
+
+    
+}

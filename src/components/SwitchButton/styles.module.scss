@@ -1,0 +1,87 @@
+.container {
+    width: auto;
+    height: auto;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 5px;
+  
+    .switchContainer {
+      width: 52px;
+      height: 26px;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 0;
+      cursor: pointer;
+      border-radius: 100px;
+      padding: 3px;
+ 
+
+      &.off {
+        background: #505B6B;
+
+      }
+
+        &.on {
+            background: #d23b38;
+        }
+  
+      .button {
+        width: 20px;
+        height: 20px;
+        background: #ffffff;
+        border-radius: 100px;
+        border: 1px solid #cccccc;
+        position: relative;
+        transition: left 0.3s ease-in-out;
+  
+        &.on {
+          left: 26px;
+          animation: bounceBackOn 0.3s ease-in-out;
+        }
+  
+        &.off {
+          left: 0px;
+          animation: bounceBackOff 0.3s ease-in-out;
+
+          
+        }
+      }
+    }
+  
+    .label {
+      color: #29374c;
+      text-align: center;
+      font-size: 16px;
+      font-family: 'Poppins';
+      font-weight: 500;
+    }
+  }
+  
+  @keyframes bounceBackOn {
+    0% {
+      left: 0;
+    }
+    70% {
+      left: 30px;
+    }
+    100% {
+      left: 26px;
+    }
+  }
+  
+  @keyframes bounceBackOff {
+    0% {
+      left: 26px;
+    }
+    70% {
+      left: -4px;
+    }
+    100% {
+      left: 0;
+    }
+  }
+  

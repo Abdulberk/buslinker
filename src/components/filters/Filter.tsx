@@ -2,7 +2,7 @@ import React from 'react';
 import styles from './styles.module.scss';
 import { useState } from 'react';
 
-function Filter({ title, children, icon }: any) {
+const Filter = ({ title, children, icon }: any) => {
   const [extend, setExtend] = useState(false);
 
   const handleClick = () => {
@@ -21,9 +21,9 @@ function Filter({ title, children, icon }: any) {
             <img src={process.env.PUBLIC_URL + '/extend-down.svg'} alt="arrow-down" />
           </div>
         </div>
-        <div className={`${styles.content} ${extend ? styles.extended : styles.normal}`}>{children}
+        <div className={`${styles.content} ${extend ? styles.extended : styles.normal}`}>
+          {children}
             
-
         </div>
       </div>
     </>

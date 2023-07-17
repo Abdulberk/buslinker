@@ -2,56 +2,94 @@ import React, { useEffect } from 'react';
 import { Range } from 'react-range';
 import styles from  './styles.module.scss';
 
-const DoubleRangeSlider = () => {
+interface IProps {
+  initialValues: [number,number];
+  onChange: (values: [number,number]) => void;
+  minValue: number;
+  maxValue: number;
+  type: string;
 
+}
 
-  const [values, setValues] = React.useState([25, 75]);
+const DoubleRangeSlider = ({ initialValues, onChange, minValue, maxValue, type }: IProps) => {
 
-  const handleChange = (newValues:any) => {
-    const difference = newValues[1] - newValues[0];
+  const [values, setValues] = React.useState<[number,number]>(initialValues);
 
-    if (difference < 10) {
-      if (newValues[0] < newValues[1] && newValues[1] < 100) {
-        setValues([newValues[0], newValues[0] + 10]);
-      } else if (newValues[1] > newValues[0] && newValues[0] > 0) {
-        setValues([newValues[1] - 10, newValues[1]]);
-      }
-    } else {
-      setValues(newValues);
-    }
+  const handleChange = (newValues: number[]) => {
+    const range: [number, number] = [newValues[0], newValues[1]];
+    setValues(range);
+    
   };
+
+  const handleFinalChange = (newValues: number[]) => {
+    const range: [number, number] = [newValues[0], newValues[1]];
+    onChange(range);
+  };
+
+
+  const calculateWidth = () => {
+    const [start, end] = values;
+    const width = ((end - start) / (maxValue - minValue)) * 100 + '%';
+    return width;
+  };
+
+  const calculateLeft = () => {
+    const [start] = values;
+    const left = ((start - minValue) / (maxValue - minValue)) * 100 + '%';
+    return left;
+  };
+
+
+  const formatThumbValue = (value: number) => {
+
+    if (type === 'price') {
+
+      return value.toLocaleString('tr-TR', {
+        style: 'currency',
+        currency: 'TRY',
+        maximumFractionDigits: 0,
+        minimumFractionDigits: 0,
+      });
+
+    }
+    else if (type === 'time') {
+       return value.toString().padStart(2, '0') + ':00';
+    }
+
+    return value.toString();
+
+  }
+
+  useEffect(() => {
+    setValues(initialValues);
+  }, [initialValues]);
 
   return (
     <div className={styles.sliderWrapper}>
       <Range
         values={values}
         step={1}
-        min={0}
-        max={100}
-        onChange={(values) => handleChange(values)}
+        min={minValue}
+        max={maxValue}
+        onChange={handleChange}
+        onFinalChange={handleFinalChange}
         renderTrack={({ props, children }) => (
-          <div
-            {...props}
-            className={styles.track}
-          >
+          <div {...props} className={styles.track}>
             <div
               className={styles.range}
               style={{
-                width: `${values[1] - values[0]}%`,
-                left: `${values[0]}%`,
+                width: calculateWidth(),
+                left: calculateLeft(),
               }}
             />
             {children}
           </div>
         )}
         renderThumb={({ props, value }) => (
-          <div
-            {...props}
-            className={styles.thumb}
-          >
-            <span className={styles.value}>
-              {value}
-            </span>
+          <div {...props} className={styles.thumb}>
+            <span className={styles.value}>{
+              formatThumbValue(value)
+            }</span>
           </div>
         )}
       />
