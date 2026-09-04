@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Outlet, ScrollRestoration, useLocation } from 'react-router'
 import { SiteHeader } from '@/widgets/SiteHeader'
 import { SiteFooter } from '@/widgets/SiteFooter'
+import { RouteTransition } from './RouteTransition'
 
 export function AppLayout() {
   const { pathname } = useLocation()
@@ -33,6 +34,7 @@ export function AppLayout() {
       </main>
       <SiteFooter />
       <ScrollRestoration />
+      <RouteTransition />
     </div>
   )
 }
