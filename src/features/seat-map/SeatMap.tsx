@@ -22,6 +22,12 @@ const TURNED_TOKENS = Object.freeze({
   ...DECK_TOKENS,
   rowGap: 6,
   noseLen: 72,
+  // Lying down, the coach's width is its height on screen — and at 202 units
+  // against ~790 of length it read as a strip, not a body. Wider walls and a
+  // wider aisle put air above, below and between the seats; the seats keep
+  // their own size, since width is what fixes that.
+  padX: 30,
+  aisleW: 34,
   padTop: 10,
   padBottom: 12,
 })
@@ -30,7 +36,7 @@ import { GENDER_ART } from '@/shared/config/assets'
 import { Illustration } from '@/shared/ui/asset-icon'
 import { Popover, PopoverAnchor, PopoverContent } from '@/shared/ui/primitives'
 import { BusShell } from './BusShell'
-import { GenderMark, SeatGlyph } from './SeatGlyph'
+import { SeatGlyph } from './SeatGlyph'
 
 /**
  * The seat map.
@@ -219,6 +225,7 @@ export function SeatMap({ data, picks, onPick, onRemove, className }: SeatMapPro
     return [...map.entries()].sort((a, b) => a[0] - b[0])
   }, [geometry])
 
+  const turned = geometry.orientation === 'horizontal'
   const pendingSeat = pendingKey ? seatByKey.get(pendingKey) : undefined
   const { w: W, h: H } = geometry.viewBox
   const pct = (value: number, total: number) => `${(value / total) * 100}%`
@@ -282,6 +289,7 @@ export function SeatMap({ data, picks, onPick, onRemove, className }: SeatMapPro
 
               return (
                 <SeatButton
+                  turned={turned}
                   key={cell.key}
                   ref={(el) => {
                     if (el) buttonRefs.current.set(cell.key, el)
@@ -356,6 +364,7 @@ const FIXTURE_LABEL: Partial<Record<PlacedCell['kind'], string>> = {
 function SeatButton({
   ref,
   cell,
+  turned,
   seat,
   state,
   selected,
@@ -366,6 +375,7 @@ function SeatButton({
 }: {
   ref: (el: HTMLButtonElement | null) => void
   cell: PlacedCell
+  turned: boolean
   seat: Seat
   state: ReturnType<typeof seatVisualState>
   selected: boolean
@@ -373,8 +383,6 @@ function SeatButton({
   isPending: boolean
   style: React.CSSProperties
 } & Omit<React.ComponentProps<'button'>, 'style' | 'ref'>) {
-  const occupied = seat.occupiedBy
-
   return (
     <button
       ref={ref}
@@ -400,7 +408,7 @@ function SeatButton({
       style={style}
       {...props}
     >
-      <SeatGlyph state={state} />
+      <SeatGlyph state={state} turned={turned} />
 
       {/* The number is HTML, not SVG text: it stays legible at any deck scale
           instead of shrinking with the drawing. */}
@@ -411,19 +419,14 @@ function SeatButton({
           'text-[clamp(0.6875rem,2.6vw,0.875rem)] leading-none',
           seat.label.length > 2 && 'text-[clamp(0.5625rem,2vw,0.75rem)]',
         )}
-        style={{ color: SEAT_TEXT[state], marginTop: '0.15em' }}
+        style={
+          turned
+            ? { color: SEAT_TEXT[state], marginRight: '0.2em' }
+            : { color: SEAT_TEXT[state], marginTop: '0.15em' }
+        }
       >
         {seat.label}
       </span>
-
-      {occupied ? (
-        <span
-          className="pointer-events-none absolute top-[12%] right-[10%]"
-          style={{ color: SEAT_TEXT[state] }}
-        >
-          <GenderMark gender={occupied} />
-        </span>
-      ) : null}
 
       {selected ? (
         <span

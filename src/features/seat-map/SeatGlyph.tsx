@@ -40,13 +40,26 @@ const STROKE: Record<SeatVisualState, string> = {
 const BODY_PATH =
   'M10.5 2.25 H29.5 A5 5 0 0 1 34.5 7.25 V10 Q36.5 10 36.5 12 V34.75 A7 7 0 0 1 29.5 41.75 H10.5 A7 7 0 0 1 3.5 34.75 V12 Q3.5 10 5.5 10 V7.25 A5 5 0 0 1 10.5 2.25 Z'
 
-export function SeatGlyph({ state }: { state: SeatVisualState }) {
+export function SeatGlyph({
+  state,
+  turned = false,
+}: {
+  state: SeatVisualState
+  /**
+   * The deck is lying down. The drawing has its backrest at the top, so a
+   * seat facing the driver on a lying-down coach — driver at the left — needs
+   * the backrest on the RIGHT: a quarter turn clockwise. Note that this is
+   * the opposite turn to the one the coach took; turning the seat the same
+   * way would have put its back to the driver.
+   */
+  turned?: boolean
+}) {
   const stroke = STROKE[state]
   const isOccupied = state === 'occupied-male' || state === 'occupied-female'
 
   return (
     <svg
-      viewBox="0 0 40 44"
+      viewBox={turned ? '0 0 44 40' : '0 0 40 44'}
       className="size-full"
       aria-hidden="true"
       focusable="false"
@@ -69,53 +82,57 @@ export function SeatGlyph({ state }: { state: SeatVisualState }) {
         </defs>
       ) : null}
 
-      <path
-        d={BODY_PATH}
-        fill={FILL[state]}
-        stroke={stroke}
-        strokeWidth={state === 'selected' ? 2 : 1.5}
-        strokeLinejoin="round"
-        strokeDasharray={state === 'blocked' ? '3.5 3' : undefined}
-        vectorEffect="non-scaling-stroke"
-      />
+      {/* translate(44 0) rotate(90): the 40x44 upright drawing lands in the
+          44x40 turned cell with its top edge on the right. */}
+      <g transform={turned ? 'translate(44 0) rotate(90)' : undefined}>
+        <path
+          d={BODY_PATH}
+          fill={FILL[state]}
+          stroke={stroke}
+          strokeWidth={state === 'selected' ? 2 : 1.5}
+          strokeLinejoin="round"
+          strokeDasharray={state === 'blocked' ? '3.5 3' : undefined}
+          vectorEffect="non-scaling-stroke"
+        />
 
-      {isOccupied ? <path d={BODY_PATH} fill={`url(#hatch-${state})`} stroke="none" /> : null}
+        {isOccupied ? <path d={BODY_PATH} fill={`url(#hatch-${state})`} stroke="none" /> : null}
 
-      {/* The crease where backrest meets cushion — the one detail that makes
+        {/* The crease where backrest meets cushion — the one detail that makes
           the shape read as a seat rather than a rounded rectangle. */}
-      <path
-        d="M6.5 13.5 Q20 16.5 33.5 13.5"
-        fill="none"
-        stroke={stroke}
-        strokeWidth="1"
-        strokeLinecap="round"
-        opacity="0.55"
-        vectorEffect="non-scaling-stroke"
-      />
+        <path
+          d="M6.5 13.5 Q20 16.5 33.5 13.5"
+          fill="none"
+          stroke={stroke}
+          strokeWidth="1"
+          strokeLinecap="round"
+          opacity="0.55"
+          vectorEffect="non-scaling-stroke"
+        />
 
-      {/* Armrest bolsters, drawn after the body so their stroke crosses it. */}
-      <rect
-        x="0.75"
-        y="15"
-        width="5"
-        height="21"
-        rx="2.5"
-        fill={FILL[state]}
-        stroke={stroke}
-        strokeWidth="1.5"
-        vectorEffect="non-scaling-stroke"
-      />
-      <rect
-        x="34.25"
-        y="15"
-        width="5"
-        height="21"
-        rx="2.5"
-        fill={FILL[state]}
-        stroke={stroke}
-        strokeWidth="1.5"
-        vectorEffect="non-scaling-stroke"
-      />
+        {/* Armrest bolsters, drawn after the body so their stroke crosses it. */}
+        <rect
+          x="0.75"
+          y="15"
+          width="5"
+          height="21"
+          rx="2.5"
+          fill={FILL[state]}
+          stroke={stroke}
+          strokeWidth="1.5"
+          vectorEffect="non-scaling-stroke"
+        />
+        <rect
+          x="34.25"
+          y="15"
+          width="5"
+          height="21"
+          rx="2.5"
+          fill={FILL[state]}
+          stroke={stroke}
+          strokeWidth="1.5"
+          vectorEffect="non-scaling-stroke"
+        />
+      </g>
     </svg>
   )
 }
