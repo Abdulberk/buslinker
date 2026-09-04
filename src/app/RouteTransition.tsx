@@ -50,7 +50,10 @@ export function RouteTransition() {
       // riding out the one already running.
       key={veiling}
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 z-300 grid animate-route-veil place-items-center bg-bg"
+      // Translucent, not opaque: the page behind stays visible, so this reads
+      // as a wash over the transition rather than a blank screen. The blur is
+      // what keeps the mark legible over whatever happens to be underneath.
+      className="pointer-events-none fixed inset-0 z-300 grid animate-route-veil place-items-center bg-bg/65 backdrop-blur-md"
     >
       {/* The wordmark's tittle: a solid dot at r=3 inside a ring at r=5.5, both
           centred on the origin so the rings scale outward from the dot. */}
