@@ -15,8 +15,15 @@
    kept in a comment as documentation, not as a fallback.
    ========================================================================== */
 
-@import 'tailwindcss';
+/* `source(none)` disables Tailwind's automatic source detection, which walks the
+   whole project and treats any directory git does not ignore as scannable — a
+   stray `dist2/` or backup copy of a build then feeds its own emitted class
+   names back in, silently inflating the bundle. The scan is declared instead. */
+@import 'tailwindcss' source(none);
 @import 'tw-animate-css';
+
+@source '../../index.html';
+@source '../**/*.{ts,tsx}';
 
 @custom-variant dark (&:where(.dark, .dark *));
 

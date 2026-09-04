@@ -12,12 +12,19 @@ export default defineConfig({
     rollupOptions: {
       output: {
         // Vite 8 bundles with Rolldown, where `manualChunks` is function-only.
-        // `advancedChunks` is the supported declarative form.
-        advancedChunks: {
+        // `codeSplitting` is the declarative form; it superseded `advancedChunks`,
+        // which rolldown now keeps only as a deprecated alias of the same type.
+        codeSplitting: {
           groups: [
-            { name: 'react', test: /node_modules[\\/](react|react-dom|scheduler|react-router)[\\/]/ },
+            {
+              name: 'react',
+              test: /node_modules[\\/](react|react-dom|scheduler|react-router)[\\/]/,
+            },
             { name: 'query', test: /node_modules[\\/]@tanstack[\\/]/ },
-            { name: 'motion', test: /node_modules[\\/](motion|framer-motion|motion-dom|motion-utils)[\\/]/ },
+            {
+              name: 'motion',
+              test: /node_modules[\\/](motion|framer-motion|motion-dom|motion-utils)[\\/]/,
+            },
           ],
         },
       },
