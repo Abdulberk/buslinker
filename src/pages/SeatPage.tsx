@@ -175,10 +175,13 @@ export default function SeatPage() {
               aria-labelledby="deck-title"
               className="rounded-xl border border-border bg-surface-raised p-4 shadow-sm sm:p-6 lg:p-5"
             >
-              <h2 id="deck-title" className="text-sm font-semibold text-fg">
+              {/* Both stay in the document: the section is labelled by the heading,
+                  and the keyboard hint is exactly what a screen-reader user needs
+                  and a sighted one does not. */}
+              <h2 id="deck-title" className="sr-only">
                 Koltuk planı
               </h2>
-              <p className="mt-1 text-xs text-fg-muted">
+              <p className="sr-only">
                 Bir koltuğa dokunun, ardından yolcunun cinsiyetini seçin. Klavyeyle ok tuşlarını
                 kullanabilirsiniz.
               </p>

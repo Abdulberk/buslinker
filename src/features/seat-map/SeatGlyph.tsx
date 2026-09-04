@@ -24,7 +24,6 @@ const FILL: Record<SeatVisualState, string> = {
   selected: 'var(--seat-selected-fill)',
   'occupied-male': 'var(--seat-male-fill)',
   'occupied-female': 'var(--seat-female-fill)',
-  blocked: 'var(--seat-blocked-fill)',
   disabled: 'var(--seat-disabled-fill)',
 }
 
@@ -33,9 +32,16 @@ const STROKE: Record<SeatVisualState, string> = {
   selected: 'var(--seat-selected-border)',
   'occupied-male': 'var(--seat-male-border)',
   'occupied-female': 'var(--seat-female-border)',
-  blocked: 'var(--seat-blocked-border)',
   disabled: 'var(--seat-disabled-border)',
 }
+
+/**
+ * One weight for every line of the seat — body, crease, armrests, selected
+ * or not. Selection is carried by the fill and the badge; a heavier outline
+ * on top of that was a third voice. `non-scaling-stroke` makes this screen
+ * pixels, so 1.2 is 1.2 at any deck size.
+ */
+const LINE = 1.2
 
 const BODY_PATH =
   'M10.5 2.25 H29.5 A5 5 0 0 1 34.5 7.25 V10 Q36.5 10 36.5 12 V34.75 A7 7 0 0 1 29.5 41.75 H10.5 A7 7 0 0 1 3.5 34.75 V12 Q3.5 10 5.5 10 V7.25 A5 5 0 0 1 10.5 2.25 Z'
@@ -89,9 +95,8 @@ export function SeatGlyph({
           d={BODY_PATH}
           fill={FILL[state]}
           stroke={stroke}
-          strokeWidth={state === 'selected' ? 2 : 1.5}
+          strokeWidth={LINE}
           strokeLinejoin="round"
-          strokeDasharray={state === 'blocked' ? '3.5 3' : undefined}
           vectorEffect="non-scaling-stroke"
         />
 
@@ -103,9 +108,9 @@ export function SeatGlyph({
           d="M6.5 13.5 Q20 16.5 33.5 13.5"
           fill="none"
           stroke={stroke}
-          strokeWidth="1"
+          strokeWidth={LINE}
           strokeLinecap="round"
-          opacity="0.55"
+          opacity="0.5"
           vectorEffect="non-scaling-stroke"
         />
 
@@ -118,7 +123,7 @@ export function SeatGlyph({
           rx="2.5"
           fill={FILL[state]}
           stroke={stroke}
-          strokeWidth="1.5"
+          strokeWidth={LINE}
           vectorEffect="non-scaling-stroke"
         />
         <rect
@@ -129,7 +134,7 @@ export function SeatGlyph({
           rx="2.5"
           fill={FILL[state]}
           stroke={stroke}
-          strokeWidth="1.5"
+          strokeWidth={LINE}
           vectorEffect="non-scaling-stroke"
         />
       </g>

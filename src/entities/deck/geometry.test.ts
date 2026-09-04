@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { DECK_TOKENS, layoutDeck } from './geometry'
-import { DECK_2P1_34, DECK_2P1_38, DECK_2P1_41, DECK_2P2_46, DECK_2P2_54 } from './layouts'
+import { DECK_TOKENS, layoutDeck, type DeckSpec } from './geometry'
+import { DECK_2P1_36, DECK_2P1_39, DECK_2P1_41, DECK_2P2_46, DECK_2P2_54 } from './layouts'
 
 const t = DECK_TOKENS
 
 describe('layoutDeck — column pass', () => {
   it('places 2+1 tracks by prefix sum with the aisle off-centre', () => {
-    const g = layoutDeck(DECK_2P1_38)
+    const g = layoutDeck(DECK_2P1_39)
     const row0 = g.cells.filter((c) => c.row === 0).sort((a, b) => a.x - b.x)
 
     // 18 | seat 40 | gap 8 | aisle 26 | gap 8 | seat 40 | gap 4 | seat 40 | 18
@@ -34,10 +34,16 @@ describe('layoutDeck — column pass', () => {
 
 describe('layoutDeck — row pass', () => {
   it('is linear in the row index, not quadratic', () => {
-    const g = layoutDeck(DECK_2P1_38)
+    const g = layoutDeck(DECK_2P1_39)
     const ys = [...new Set(g.cells.map((c) => c.row))]
       .sort((a, b) => a - b)
-      .map((r) => g.cells.find((c) => c.row === r)!.y)
+      .map((r) => {
+        // A compressed back row (four across, scaled down) is centred inside
+        // its pitch, so its cell sits a hair below the row baseline. Undo that
+        // offset: the claim under test is about the baseline, not the cell.
+        const c = g.cells.find((c) => c.row === r)!
+        return c.y - (t.seatH - c.h) / 2
+      })
 
     const deltas = ys.slice(1).map((y, i) => y - ys[i]!)
     // Every gap identical. The old formula produced 42, 222, 402, 606.
@@ -46,7 +52,7 @@ describe('layoutDeck — row pass', () => {
   })
 
   it('derives the viewBox height from the last row so tokens cannot desync it', () => {
-    const g = layoutDeck(DECK_2P1_38)
+    const g = layoutDeck(DECK_2P1_39)
     const lastY = t.noseLen + t.padTop + (g.rowCount - 1) * (t.seatH + t.rowGap)
     expect(g.viewBox.h).toBe(lastY + t.seatH + t.padBottom)
   })
@@ -54,8 +60,8 @@ describe('layoutDeck — row pass', () => {
 
 describe('layoutDeck — numbering', () => {
   it('numbers 2+1/38 in reading order with the real mid-door signature', () => {
-    const g = layoutDeck(DECK_2P1_38)
-    expect(g.seatCount).toBe(38)
+    const g = layoutDeck(DECK_2P1_39)
+    expect(g.seatCount).toBe(39)
 
     const at = (n: number) => g.bySeatNo.get(n)!
     // Seat 1 is the front-most seat on the driver's (left) single column.
@@ -100,15 +106,15 @@ describe('layoutDeck — numbering', () => {
   })
 
   it('keeps every catalogue layout at its advertised capacity', () => {
-    expect(layoutDeck(DECK_2P1_34).seatCount).toBe(34)
-    expect(layoutDeck(DECK_2P1_38).seatCount).toBe(38)
+    expect(layoutDeck(DECK_2P1_36).seatCount).toBe(36)
+    expect(layoutDeck(DECK_2P1_39).seatCount).toBe(39)
     expect(layoutDeck(DECK_2P1_41).seatCount).toBe(41)
     expect(layoutDeck(DECK_2P2_46).seatCount).toBe(46)
     expect(layoutDeck(DECK_2P2_54).seatCount).toBe(54)
   })
 
   it('assigns a contiguous 1..n with no gaps or repeats', () => {
-    for (const deck of [DECK_2P1_34, DECK_2P1_41, DECK_2P2_46]) {
+    for (const deck of [DECK_2P1_36, DECK_2P1_41, DECK_2P2_46]) {
       const g = layoutDeck(deck)
       const nums = g.seats.map((s) => s.seatNo!).sort((a, b) => a - b)
       expect(nums).toEqual(Array.from({ length: g.seatCount }, (_, i) => i + 1))
@@ -118,7 +124,7 @@ describe('layoutDeck — numbering', () => {
 
 describe('layoutDeck — pairs and singles', () => {
   it('marks the left column of a 2+1 as single and pairs the right two', () => {
-    const g = layoutDeck(DECK_2P1_38)
+    const g = layoutDeck(DECK_2P1_39)
     const bodySeats = g.seats.filter((s) => !s.isBackRow)
     for (const seat of bodySeats) {
       if (seat.track === 0) {
@@ -180,7 +186,7 @@ describe('layoutDeck — back row', () => {
 
 describe('layoutDeck — keyboard neighbours', () => {
   it('steps across the aisle with no special case, because no cell exists there', () => {
-    const g = layoutDeck(DECK_2P1_38)
+    const g = layoutDeck(DECK_2P1_39)
     const row0 = g.cells.filter((c) => c.row === 0).sort((a, b) => a.x - b.x)
     const left = row0[0]!
     // Track 0 -> track 2: the aisle at track 1 emits no cell, so `right` skips it.
@@ -209,7 +215,7 @@ describe('layoutDeck — keyboard neighbours', () => {
   })
 
   it('reaches every seat from the first cell using only arrow neighbours', () => {
-    const g = layoutDeck(DECK_2P1_34)
+    const g = layoutDeck(DECK_2P1_36)
     const seen = new Set<string>()
     const queue = [g.cells[0]!.key]
     while (queue.length > 0) {
@@ -227,7 +233,7 @@ describe('layoutDeck — keyboard neighbours', () => {
 
 describe('layoutDeck — fixtures', () => {
   it('merges a two-row, two-track door into one drawable block', () => {
-    const g = layoutDeck(DECK_2P1_38)
+    const g = layoutDeck(DECK_2P1_39)
     const doors = g.fixtures.filter((f) => f.kind === 'door')
     expect(doors).toHaveLength(1)
     const door = doors[0]!
@@ -238,7 +244,19 @@ describe('layoutDeck — fixtures', () => {
   })
 
   it('keeps a WC separate from the door', () => {
-    const g = layoutDeck(DECK_2P1_34)
+    // No catalogue deck carries a WC any more — Turkish coaches stop at rest
+    // areas — but the fixture merger still has to keep two kinds apart when
+    // they abut, so the case lives on as an inline spec.
+    const withWc: DeckSpec = {
+      ...DECK_2P1_39,
+      rows: [
+        { cells: ['seat', 'seat', 'seat'] },
+        { cells: ['seat', 'door', 'door'] },
+        { cells: ['seat', 'wc', 'wc'] },
+        { back: 3 },
+      ],
+    }
+    const g = layoutDeck(withWc)
     expect(g.fixtures.filter((f) => f.kind === 'door')).toHaveLength(1)
     expect(g.fixtures.filter((f) => f.kind === 'wc')).toHaveLength(1)
   })
@@ -246,22 +264,22 @@ describe('layoutDeck — fixtures', () => {
 
 describe('layoutDeck — purity', () => {
   it('returns identical geometry for identical input', () => {
-    const a = layoutDeck(DECK_2P1_38)
-    const b = layoutDeck(DECK_2P1_38)
+    const a = layoutDeck(DECK_2P1_39)
+    const b = layoutDeck(DECK_2P1_39)
     expect(JSON.stringify(a.cells)).toBe(JSON.stringify(b.cells))
     expect(a.viewBox).toEqual(b.viewBox)
   })
 
   it('scales with a token change instead of needing code edits', () => {
-    const wide = layoutDeck(DECK_2P1_38, { ...t, seatW: 48 })
+    const wide = layoutDeck(DECK_2P1_39, { ...t, seatW: 48 })
     expect(wide.viewBox.w).toBe(202 + 3 * 8)
-    expect(wide.seatCount).toBe(38)
+    expect(wide.seatCount).toBe(39)
   })
 })
 
 describe('layoutDeck — turned a quarter turn', () => {
-  const upright = layoutDeck(DECK_2P1_38)
-  const turned = layoutDeck(DECK_2P1_38, DECK_TOKENS, 'horizontal')
+  const upright = layoutDeck(DECK_2P1_39)
+  const turned = layoutDeck(DECK_2P1_39, DECK_TOKENS, 'horizontal')
 
   it('swaps the box it draws into', () => {
     expect(turned.viewBox.w).toBe(upright.viewBox.h)

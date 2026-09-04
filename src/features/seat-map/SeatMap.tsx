@@ -445,18 +445,6 @@ function SeatButton({
           </svg>
         </span>
       ) : null}
-
-      {state === 'blocked' ? (
-        <span
-          className="pointer-events-none absolute bottom-[10%] text-[0.55rem] font-bold"
-          style={{ color: SEAT_TEXT[state] }}
-          aria-hidden="true"
-        >
-          {/* A dashed outline plus this mark, so the restriction is never
-              carried by hue alone. */}
-          {'✕'}
-        </span>
-      ) : null}
     </button>
   )
 }
@@ -466,7 +454,6 @@ const SEAT_TEXT: Record<string, string> = {
   selected: 'var(--seat-selected-text)',
   'occupied-male': 'var(--seat-male-text)',
   'occupied-female': 'var(--seat-female-text)',
-  blocked: 'var(--seat-blocked-text)',
   disabled: 'var(--seat-disabled-text)',
 }
 

@@ -124,13 +124,16 @@ export function acceptsGender(seat: Seat, gender: Gender): boolean {
 }
 
 export type SeatVisualState =
-  'available' | 'selected' | 'occupied-male' | 'occupied-female' | 'blocked' | 'disabled'
+  'available' | 'selected' | 'occupied-male' | 'occupied-female' | 'disabled'
 
 export function seatVisualState(seat: Seat, selected: boolean): SeatVisualState {
   if (selected) return 'selected'
   if (seat.occupiedBy === 'M') return 'occupied-male'
   if (seat.occupiedBy === 'F') return 'occupied-female'
-  if (isGenderLocked(seat)) return 'blocked'
+  // A seat locked to one gender by its taken partner looks like any other
+  // free seat. The lock is enforced where it matters — the gender picker
+  // only offers what the seat accepts — so marking it as well said the same
+  // thing twice and made a sellable seat look like a problem.
   if (seat.availableFor === 'NO') return 'disabled'
   return 'available'
 }

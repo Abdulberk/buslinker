@@ -12,7 +12,6 @@ import type { DeckSpec, RowCell, RowSpec } from './geometry'
 
 const full3: RowSpec = { cells: ['seat', 'seat', 'seat'] }
 const door3: RowSpec = { cells: ['seat', 'door', 'door'] }
-const wc3: RowSpec = { cells: ['seat', 'wc', 'wc'] }
 const full4: RowSpec = { cells: ['seat', 'seat', 'seat', 'seat'] }
 const door4: RowSpec = { cells: ['seat', 'seat', 'door', 'door'] }
 
@@ -36,19 +35,19 @@ const TRACKS_2P2 = [
 ] as const satisfies DeckSpec['tracks']
 
 /**
- * 2+1, 38 seats — the common "lüks" configuration.
+ * 2+1, 39 seats — the common "lüks" configuration, four across the back.
  *
  * The two door rows are what produce the numbering signature seen on real
  * seat maps: the right column jumps 18 -> 22 while the left single column
  * runs 19, 20, 21 consecutively.
  */
-export const DECK_2P1_38: DeckSpec = {
-  id: 'lux-2p1-38',
-  name: '2+1 Lüks (38 koltuk)',
+export const DECK_2P1_39: DeckSpec = {
+  id: 'lux-2p1-39',
+  name: '2+1 Lüks (39 koltuk)',
   family: '2+1',
   doorSide: 'right',
   tracks: TRACKS_2P1,
-  rows: [...repeat(full3, 6), ...repeat(door3, 2), ...repeat(full3, 5), { back: 3 }],
+  rows: [...repeat(full3, 6), ...repeat(door3, 2), ...repeat(full3, 5), { back: 4 }],
 }
 
 /** 2+1, 41 seats — a single door row and a four-across back row (38 | 39 | 40, 41). */
@@ -61,20 +60,18 @@ export const DECK_2P1_41: DeckSpec = {
   rows: [...repeat(full3, 7), door3, ...repeat(full3, 5), { back: 4 }],
 }
 
-/** 2+1, 34 seats — shorter cabin with an on-board WC behind the mid door. */
-export const DECK_2P1_34: DeckSpec = {
-  id: 'lux-2p1-34',
-  name: '2+1 Lüks WC (34 koltuk)',
+/**
+ * 2+1, 36 seats — the shorter cabin. No WC: Turkish intercity coaches stop at
+ * rest areas rather than carry one, and the on-board WC drawn here before was
+ * a fixture nobody recognised.
+ */
+export const DECK_2P1_36: DeckSpec = {
+  id: 'lux-2p1-36',
+  name: '2+1 Lüks (36 koltuk)',
   family: '2+1',
   doorSide: 'right',
   tracks: TRACKS_2P1,
-  rows: [
-    ...repeat(full3, 6),
-    ...repeat(door3, 2),
-    ...repeat(full3, 3),
-    ...repeat(wc3, 2),
-    { back: 3 },
-  ],
+  rows: [...repeat(full3, 6), ...repeat(door3, 2), ...repeat(full3, 4), { back: 4 }],
 }
 
 /** 2+2, 46 seats — the standard 12–13 m single-axle coach. */
@@ -101,8 +98,8 @@ export const DECK_2P2_54: DeckSpec = {
 // to `string`, which makes `keyof typeof DECKS` become `string | number` and
 // quietly erases the type safety this map exists to provide.
 export const DECKS = {
-  'lux-2p1-34': DECK_2P1_34,
-  'lux-2p1-38': DECK_2P1_38,
+  'lux-2p1-36': DECK_2P1_36,
+  'lux-2p1-39': DECK_2P1_39,
   'lux-2p1-41': DECK_2P1_41,
   'std-2p2-46': DECK_2P2_46,
   'std-2p2-54': DECK_2P2_54,
@@ -113,7 +110,7 @@ export type DeckId = keyof typeof DECKS
 export const DECK_IDS = Object.keys(DECKS) as DeckId[]
 
 export function getDeck(id: string): DeckSpec {
-  return DECKS[id as DeckId] ?? DECK_2P1_38
+  return DECKS[id as DeckId] ?? DECK_2P1_39
 }
 
 /** Seat-layout family as it appears in filters and on trip cards. */

@@ -21,7 +21,6 @@ const WITH_GENDER: readonly LegendItem[] = [
   { state: 'occupied-male', label: 'Dolu - Erkek' },
   { state: 'occupied-female', label: 'Dolu - Kadın' },
   { state: 'selected', label: 'Seçilen Koltuk' },
-  { state: 'blocked', label: 'Cinsiyet Kısıtlı' },
 ]
 
 const WITHOUT_GENDER: readonly LegendItem[] = [

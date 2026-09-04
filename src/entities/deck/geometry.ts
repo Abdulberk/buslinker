@@ -98,7 +98,7 @@ export const DECK_TOKENS: GeometryTokens = Object.freeze({
   noseLen: 96,
   noseR: 44,
   tailR: 28,
-  shellStroke: 3,
+  shellStroke: 1.75,
   wheelW: 12,
   wheelH: 54,
   backGap: 6,

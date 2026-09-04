@@ -67,12 +67,12 @@ export function BusShell({ geometry }: { geometry: Geometry }) {
           d={chrome.shellPath}
           fill="var(--color-deck-shell)"
           stroke="var(--color-deck-shell-border)"
-          strokeWidth="3"
+          strokeWidth="1.75"
           strokeLinejoin="round"
         />
 
         {/* Windshield: a band between two concentric nose arcs. */}
-        <path d={chrome.windshieldOuter} fill="none" stroke="url(#bl-windshield)" strokeWidth="9" />
+        <path d={chrome.windshieldOuter} fill="none" stroke="url(#bl-windshield)" strokeWidth="7" />
         <path
           d={chrome.windshieldInner}
           fill="none"
@@ -98,7 +98,7 @@ export function BusShell({ geometry }: { geometry: Geometry }) {
           r={chrome.wheel.r}
           fill="none"
           stroke="var(--color-deck-shell-border)"
-          strokeWidth="2.5"
+          strokeWidth="1.75"
         />
         <circle
           cx={chrome.wheel.cx}
@@ -117,7 +117,12 @@ export function BusShell({ geometry }: { geometry: Geometry }) {
           two-row door is one shape rather than four abutting tiles. */}
       {fixtures.map((f) => {
         if (f.kind === 'door') {
-          const treadCount = Math.max(2, Math.floor(f.h / 22))
+          // The door sits in the curb-side wall: the right edge upright, the top
+          // edge once the deck is turned. A solid threshold on that edge and
+          // treads stepping away from it are what make the opening read as a
+          // door rather than as a missing pair of seats.
+          const turned = geometry.orientation === 'horizontal'
+          const steps = 3
           return (
             <g key={f.key}>
               <rect
@@ -125,27 +130,60 @@ export function BusShell({ geometry }: { geometry: Geometry }) {
                 y={f.y}
                 width={f.w}
                 height={f.h}
-                rx="8"
-                fill="var(--color-deck-floor)"
+                rx="6"
+                fill="var(--color-deck-chrome)"
+                fillOpacity="0.16"
                 stroke="var(--color-deck-chrome)"
-                strokeWidth="1"
-                strokeDasharray="5 4"
+                strokeWidth="1.25"
               />
-              {Array.from({ length: treadCount }, (_, i) => (
+              {turned ? (
                 <rect
-                  key={i}
-                  x={f.x + 10}
-                  y={f.y + 12 + i * ((f.h - 24) / treadCount)}
-                  width={f.w - 20}
-                  height="6"
-                  rx="3"
-                  fill="var(--color-deck-chrome)"
-                  opacity="0.7"
+                  x={f.x + 4}
+                  y={f.y}
+                  width={f.w - 8}
+                  height="4"
+                  rx="2"
+                  fill="var(--color-deck-shell-border)"
                 />
-              ))}
+              ) : (
+                <rect
+                  x={f.x + f.w - 4}
+                  y={f.y + 4}
+                  width="4"
+                  height={f.h - 8}
+                  rx="2"
+                  fill="var(--color-deck-shell-border)"
+                />
+              )}
+              {Array.from({ length: steps }, (_, i) =>
+                turned ? (
+                  <rect
+                    key={i}
+                    x={f.x + 10}
+                    y={f.y + 10 + i * ((f.h - 20) / steps)}
+                    width={f.w - 20}
+                    height="5"
+                    rx="2.5"
+                    fill="var(--color-deck-chrome)"
+                    opacity="0.9"
+                  />
+                ) : (
+                  <rect
+                    key={i}
+                    x={f.x + f.w - 15 - i * ((f.w - 20) / steps)}
+                    y={f.y + 10}
+                    width="5"
+                    height={f.h - 20}
+                    rx="2.5"
+                    fill="var(--color-deck-chrome)"
+                    opacity="0.9"
+                  />
+                ),
+              )}
             </g>
           )
         }
+
         if (f.kind === 'wc') {
           return (
             <g key={f.key}>
