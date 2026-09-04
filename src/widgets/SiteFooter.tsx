@@ -242,7 +242,7 @@ export function SiteFooter() {
             {PAYMENT.map((method) => (
               <li
                 key={method.id}
-                className="bg-white grid h-10 w-15 place-items-center rounded-lg border border-border p-1.5"
+                className="grid h-10 w-15 place-items-center rounded-lg border border-border bg-neutral-0 p-1.5"
               >
                 <Illustration
                   src={method.src}

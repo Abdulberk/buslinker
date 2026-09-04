@@ -51,7 +51,7 @@ export function OperatorLogo({ operatorId, className, decorative = true }: Opera
     <span
       className={cn(
         'grid size-11 shrink-0 place-items-center overflow-hidden rounded-lg',
-        'bg-white border border-border p-1',
+        'border border-border bg-neutral-0 p-1',
         className,
       )}
     >

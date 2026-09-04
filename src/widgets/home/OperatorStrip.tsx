@@ -1,13 +1,7 @@
-import { Star } from 'lucide-react'
 import { OPERATORS } from '@/shared/api/catalog'
 import { OperatorLogo } from '@/shared/ui/operator-logo'
 import { ICON } from '@/shared/config/assets'
 import { AssetIcon } from '@/shared/ui/asset-icon'
-
-/** `8.4` -> `8,4`. Locale-independent: `toFixed` never emits a comma itself. */
-function formatRating(value: number): string {
-  return value.toFixed(1).replace('.', ',')
-}
 
 export function OperatorStrip() {
   return (
@@ -24,19 +18,14 @@ export function OperatorStrip() {
         {OPERATORS.map((operator) => (
           <li
             key={operator.id}
-            className="flex w-36 shrink-0 flex-col items-center gap-2 rounded-xl border border-border bg-surface p-4 text-center md:w-40"
+            // No card here on purpose. OperatorLogo already draws a bordered
+            // white tile — the marks are PNGs on white and need that ground to
+            // survive dark mode — so a second bordered box around it just put
+            // one frame inside another.
+            className="flex w-32 shrink-0 flex-col items-center gap-2.5 py-2 text-center md:w-36"
           >
             <OperatorLogo operatorId={operator.id} className="size-20" />
             <span className="text-sm font-medium text-balance-tr text-fg">{operator.name}</span>
-            <span
-              className="inline-flex items-center gap-1 text-xs text-fg-muted"
-              aria-label={`Yolcu puanı ${formatRating(operator.rating)} / 10`}
-            >
-              <Star className="size-3.5 fill-current text-warning-fg" aria-hidden="true" />
-              <span data-numeric aria-hidden="true">
-                {formatRating(operator.rating)}
-              </span>
-            </span>
           </li>
         ))}
       </ul>
