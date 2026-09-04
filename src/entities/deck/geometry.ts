@@ -21,6 +21,8 @@
  *      interrupts one column and the opposite column runs consecutively.
  */
 
+export type DeckOrientation = 'vertical' | 'horizontal'
+
 export type CellKind = 'seat' | 'door' | 'wc' | 'stairs' | 'empty'
 
 /** A column track. Aisle tracks hold no cells; they are pure spacing. */
@@ -171,6 +173,13 @@ export interface Geometry {
   readonly ariaRowCount: number
   readonly ariaColCount: number
   readonly seatCount: number
+  /**
+   * `horizontal` means the deck has been turned a quarter turn anticlockwise:
+   * cells, viewBox and ARIA indices are all in that turned space. `chrome` is
+   * NOT — it stays upright and BusShell turns the whole SVG with one
+   * transform, which beats keeping a second copy of the coach drawing.
+   */
+  readonly orientation: DeckOrientation
   readonly chrome: DeckChrome
 }
 
@@ -185,7 +194,60 @@ function trackWidth(track: TrackSpec, t: GeometryTokens): number {
   return track.width ?? (track.kind === 'aisle' ? t.aisleW : t.seatW)
 }
 
-export function layoutDeck(spec: DeckSpec, tokens: GeometryTokens = DECK_TOKENS): Geometry {
+export function layoutDeck(
+  spec: DeckSpec,
+  tokens: GeometryTokens = DECK_TOKENS,
+  orientation: DeckOrientation = 'vertical',
+): Geometry {
+  const upright = layoutUpright(spec, tokens)
+  return orientation === 'horizontal' ? turn(upright) : upright
+}
+
+/**
+ * Turns a laid-out deck a quarter turn anticlockwise: the nose goes from the
+ * top to the left and the driver's side from the left to the bottom, which is
+ * how a coach is drawn on a wide screen.
+ *
+ * The layout is not computed twice. A rotation is exactly what this is, so the
+ * upright model stays the only place that decides numbering, pairing and where
+ * the aisle falls, and this moves the result.
+ */
+function turn(g: Geometry): Geometry {
+  const W = g.viewBox.w
+  const cols = g.ariaColCount
+  const box = <T extends Box>(b: T) => ({ x: b.y, y: W - b.x - b.w, w: b.h, h: b.w })
+
+  const cells = g.cells.map((c) => ({
+    ...c,
+    ...box(c),
+    cx: c.cy,
+    cy: W - c.cx,
+    // A quarter turn moves the compass with it: what was toward the nose is
+    // now toward the left, and the driver's side is now the bottom.
+    nb: { left: c.nb.up, right: c.nb.down, up: c.nb.right, down: c.nb.left },
+    // Visual rows now run along the coach, so the old column index becomes the
+    // row — reversed, because the left-hand side ended up at the bottom.
+    ariaRowIndex: cols - c.ariaColIndex + 1,
+    ariaColIndex: c.ariaRowIndex,
+  }))
+  const seats = cells.filter((c) => c.kind === 'seat')
+
+  return {
+    ...g,
+    orientation: 'horizontal',
+    viewBox: { x: 0, y: 0, w: g.viewBox.h, h: g.viewBox.w },
+    aspectRatio: g.viewBox.h / g.viewBox.w,
+    cells,
+    seats,
+    fixtures: g.fixtures.map((f) => ({ ...f, ...box(f) })),
+    byKey: new Map(cells.map((c) => [c.key, c])),
+    bySeatNo: new Map(seats.map((c) => [c.seatNo!, c])),
+    ariaRowCount: g.ariaColCount,
+    ariaColCount: g.ariaRowCount,
+  }
+}
+
+function layoutUpright(spec: DeckSpec, tokens: GeometryTokens): Geometry {
   const t = tokens
 
   // ---- Pass 1: columns, by prefix sum over the declared tracks -------------
@@ -375,6 +437,7 @@ export function layoutDeck(spec: DeckSpec, tokens: GeometryTokens = DECK_TOKENS)
     ariaRowCount: spec.rows.length,
     ariaColCount: columns.length,
     seatCount: seats.length,
+    orientation: 'vertical',
     chrome: buildChrome(width, height, t, spec),
   }
 }

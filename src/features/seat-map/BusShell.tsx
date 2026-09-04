@@ -16,6 +16,14 @@ import type { Geometry } from '@/entities/deck/geometry'
 export function BusShell({ geometry }: { geometry: Geometry }) {
   const { viewBox, chrome, fixtures } = geometry
 
+  // The coach drawing is only ever authored upright. When the deck is turned,
+  // the drawing turns with one transform rather than being redrawn on its
+  // side — the cells and fixtures are already in the turned space, so only
+  // this group moves. `translate(0 h) rotate(-90)` is the same quarter turn
+  // anticlockwise the geometry applied to the cells.
+  const shellTurn =
+    geometry.orientation === 'horizontal' ? `translate(0 ${viewBox.h}) rotate(-90)` : undefined
+
   return (
     <svg
       viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
@@ -40,68 +48,70 @@ export function BusShell({ geometry }: { geometry: Geometry }) {
         </pattern>
       </defs>
 
-      {/* Wheels sit behind the body so the shell paints over their inner half
-          and they read as arches rather than pasted-on rectangles. */}
-      {chrome.wheels.map((w, i) => (
-        <rect
-          key={i}
-          x={w.x}
-          y={w.y}
-          width={w.w}
-          height={w.h}
-          rx={w.w / 2}
-          fill="var(--color-deck-chrome)"
+      <g transform={shellTurn}>
+        {/* Wheels sit behind the body so the shell paints over their inner half
+            and they read as arches rather than pasted-on rectangles. */}
+        {chrome.wheels.map((w, i) => (
+          <rect
+            key={i}
+            x={w.x}
+            y={w.y}
+            width={w.w}
+            height={w.h}
+            rx={w.w / 2}
+            fill="var(--color-deck-chrome)"
+          />
+        ))}
+
+        <path
+          d={chrome.shellPath}
+          fill="var(--color-deck-shell)"
+          stroke="var(--color-deck-shell-border)"
+          strokeWidth="3"
+          strokeLinejoin="round"
         />
-      ))}
 
-      <path
-        d={chrome.shellPath}
-        fill="var(--color-deck-shell)"
-        stroke="var(--color-deck-shell-border)"
-        strokeWidth="3"
-        strokeLinejoin="round"
-      />
+        {/* Windshield: a band between two concentric nose arcs. */}
+        <path d={chrome.windshieldOuter} fill="none" stroke="url(#bl-windshield)" strokeWidth="9" />
+        <path
+          d={chrome.windshieldInner}
+          fill="none"
+          stroke="var(--color-deck-shell-border)"
+          strokeWidth="1"
+          opacity="0.5"
+        />
 
-      {/* Windshield: a band between two concentric nose arcs. */}
-      <path d={chrome.windshieldOuter} fill="none" stroke="url(#bl-windshield)" strokeWidth="9" />
-      <path
-        d={chrome.windshieldInner}
-        fill="none"
-        stroke="var(--color-deck-shell-border)"
-        strokeWidth="1"
-        opacity="0.5"
-      />
+        {/* Aisle floor, running the length of the cabin behind the nose. */}
+        <rect
+          x={chrome.floor.x}
+          y={chrome.floor.y}
+          width={chrome.floor.w}
+          height={chrome.floor.h}
+          rx={chrome.floor.w / 2}
+          fill="var(--color-deck-floor)"
+        />
 
-      {/* Aisle floor, running the length of the cabin behind the nose. */}
-      <rect
-        x={chrome.floor.x}
-        y={chrome.floor.y}
-        width={chrome.floor.w}
-        height={chrome.floor.h}
-        rx={chrome.floor.w / 2}
-        fill="var(--color-deck-floor)"
-      />
-
-      {/* Driver: steering wheel plus a hint of the seat, front-left. */}
-      <circle
-        cx={chrome.wheel.cx}
-        cy={chrome.wheel.cy + 34}
-        r={chrome.wheel.r}
-        fill="none"
-        stroke="var(--color-deck-shell-border)"
-        strokeWidth="2.5"
-      />
-      <circle
-        cx={chrome.wheel.cx}
-        cy={chrome.wheel.cy + 34}
-        r="2"
-        fill="var(--color-deck-shell-border)"
-      />
-      <path
-        d={`M ${chrome.wheel.cx - chrome.wheel.r} ${chrome.wheel.cy + 34} H ${chrome.wheel.cx + chrome.wheel.r}`}
-        stroke="var(--color-deck-shell-border)"
-        strokeWidth="1.5"
-      />
+        {/* Driver: steering wheel plus a hint of the seat, front-left. */}
+        <circle
+          cx={chrome.wheel.cx}
+          cy={chrome.wheel.cy + 34}
+          r={chrome.wheel.r}
+          fill="none"
+          stroke="var(--color-deck-shell-border)"
+          strokeWidth="2.5"
+        />
+        <circle
+          cx={chrome.wheel.cx}
+          cy={chrome.wheel.cy + 34}
+          r="2"
+          fill="var(--color-deck-shell-border)"
+        />
+        <path
+          d={`M ${chrome.wheel.cx - chrome.wheel.r} ${chrome.wheel.cy + 34} H ${chrome.wheel.cx + chrome.wheel.r}`}
+          stroke="var(--color-deck-shell-border)"
+          strokeWidth="1.5"
+        />
+      </g>
 
       {/* Doors, WCs and stairwells — drawn from the merged fixture boxes, so a
           two-row door is one shape rather than four abutting tiles. */}

@@ -258,3 +258,70 @@ describe('layoutDeck — purity', () => {
     expect(wide.seatCount).toBe(38)
   })
 })
+
+describe('layoutDeck — turned a quarter turn', () => {
+  const upright = layoutDeck(DECK_2P1_38)
+  const turned = layoutDeck(DECK_2P1_38, DECK_TOKENS, 'horizontal')
+
+  it('swaps the box it draws into', () => {
+    expect(turned.viewBox.w).toBe(upright.viewBox.h)
+    expect(turned.viewBox.h).toBe(upright.viewBox.w)
+    expect(turned.aspectRatio).toBeCloseTo(upright.viewBox.h / upright.viewBox.w, 6)
+    expect(turned.aspectRatio).toBeGreaterThan(1)
+  })
+
+  // The turn is presentation. Which seat is which, who it pairs with and where
+  // the aisle falls are decided once, upright, and must survive untouched.
+  it('changes nothing about the seats themselves', () => {
+    expect(turned.seatCount).toBe(upright.seatCount)
+    for (const seat of upright.seats) {
+      const same = turned.byKey.get(seat.key)!
+      expect(same.seatNo).toBe(seat.seatNo)
+      expect(same.pairKey).toBe(seat.pairKey)
+      expect(same.isSingle).toBe(seat.isSingle)
+      expect(same.isWindow).toBe(seat.isWindow)
+    }
+  })
+
+  it('carries the nose to the left and the driver side to the bottom', () => {
+    const first = turned.bySeatNo.get(1)!
+    const last = turned.bySeatNo.get(turned.seatCount)!
+    // Seat 1 is at the front, which is now the left-hand end.
+    expect(first.x).toBeLessThan(last.x)
+
+    // In a 2+1 the singles ride on the driver's side, which the turn puts at
+    // the bottom — a larger y than the paired seats.
+    const singles = turned.seats.filter((s) => s.isSingle)
+    const paired = turned.seats.filter((s) => !s.isSingle)
+    const lowestSingle = Math.min(...singles.map((s) => s.y))
+    const lowestPaired = Math.min(...paired.map((s) => s.y))
+    expect(lowestSingle).toBeGreaterThan(lowestPaired)
+  })
+
+  it('turns the compass with the deck', () => {
+    for (const cell of upright.cells) {
+      const same = turned.byKey.get(cell.key)!
+      expect(same.nb.left).toBe(cell.nb.up)
+      expect(same.nb.right).toBe(cell.nb.down)
+      expect(same.nb.up).toBe(cell.nb.right)
+      expect(same.nb.down).toBe(cell.nb.left)
+    }
+  })
+
+  it('rebuilds the grid so rows run along the coach', () => {
+    expect(turned.ariaRowCount).toBe(upright.ariaColCount)
+    expect(turned.ariaColCount).toBe(upright.ariaRowCount)
+    for (const cell of turned.cells) {
+      expect(cell.ariaRowIndex).toBeGreaterThanOrEqual(1)
+      expect(cell.ariaRowIndex).toBeLessThanOrEqual(turned.ariaRowCount)
+    }
+  })
+
+  // The chrome stays upright on purpose: BusShell turns the drawing with one
+  // transform instead of the geometry keeping a second copy of the coach.
+  it('leaves the coach drawing upright for the shell to turn', () => {
+    expect(turned.chrome.shellPath).toBe(upright.chrome.shellPath)
+    expect(turned.orientation).toBe('horizontal')
+    expect(upright.orientation).toBe('vertical')
+  })
+})

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { layoutDeck, type Geometry, type PlacedCell } from '@/entities/deck/geometry'
+import { DECK_TOKENS, layoutDeck, type Geometry, type PlacedCell } from '@/entities/deck/geometry'
 import { getDeck } from '@/entities/deck/layouts'
 import {
   seatVisualState,
@@ -10,6 +10,7 @@ import {
 } from '@/entities/seat/model'
 import { allowedGenders, seatLabel } from '@/entities/seat/rules'
 import { cn } from '@/shared/lib/cn'
+import { useIsDesktop } from '@/shared/lib/use-media-query'
 import { lowerTr } from '@/shared/lib/tr'
 import { GENDER_ART } from '@/shared/config/assets'
 import { Illustration } from '@/shared/ui/asset-icon'
@@ -47,7 +48,15 @@ export interface SeatMapProps {
 }
 
 export function SeatMap({ data, picks, onPick, onRemove, className }: SeatMapProps) {
-  const geometry = useMemo(() => layoutDeck(getDeck(data.deckId)), [data.deckId])
+  // A coach is far longer than it is wide. Given width it lies down and the
+  // whole deck fits at once, which is how every Turkish ticketing site draws
+  // it; on a phone there is no width to give, and turning it would leave the
+  // seats too small to hit. So the plan follows the screen.
+  const wide = useIsDesktop()
+  const geometry = useMemo(
+    () => layoutDeck(getDeck(data.deckId), DECK_TOKENS, wide ? 'horizontal' : 'vertical'),
+    [data.deckId, wide],
+  )
   const seatByKey = useMemo(() => new Map(data.seats.map((s) => [s.key, s])), [data.seats])
   const pickedKeys = useMemo(() => new Set(picks.map((p) => p.key)), [picks])
 
@@ -185,11 +194,11 @@ export function SeatMap({ data, picks, onPick, onRemove, className }: SeatMapPro
   const rows = useMemo(() => {
     const map = new Map<number, PlacedCell[]>()
     for (const cell of geometry.cells) {
-      const list = map.get(cell.row) ?? []
+      const list = map.get(cell.ariaRowIndex) ?? []
       list.push(cell)
-      map.set(cell.row, list)
+      map.set(cell.ariaRowIndex, list)
     }
-    for (const list of map.values()) list.sort((a, b) => a.x - b.x)
+    for (const list of map.values()) list.sort((a, b) => a.ariaColIndex - b.ariaColIndex)
     return [...map.entries()].sort((a, b) => a[0] - b[0])
   }, [geometry])
 
@@ -199,7 +208,13 @@ export function SeatMap({ data, picks, onPick, onRemove, className }: SeatMapPro
 
   return (
     <div
-      className={cn('relative mx-auto w-full max-w-[22rem]', className)}
+      className={cn(
+        'relative mx-auto w-full',
+        // 22rem is the width an upright coach wants; a turned one wants all of
+        // it, and capping it there is what kept the seats too small to read.
+        geometry.orientation === 'horizontal' ? 'max-w-full' : 'max-w-[22rem]',
+        className,
+      )}
       style={{ aspectRatio: `${W} / ${H}` }}
     >
       <BusShell geometry={geometry} />
@@ -217,12 +232,7 @@ export function SeatMap({ data, picks, onPick, onRemove, className }: SeatMapPro
           // `display: contents` keeps the required grid > row > gridcell
           // structure for assistive tech while letting the cells position
           // absolutely against the deck box.
-          <div
-            key={rowIndex}
-            role="row"
-            aria-rowindex={rowIndex + 1}
-            style={{ display: 'contents' }}
-          >
+          <div key={rowIndex} role="row" aria-rowindex={rowIndex} style={{ display: 'contents' }}>
             {cells.map((cell) => {
               const seat = cell.seatNo !== null ? seatByKey.get(cell.key) : undefined
               const style = {
