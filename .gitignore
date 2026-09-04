@@ -21,3 +21,6 @@ yarn-error.log*
 
 # Raw AI photos; only the composed cards are committed
 .campaign-src
+
+# Video/animation masters; only the encoded asset is committed
+.media-src
