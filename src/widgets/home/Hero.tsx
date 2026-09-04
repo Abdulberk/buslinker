@@ -52,7 +52,9 @@ export function Hero() {
             drawn, so it takes a token colour, stays a texture rather than a
             picture, and follows the theme instead of needing a dark twin. */}
         <div
-          className="absolute inset-0 text-brand/45 dark:text-brand/55"
+          // Desktop only. On a phone the map has no room to be a backdrop —
+          // it lands directly behind the search card and reads as a red haze.
+          className="absolute inset-0 hidden text-brand/45 sm:block dark:text-brand/55"
           style={{
             backgroundColor: 'currentColor',
             // Two masks intersected: the map itself, and a vertical fade that
@@ -72,14 +74,18 @@ export function Hero() {
         />
       </div>
 
-      <div className="app-container pt-10 pb-12 sm:pt-14 sm:pb-16 lg:pt-20 lg:pb-24">
+      <div className="app-container pt-5 pb-12 sm:pt-14 sm:pb-16 lg:pt-20 lg:pb-24">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-center lg:gap-16">
           <div className="max-w-2xl">
-            <h1 className="text-4xl text-balance-tr sm:text-5xl">
+            {/* Kept in the document but not on screen below sm: on a phone the
+                search form has to be the first thing, the way every travel app
+                does it. sr-only rather than hidden so the page keeps its h1 for
+                assistive tech and for crawlers. */}
+            <h1 className="sr-only text-4xl text-balance-tr sm:not-sr-only sm:text-5xl">
               Türkiye'nin her yerine otobüs bileti
             </h1>
 
-            <p className="mt-4 max-w-prose text-lg text-fg-secondary">
+            <p className="mt-4 hidden max-w-prose text-lg text-fg-secondary sm:block">
               Yüzlerce firmanın seferini tek ekranda karşılaştırın, koltuğunuzu kendiniz seçin,
               biletiniz saniyeler içinde telefonunuza gelsin.
             </p>
