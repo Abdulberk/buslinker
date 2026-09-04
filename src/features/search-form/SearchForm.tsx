@@ -115,6 +115,7 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
       excludeCityId={to?.id}
       error={invalid === 'from' ? 'Kalkış şehrini seçin.' : undefined}
       size={fieldSize}
+      flush={hero}
       ref={fromRef}
     />
   )
@@ -132,6 +133,8 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
       excludeCityId={from?.id}
       error={invalid === 'to' ? 'Varış şehrini seçin.' : undefined}
       size={fieldSize}
+      flush={hero}
+      className={hero ? 'border-t border-border sm:border-t-0' : undefined}
       ref={toRef}
     />
   )
@@ -143,6 +146,8 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
       value={date}
       onChange={setDate}
       size={fieldSize}
+      flush={hero}
+      className={hero ? 'border-t border-border sm:border-t-0' : undefined}
     />
   )
 
@@ -184,12 +189,15 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
       aria-label="Sefer arama"
       className={cn('rounded-2xl border border-border bg-surface p-4 shadow-lg sm:p-6', className)}
     >
-      <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr_auto_1fr_auto_auto] lg:items-start">
+      {/* Below sm the three fields collapse into one divided list — the card
+          around them is the only frame, which is how a phone form should read.
+          From sm up nothing changes: the gaps and borders come straight back. */}
+      <div className="grid gap-0 sm:gap-4 lg:grid-cols-[1fr_auto_1fr_auto_auto] lg:items-start">
         {/* On mobile the swap straddles the seam between the two fields, which
             is what says it acts on the pair. Right-aligning it on a row of its
             own read as an orphan and cost a row of height. `lg:contents`
             dissolves this wrapper on desktop so the five columns still line up. */}
-        <div className="relative grid gap-3 sm:gap-4 lg:contents">
+        <div className="relative grid gap-0 sm:gap-4 lg:contents">
           {fromField}
 
           <div className="absolute top-1/2 right-3 z-10 -translate-y-1/2 lg:static lg:z-auto lg:flex lg:translate-y-0 lg:flex-col lg:justify-start">
@@ -202,7 +210,7 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
 
         <div className="lg:w-56">{dateField}</div>
 
-        <div className="flex flex-col pt-1 lg:pt-0">
+        <div className="flex flex-col pt-4 sm:pt-1 lg:pt-0">
           <LabelSpacer className="hidden lg:block" />
           <Button type="submit" size="lg" variant="primary" full className="lg:h-14 lg:w-auto">
             <AssetIcon src={ICON.magnify} className="size-5" />

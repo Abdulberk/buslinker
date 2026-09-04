@@ -27,6 +27,8 @@ export interface DateFieldProps {
   /** ISO `YYYY-MM-DD`; earlier days are unselectable. Defaults to today. */
   minDate?: string | undefined
   size?: 'md' | 'lg' | undefined
+  /** See CityCombobox: below sm the label is hidden and the field sits flat. */
+  flush?: boolean | undefined
   className?: string | undefined
 }
 
@@ -263,6 +265,7 @@ export function DateField({
   id,
   minDate,
   size = 'lg',
+  flush,
   className,
 }: DateFieldProps) {
   const [open, setOpen] = useState(false)
@@ -275,7 +278,12 @@ export function DateField({
       <label
         htmlFor={id}
         id={labelId}
-        className="mb-1.5 block text-xs font-semibold text-fg-secondary uppercase"
+        className={cn(
+          'mb-1.5 block text-xs font-semibold text-fg-secondary uppercase',
+          // `not-sr-only` also resets margin, which would eat the mb-1.5 above
+          // and shift every field up at sm and over. Put it back explicitly.
+          flush && 'sr-only sm:not-sr-only sm:mb-1.5',
+        )}
       >
         {label}
       </label>
@@ -292,6 +300,7 @@ export function DateField({
               'transition-colors duration-(--duration-fast) ease-standard',
               'hover:border-border-strong data-[state=open]:border-brand',
               size === 'lg' ? 'h-14 px-3.5 text-lg' : 'h-11 px-3 text-base',
+              flush && 'border-0 px-0 sm:border sm:px-3.5',
             )}
           >
             <AssetIcon

@@ -18,6 +18,13 @@ export interface CityComboboxProps {
   excludeCityId?: string | undefined
   error?: string | undefined
   size?: 'md' | 'lg' | undefined
+  /**
+   * Below sm, drop the label from view and let the field sit flat.
+   * For the hero form on a phone, where the labels are chrome the
+   * placeholders already carry and every row of it pushes the search
+   * button further down the screen. Never affects sm and up.
+   */
+  flush?: boolean | undefined
   className?: string | undefined
   ref?: Ref<HTMLInputElement>
 }
@@ -63,6 +70,7 @@ export function CityCombobox({
   excludeCityId,
   error,
   size = 'lg',
+  flush,
   className,
   ref,
 }: CityComboboxProps) {
@@ -200,7 +208,12 @@ export function CityCombobox({
     <div className={cn('relative', className)} ref={rootRef}>
       <label
         htmlFor={id}
-        className="mb-1.5 block text-xs font-semibold text-fg-secondary uppercase"
+        className={cn(
+          'mb-1.5 block text-xs font-semibold text-fg-secondary uppercase',
+          // `not-sr-only` also resets margin, which would eat the mb-1.5 above
+          // and shift every field up at sm and over. Put it back explicitly.
+          flush && 'sr-only sm:not-sr-only sm:mb-1.5',
+        )}
       >
         {label}
       </label>
@@ -211,6 +224,11 @@ export function CityCombobox({
           'transition-colors duration-(--duration-fast) ease-standard',
           'focus-within:border-brand hover:border-border-strong',
           error ? 'border-danger' : 'border-border',
+          // Flat below sm; the card around it is already the frame. The
+          // error keeps a tint, since without a border there would be no
+          // sign of it beside the message.
+          flush && 'border-0 sm:border',
+          flush && error && 'bg-danger/8 sm:bg-surface',
         )}
       >
         <AssetIcon
