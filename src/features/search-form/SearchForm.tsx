@@ -185,14 +185,20 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
       className={cn('rounded-2xl border border-border bg-surface p-4 shadow-lg sm:p-6', className)}
     >
       <div className="grid gap-3 sm:gap-4 lg:grid-cols-[1fr_auto_1fr_auto_auto] lg:items-start">
-        {fromField}
+        {/* On mobile the swap straddles the seam between the two fields, which
+            is what says it acts on the pair. Right-aligning it on a row of its
+            own read as an orphan and cost a row of height. `lg:contents`
+            dissolves this wrapper on desktop so the five columns still line up. */}
+        <div className="relative grid gap-3 sm:gap-4 lg:contents">
+          {fromField}
 
-        <div className="-my-1 flex justify-end lg:my-0 lg:flex-col lg:justify-start">
-          <LabelSpacer className="hidden lg:block" />
-          <span className="flex items-center lg:h-14">{swapButton}</span>
+          <div className="absolute top-1/2 right-3 z-10 -translate-y-1/2 lg:static lg:z-auto lg:flex lg:translate-y-0 lg:flex-col lg:justify-start">
+            <LabelSpacer className="hidden lg:block" />
+            <span className="flex items-center lg:h-14">{swapButton}</span>
+          </div>
+
+          {toField}
         </div>
-
-        {toField}
 
         <div className="lg:w-56">{dateField}</div>
 

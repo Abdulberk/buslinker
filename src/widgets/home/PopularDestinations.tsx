@@ -74,9 +74,12 @@ export function PopularDestinations() {
                   <span className="block truncate font-display text-base font-semibold text-neutral-0">
                     {city.name}
                   </span>
-                  {/* Region names run long in Turkish ("Güneydoğu Anadolu") and
-                      wrapped straight out of the card, so this line clips. */}
-                  <span className="block truncate text-2xs text-neutral-200">
+                  {/* Region names run long in Turkish. Truncating them produced
+                      "GÜNEYDOĞU ANADO…", so instead the tracking the 2xs step
+                      adds is dropped — uppercase Turkish is wide enough without
+                      it — and a second line is allowed for the few that still
+                      do not fit at 320px. */}
+                  <span className="line-clamp-2 text-2xs tracking-normal text-neutral-200">
                     {upperTr(city.region)}
                   </span>
                 </div>

@@ -109,7 +109,14 @@ export function Hero() {
           <div
             role="group"
             aria-label="Seyahat türü"
-            className="-mx-4 scrollbar-none flex gap-1 overflow-x-auto px-4 sm:mx-0 sm:px-0"
+            // The rail scrolls when the four modes do not fit, which below ~430px
+            // they do not. Without the fade the last tab just stops at the edge
+            // and reads as clipped rather than scrollable.
+            className={cn(
+              '-mx-4 scrollbar-none flex gap-1 overflow-x-auto px-4 sm:mx-0 sm:px-0',
+              '[mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]',
+              'sm:[mask-image:none]',
+            )}
           >
             {TRAVEL_MODES.map(({ id, label, icon, available }) => (
               <button

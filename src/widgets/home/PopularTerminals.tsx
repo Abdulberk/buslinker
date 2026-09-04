@@ -50,9 +50,14 @@ export function PopularTerminals() {
                   height={42}
                   className="h-8 w-auto shrink-0"
                 />
-                <span className="truncate">
-                  <span className="underline-offset-4 group-hover:underline">{terminal.name}</span>
-                  <span className="text-fg-muted"> · {city.name}</span>
+                {/* Stacked rather than "Ad · Şehir" on one line: joined, the
+                    longest of these ("Gaziantep Otogarı · Gaziantep") lost 107px
+                    to truncation at 320px. Split, each line fits on its own. */}
+                <span className="min-w-0">
+                  <span className="block truncate underline-offset-4 group-hover:underline">
+                    {terminal.name}
+                  </span>
+                  <span className="block truncate text-xs text-fg-muted">{city.name}</span>
                 </span>
               </Link>
             </li>
