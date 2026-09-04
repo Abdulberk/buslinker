@@ -1,9 +1,8 @@
 import { BadgePercent, Headset, ShieldCheck, TicketX } from 'lucide-react'
 import { SearchForm } from '@/features/search-form/SearchForm'
-import { HeroCoach } from './HeroCoach'
 import { ICON, IMAGE } from '@/shared/config/assets'
 import { cn } from '@/shared/lib/cn'
-import { AssetIcon } from '@/shared/ui/asset-icon'
+import { AssetIcon, Illustration } from '@/shared/ui/asset-icon'
 
 const TRUST_POINTS = [
   { icon: TicketX, label: 'Ücretsiz iptal' },
@@ -97,7 +96,15 @@ export function Hero() {
                 box in a cut-out. Above the fold on desktop and therefore the
                 LCP element: `loading="lazy"` would defer the very image the
                 metric is measured against. */}
-            <HeroCoach />
+            <Illustration
+              src={IMAGE.coach.src}
+              alt="BusLinker otobüsü"
+              width={IMAGE.coach.width}
+              height={IMAGE.coach.height}
+              priority
+              sizes="(min-width: 1024px) 24rem, 0px"
+              className="h-auto w-full drop-shadow-[0_24px_32px_oklch(0.30_0.03_35/0.22)]"
+            />
           </div>
         </div>
 
