@@ -194,17 +194,14 @@ function FacetRow({
     >
       <Checkbox checked={checked} disabled={disabled} onCheckedChange={() => onToggle()} />
       {icon ? <AssetIcon src={icon} className="size-6 shrink-0 text-fg-muted" /> : null}
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm text-fg">{bucket.label}</span>
-        {hint ? (
-          <span className="block text-xs text-fg-muted" data-numeric>
-            {hint}
-          </span>
-        ) : null}
-      </span>
+      <span className="min-w-0 flex-1 truncate text-sm text-fg">{bucket.label}</span>
+
+      {/* A band shows its hours where the others show their count. The count
+          still goes to assistive tech: it is the only thing that explains why
+          a row is greyed out, and dropping it would leave that silent. */}
       <span className="shrink-0 text-xs text-fg-muted" data-numeric>
-        {bucket.count}
-        <span className="sr-only"> sefer</span>
+        {hint ?? bucket.count}
+        <span className="sr-only">{hint ? `, ${bucket.count} sefer` : ' sefer'}</span>
       </span>
     </label>
   )
