@@ -1,15 +1,7 @@
-import { BadgePercent, Headset, ShieldCheck, TicketX } from 'lucide-react'
 import { SearchForm } from '@/features/search-form/SearchForm'
 import { ICON, IMAGE } from '@/shared/config/assets'
 import { cn } from '@/shared/lib/cn'
 import { AssetIcon, Illustration } from '@/shared/ui/asset-icon'
-
-const TRUST_POINTS = [
-  { icon: TicketX, label: 'Ücretsiz iptal' },
-  { icon: ShieldCheck, label: 'Güvenli ödeme' },
-  { icon: Headset, label: '7/24 destek' },
-  { icon: BadgePercent, label: 'En iyi fiyat garantisi' },
-] as const
 
 /**
  * Only the bus search exists, so the other three modes render as genuinely
@@ -164,15 +156,6 @@ export function Hero() {
 
           <SearchForm variant="hero" className="rounded-tl-none" />
         </div>
-
-        <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm text-fg-muted">
-          {TRUST_POINTS.map(({ icon: Icon, label }) => (
-            <li key={label} className="flex items-center gap-1.5">
-              <Icon className="size-4 text-fg-subtle" aria-hidden="true" />
-              {label}
-            </li>
-          ))}
-        </ul>
       </div>
     </section>
   )
