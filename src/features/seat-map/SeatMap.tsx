@@ -11,6 +11,20 @@ import {
 import { allowedGenders, seatLabel } from '@/entities/seat/rules'
 import { cn } from '@/shared/lib/cn'
 import { useIsDesktop } from '@/shared/lib/use-media-query'
+
+/**
+ * A lying-down coach is drawn at whatever height its width allows, so every
+ * unit of length costs seat size. Upright, the 12-unit row gap and the long
+ * nose read as air; turned, they are the difference between a 37px seat and
+ * a 46px one. The seats themselves keep their proportions.
+ */
+const TURNED_TOKENS = Object.freeze({
+  ...DECK_TOKENS,
+  rowGap: 6,
+  noseLen: 72,
+  padTop: 10,
+  padBottom: 12,
+})
 import { lowerTr } from '@/shared/lib/tr'
 import { GENDER_ART } from '@/shared/config/assets'
 import { Illustration } from '@/shared/ui/asset-icon'
@@ -54,7 +68,10 @@ export function SeatMap({ data, picks, onPick, onRemove, className }: SeatMapPro
   // seats too small to hit. So the plan follows the screen.
   const wide = useIsDesktop()
   const geometry = useMemo(
-    () => layoutDeck(getDeck(data.deckId), DECK_TOKENS, wide ? 'horizontal' : 'vertical'),
+    () =>
+      wide
+        ? layoutDeck(getDeck(data.deckId), TURNED_TOKENS, 'horizontal')
+        : layoutDeck(getDeck(data.deckId)),
     [data.deckId, wide],
   )
   const seatByKey = useMemo(() => new Map(data.seats.map((s) => [s.key, s])), [data.seats])

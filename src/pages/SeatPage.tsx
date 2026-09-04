@@ -169,11 +169,11 @@ export default function SeatPage() {
           ) : null}
         </div>
 
-        <div className="mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-6">
           <div className="grid gap-6">
             <section
               aria-labelledby="deck-title"
-              className="rounded-xl border border-border bg-surface-raised p-4 shadow-sm sm:p-6"
+              className="rounded-xl border border-border bg-surface-raised p-4 shadow-sm sm:p-6 lg:p-5"
             >
               <h2 id="deck-title" className="text-sm font-semibold text-fg">
                 Koltuk planı
@@ -258,7 +258,7 @@ function LoadingState() {
       <Skeleton className="h-5 w-32" />
       <Skeleton className="mt-4 h-9 w-72 max-w-full" />
       <Skeleton className="mt-3 h-4 w-56 max-w-full" />
-      <div className="mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-6">
         <div className="grid gap-6">
           <Skeleton className="h-144 w-full rounded-xl" />
           <Skeleton className="h-28 w-full rounded-xl" />
