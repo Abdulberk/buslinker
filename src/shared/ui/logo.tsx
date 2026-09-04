@@ -4,9 +4,10 @@ import { cn } from '@/shared/lib/cn'
 /**
  * The BusLinker wordmark — the original brand artwork, not a redraw.
  *
- * The source ships as two fixed-colour files: `logo.svg` in white, for the old
- * red header, and `redlogo.svg` in `#D23B38` for light backgrounds. Both fills
- * are swapped for `currentColor` here, so a single component covers light,
+ * The legacy art came as two fixed-colour files: `logo.svg` in white, for the
+ * old red header, and `redlogo.svg` in `#D23B38` for light backgrounds. Neither
+ * ships any more — the paths live here and both fills are swapped for
+ * `currentColor`, so a single component covers light,
  * dark and on-brand surfaces and the mark can never end up invisible against
  * the thing it sits on.
  *

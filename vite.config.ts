@@ -21,10 +21,6 @@ export default defineConfig({
               test: /node_modules[\\/](react|react-dom|scheduler|react-router)[\\/]/,
             },
             { name: 'query', test: /node_modules[\\/]@tanstack[\\/]/ },
-            {
-              name: 'motion',
-              test: /node_modules[\\/](motion|framer-motion|motion-dom|motion-utils)[\\/]/,
-            },
           ],
         },
       },
