@@ -1,23 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'
-import { ArrowRight } from 'lucide-react'
-import { CAMPAIGN_GRADIENT, CAMPAIGNS, type Campaign } from '@/shared/config/campaigns'
+import { CAMPAIGNS, type Campaign } from '@/shared/config/campaigns'
 import { ICON } from '@/shared/config/assets'
 import { AssetIcon } from '@/shared/ui/asset-icon'
-import { Badge } from '@/shared/ui/badge'
 import { cn } from '@/shared/lib/cn'
 
-import { formatDateMedium } from '@/shared/lib/tr'
 import { campaignPath } from '@/shared/lib/search-params'
 
 /** Ink for each tone's motif — low contrast, because it is texture not content. */
-const TONE_INK: Record<Campaign['tone'], string> = {
-  brand: 'text-brand-900/25 dark:text-brand-100/20',
-  info: 'text-info-900/25 dark:text-info-100/20',
-  success: 'text-success-900/25 dark:text-success-100/20',
-  warning: 'text-warning-900/25 dark:text-warning-100/20',
-}
-
 /**
  * The campaigns rail.
  *
@@ -133,84 +123,32 @@ function ArrowButton({
 }
 
 function CampaignCard({ campaign }: { campaign: Campaign }) {
-  const to = campaignPath(campaign.id)
-
-  const content = (
-    <>
-      <div
-        className="relative flex h-32 items-start justify-between overflow-hidden p-4"
-        style={{ background: CAMPAIGN_GRADIENT[campaign.tone] }}
-      >
-        {/* The motif is masked rather than drawn, so it inherits the campaign's
-            own colour and stays legible in both themes without a second file. */}
-        <span
-          aria-hidden="true"
-          className={cn('pointer-events-none absolute inset-0', TONE_INK[campaign.tone])}
-          style={{
-            backgroundColor: 'currentColor',
-            maskImage: `url("${campaign.art}")`,
-            WebkitMaskImage: `url("${campaign.art}")`,
-            maskRepeat: 'no-repeat',
-            WebkitMaskRepeat: 'no-repeat',
-            maskPosition: 'right center',
-            WebkitMaskPosition: 'right center',
-            maskSize: 'auto 100%',
-            WebkitMaskSize: 'auto 100%',
-          }}
-        />
-
-        <Badge tone="neutral" size="sm" className="relative bg-surface/85 backdrop-blur-sm">
-          {campaign.badge}
-        </Badge>
-
-        {campaign.code ? (
-          <span
-            className={cn(
-              'relative rounded-md border border-dashed border-fg-muted/50 bg-surface/85 px-2 py-1',
-              'text-2xs font-semibold tracking-wider text-fg backdrop-blur-sm',
-            )}
-          >
-            {campaign.code}
-            <span className="sr-only"> indirim kodu</span>
-          </span>
-        ) : null}
-      </div>
-
-      <div className="flex flex-1 flex-col p-4">
-        <h3 className="font-display text-base font-bold text-balance-tr text-fg">
-          {campaign.title}
-        </h3>
-        <p className="mt-1.5 text-sm text-fg-secondary">{campaign.body}</p>
-
-        <div className="mt-auto flex items-end justify-between gap-3 pt-4">
-          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-fg">
-            {campaign.cta}
-            <ArrowRight
-              className="size-4 transition-transform duration-(--duration-fast) group-hover:translate-x-0.5"
-              aria-hidden="true"
-            />
-          </span>
-          <span className="text-2xs text-fg-subtle">
-            {formatDateMedium(campaign.validUntil)}&apos;e kadar
-          </span>
-        </div>
-      </div>
-    </>
-  )
-
-  const className = cn(
-    'group flex h-full flex-col overflow-hidden rounded-xl border border-border bg-surface-raised',
-    'transition-[border-color,box-shadow] duration-(--duration-base) ease-standard',
-    'hover:border-brand/30 hover:shadow-md',
-  )
-
-  // One accessible name for the whole card, so a screen reader announces the
-  // offer rather than a bare "Hemen üye olun".
-  const label = `${campaign.title}. ${campaign.cta}`
+  // The artwork carries the whole offer — audience, headline, amount, code —
+  // so the card is the image and nothing else. That puts every one of those
+  // words out of reach of a screen reader, which is why alt repeats them: on
+  // an image-only link it is also what gives the link its accessible name.
+  const alt = campaign.code
+    ? `${campaign.badge}: ${campaign.title}. İndirim kodu ${campaign.code}.`
+    : `${campaign.badge}: ${campaign.title}.`
 
   return (
-    <Link to={to} aria-label={label} className={className}>
-      {content}
+    <Link
+      to={campaignPath(campaign.id)}
+      className={cn(
+        'block overflow-hidden rounded-xl border border-border',
+        'transition-[border-color,box-shadow] duration-(--duration-base) ease-standard',
+        'hover:border-brand/30 hover:shadow-md',
+      )}
+    >
+      <img
+        src={campaign.image}
+        alt={alt}
+        width={800}
+        height={667}
+        loading="lazy"
+        decoding="async"
+        className="aspect-6/5 w-full object-cover"
+      />
     </Link>
   )
 }

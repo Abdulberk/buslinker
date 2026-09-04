@@ -8,16 +8,8 @@ import { Button } from '@/shared/ui/button'
 import { CAMPAIGN_GRADIENT, CAMPAIGNS, type Campaign } from '@/shared/config/campaigns'
 import { campaignPath } from '@/shared/lib/search-params'
 import { formatDateLong, formatDateMedium } from '@/shared/lib/tr'
-import { cn } from '@/shared/lib/cn'
 
 /** Ink for each tone's motif — low contrast, because it is texture not content. */
-const TONE_INK: Record<Campaign['tone'], string> = {
-  brand: 'text-brand-900/25 dark:text-brand-100/20',
-  info: 'text-info-900/25 dark:text-info-100/20',
-  success: 'text-success-900/25 dark:text-success-100/20',
-  warning: 'text-warning-900/25 dark:text-warning-100/20',
-}
-
 /**
  * Campaign terms, written per offer rather than shared, because a blanket
  * paragraph is exactly what makes conditions unreadable.
@@ -137,65 +129,44 @@ function CampaignDetail({ campaign }: { campaign: Campaign }) {
       />
 
       <div className="app-container section-y">
-        <div
-          className="relative flex min-h-40 flex-col justify-between gap-4 overflow-hidden rounded-2xl border border-border p-5 sm:min-h-48 sm:p-6"
-          style={{ background: CAMPAIGN_GRADIENT[campaign.tone] }}
-        >
-          {/* The motif is masked rather than drawn, so it inherits the
-              campaign's own colour and stays legible in both themes without a
-              second file. */}
-          <span
-            aria-hidden="true"
-            className={cn('pointer-events-none absolute inset-0', TONE_INK[campaign.tone])}
-            style={{
-              backgroundColor: 'currentColor',
-              maskImage: `url("${campaign.art}")`,
-              WebkitMaskImage: `url("${campaign.art}")`,
-              maskRepeat: 'no-repeat',
-              WebkitMaskRepeat: 'no-repeat',
-              maskPosition: 'right center',
-              WebkitMaskPosition: 'right center',
-              maskSize: 'auto 100%',
-              WebkitMaskSize: 'auto 100%',
-            }}
-          />
+        {/* The artwork already carries the audience chip and the headline, so
+            the hero is the image alone. The code stays real UI below it: it has
+            to be copyable, and one that exists only in pixels is unusable. */}
+        <img
+          src={campaign.image}
+          alt=""
+          width={800}
+          height={667}
+          className="w-full max-w-lg rounded-2xl border border-border object-cover"
+        />
 
-          <Badge
-            tone="neutral"
-            size="md"
-            className="relative self-start bg-surface/85 backdrop-blur-sm"
-          >
-            {campaign.badge}
-          </Badge>
-
-          <div className="relative flex flex-wrap items-center gap-3">
-            {code ? (
-              <>
-                <span className="rounded-lg border border-dashed border-fg-muted/50 bg-surface/85 px-3 py-2 font-display text-base font-semibold tracking-wider text-fg backdrop-blur-sm">
-                  {code}
-                  <span className="sr-only"> indirim kodu</span>
-                </span>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  className="tap-44"
-                  onClick={() => {
-                    void handleCopy(code)
-                  }}
-                >
-                  <Copy className="size-4" aria-hidden="true" />
-                  Kopyala
-                  <span className="sr-only"> — {code} kodunu panoya kopyalar</span>
-                </Button>
-              </>
-            ) : (
-              <span className="rounded-lg border border-border bg-surface/85 px-3 py-2 text-sm text-fg-secondary backdrop-blur-sm">
-                Bu kampanyada koda gerek yoktur; indirim koşulları sağlandığında kendiliğinden
-                uygulanır.
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          {code ? (
+            <>
+              <span className="rounded-lg border border-dashed border-fg-muted/50 bg-surface/85 px-3 py-2 font-display text-base font-semibold tracking-wider text-fg backdrop-blur-sm">
+                {code}
+                <span className="sr-only"> indirim kodu</span>
               </span>
-            )}
-          </div>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="tap-44"
+                onClick={() => {
+                  void handleCopy(code)
+                }}
+              >
+                <Copy className="size-4" aria-hidden="true" />
+                Kopyala
+                <span className="sr-only"> — {code} kodunu panoya kopyalar</span>
+              </Button>
+            </>
+          ) : (
+            <span className="rounded-lg border border-border bg-surface/85 px-3 py-2 text-sm text-fg-secondary backdrop-blur-sm">
+              Bu kampanyada koda gerek yoktur; indirim koşulları sağlandığında kendiliğinden
+              uygulanır.
+            </span>
+          )}
         </div>
 
         <p className="mt-4 flex flex-wrap items-center gap-2 text-sm text-fg-muted">

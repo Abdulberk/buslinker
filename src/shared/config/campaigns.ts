@@ -1,15 +1,14 @@
 /**
  * Campaign slides.
  *
- * `image` is optional on purpose. Until real artwork exists each slide renders
- * a token-built gradient, so the carousel is never a row of grey placeholders —
- * and dropping generated art in later is a one-field change per slide with no
- * layout consequences.
+ * `image` is the finished card artwork: a generated photograph with the
+ * audience chip, headline and offer already set into it — see
+ * scripts/campaign-art.mjs for why the words are composited by a browser
+ * rather than asked of the image model.
  *
- * The headline, the offer and the code are DOM text, never baked into the
- * image: that keeps them selectable, translatable, readable by a screen
- * reader, crisp at any density, and correct in Turkish — image models still
- * mangle ş/ğ/ı/İ far too often to trust with copy.
+ * Because the offer lives in pixels there, every part of it is repeated as
+ * real text on the card and on the detail page. Nothing in a picture reaches
+ * a screen reader, a translator, or a text search.
  */
 
 export type CampaignTone = 'brand' | 'info' | 'success' | 'warning'
@@ -24,20 +23,15 @@ export interface Campaign {
   readonly cta: string
   readonly href: string
   readonly tone: CampaignTone
-  /**
-   * A monochrome motif laid over the tone gradient as a CSS mask, so it takes
-   * the campaign's own colour and follows the theme. Deliberately text-free:
-   * the headline is DOM text, which stays selectable, translatable, crisp at
-   * any density and correctly spelled in Turkish.
-   */
-  readonly art: string
+  /** Finished 6:5 card artwork, generated and composited by scripts/. */
+  readonly image: string
   readonly validUntil: string
 }
 
 export const CAMPAIGNS: readonly Campaign[] = [
   {
     id: 'ilk-bilet',
-    art: '/campaigns/ticket.svg',
+    image: '/campaigns/ilk-bilet.webp',
     badge: 'Yeni üyelere',
     title: 'İlk biletinizde 150 TL indirim',
     body: 'BusLinker hesabınızı açın, ilk seferinizde anında indirimi kullanın.',
@@ -49,7 +43,7 @@ export const CAMPAIGNS: readonly Campaign[] = [
   },
   {
     id: 'hafta-sonu',
-    art: '/campaigns/road.svg',
+    image: '/campaigns/hafta-sonu.webp',
     badge: 'Hafta sonu',
     title: 'Cuma ve cumartesi seferlerinde %20',
     body: 'Hafta sonu kalkışlı seçili seferlerde geçerli, kontenjan sınırlıdır.',
@@ -61,7 +55,7 @@ export const CAMPAIGNS: readonly Campaign[] = [
   },
   {
     id: 'ogrenci',
-    art: '/campaigns/study.svg',
+    image: '/campaigns/ogrenci.webp',
     badge: 'Öğrencilere',
     title: 'Öğrenci biletlerinde sürekli %15',
     body: 'Öğrenci belgenizi bir kez doğrulayın, indirim tüm seferlerinize işlensin.',
@@ -72,7 +66,7 @@ export const CAMPAIGNS: readonly Campaign[] = [
   },
   {
     id: 'erken-rezervasyon',
-    art: '/campaigns/calendar.svg',
+    image: '/campaigns/erken-rezervasyon.webp',
     badge: 'Erken rezervasyon',
     title: '30 gün önce alana 100 TL iade',
     body: 'Planınızı erken yapın, bilet farkını cüzdanınıza geri alın.',
@@ -84,7 +78,7 @@ export const CAMPAIGNS: readonly Campaign[] = [
   },
   {
     id: 'uygulama',
-    art: '/campaigns/mobile.svg',
+    image: '/campaigns/uygulama.webp',
     badge: 'Mobil uygulama',
     title: 'Uygulamadan alana ek 50 TL',
     body: 'BusLinker uygulamasından aldığınız ilk bilette geçerlidir.',

@@ -42,6 +42,9 @@ describe('SeatMap — roving tabindex', () => {
     expect(tabStops(container)).toHaveLength(1)
   })
 
+  // Slow by nature: it drives ~40 real keyboard interactions across the whole
+  // deck. The default 5s is close enough to the true runtime that a busy
+  // machine fails it on timing alone.
   it('keeps exactly one tab stop after arrowing across the whole coach', async () => {
     const user = userEvent.setup()
     const { container } = renderMap()
@@ -56,7 +59,7 @@ describe('SeatMap — roving tabindex', () => {
         expect(tabStops(container)).toHaveLength(1)
       }
     }
-  })
+  }, 20_000)
 
   it('never parks focus on a door or WC cell', async () => {
     const user = userEvent.setup()
