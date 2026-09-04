@@ -133,17 +133,17 @@ export const IMAGE = {
 
 /** City photographs, keyed by slug. Only cities with real art are listed. */
 export const CITY_PHOTO: Record<string, string> = {
-  istanbul: '/istanbul.png',
-  ankara: '/ankara.png',
-  izmir: '/izmir.png',
-  antalya: '/antalya.png',
-  hatay: '/hatay.png',
-  adana: '/adana.png',
-  mugla: '/mugla.png',
-  trabzon: '/trabzon.png',
-  gaziantep: '/gaziantep.png',
-  nevsehir: '/nevsehir.png',
-  mersin: '/mersin.png',
+  istanbul: '/istanbul.webp',
+  ankara: '/ankara.webp',
+  izmir: '/izmir.webp',
+  antalya: '/antalya.webp',
+  hatay: '/hatay.webp',
+  adana: '/adana.webp',
+  mugla: '/mugla.webp',
+  trabzon: '/trabzon.webp',
+  gaziantep: '/gaziantep.webp',
+  nevsehir: '/nevsehir.webp',
+  mersin: '/mersin.webp',
 }
 
 /** Departure-band icon pair, so a selected band can swap to its filled variant. */

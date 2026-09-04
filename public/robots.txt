@@ -1,2 +1,13 @@
 User-agent: *
 Allow: /
+
+# Behind a login, or valid only for one departure — nothing to index.
+Disallow: /hesabim/
+Disallow: /seferlerim
+Disallow: /bilgilerim
+Disallow: /kayitli-yolcular
+Disallow: /koltuk/
+Disallow: /odeme/
+Disallow: /bilet/
+
+Sitemap: https://buslinker.vercel.app/sitemap.xml
