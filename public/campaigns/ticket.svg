@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 704 256" fill="none">
+  <g fill="#000">
+    <path d="M470 44h150a20 20 0 0 1 20 20v28a26 26 0 0 0 0 52v28a20 20 0 0 1-20 20H470a20 20 0 0 1-20-20v-28a26 26 0 0 0 0-52V64a20 20 0 0 1 20-20Zm8 24a6 6 0 0 0 0 12h44a6 6 0 0 0 0-12h-44Zm0 32a6 6 0 0 0 0 12h72a6 6 0 0 0 0-12h-72Zm0 60a6 6 0 0 0 0 12h58a6 6 0 0 0 0-12h-58Z" opacity=".18"/>
+    <circle cx="604" cy="52" r="7" opacity=".28"/>
+    <circle cx="662" cy="112" r="5" opacity=".22"/>
+    <circle cx="418" cy="86" r="6" opacity=".2"/>
+    <circle cx="396" cy="188" r="9" opacity=".14"/>
+    <circle cx="556" cy="216" r="5" opacity=".24"/>
+  </g>
+</svg>

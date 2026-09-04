@@ -1,0 +1,676 @@
+/* ==========================================================================
+   BusLinker — design tokens
+   --------------------------------------------------------------------------
+   Three-layer Tailwind v4 structure. The order matters:
+
+     1. @theme          primitives — literal values only (OKLCH ramps, type,
+                        spacing, radius, shadow, motion). Frozen at build time.
+     2. :root / .dark   semantics — plain custom properties that switch theme.
+     3. @theme inline   aliases — re-export the semantics as utility namespaces.
+                        `inline` is MANDATORY here: a plain @theme resolves
+                        var() once at :root and dark mode silently stops
+                        switching, with no build error.
+
+   Every colour is OKLCH so the ramps are perceptually even; the sRGB hex is
+   kept in a comment as documentation, not as a fallback.
+   ========================================================================== */
+
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ==========================================================================
+   1. PRIMITIVES
+   ========================================================================== */
+
+@theme {
+  /* Wipe the stock palette. Nothing but our ramps may be referenced by a
+     utility class — this is what stops `bg-slate-500` leaking into the design. */
+  --color-*: initial;
+
+  /* ---- Brand — muted brick vermilion, anchored on the legacy #D23B38 ------
+     #D23B38 measures oklch(57.8% 0.1885 26.26): its lightness lands exactly on
+     the conventional 600 slot, so the legacy hex keeps both its value and its
+     step name. Hue drifts 32 -> 24 up the ramp so tints warm toward orange
+     instead of going pink. */
+  --color-brand-50: oklch(97.1% 0.01 32); /* #FCF3F1 */
+  --color-brand-100: oklch(93.6% 0.024 31); /* #FAE4E0 */
+  --color-brand-200: oklch(88.5% 0.048 30); /* #F7CEC7 */
+  --color-brand-300: oklch(80.8% 0.088 29); /* #F4ABA0 */
+  --color-brand-400: oklch(70.4% 0.147 27.5); /* #ED786C */
+  --color-brand-500: oklch(63.7% 0.183 26.8); /* #E5534B */
+  --color-brand-600: oklch(57.8% 0.1885 26.26); /* #D23B38 — legacy brand */
+  --color-brand-700: oklch(50.5% 0.164 25.6); /* #AF302F */
+  --color-brand-800: oklch(44.4% 0.136 25); /* #902B2A */
+  --color-brand-900: oklch(39.6% 0.109 24.5); /* #762928 */
+  --color-brand-950: oklch(25.8% 0.071 24); /* #3F1212 */
+
+  /* ---- Cool neutral — an ocean-blue grey, hue 225 -> 244 -----------------
+     The brand sits at hue 26 (a warm red), so a COOL ground is what gives the
+     page a real temperature contrast: the red advances, the surfaces recede.
+     A warm-tinted grey at the same lightness sits only ~20 degrees from the
+     brand and the two muddy into each other — that is what reads as smoky.
+
+     Chroma peaks in the mid-tones (0.021 around 500-700, where borders and
+     secondary text live, so the blue is actually perceivable) and tapers at
+     both ends, keeping page backgrounds crisp rather than visibly tinted.
+     Hue drifts toward indigo as it darkens, which keeps deep surfaces rich
+     instead of going flat navy. */
+  --color-neutral-0: oklch(100% 0 0); /* #FFFFFF */
+  --color-neutral-25: oklch(98.8% 0.004 225); /* #F9FBFD */
+  --color-neutral-50: oklch(97.1% 0.006 225); /* #F3F6FA */
+  --color-neutral-100: oklch(93.6% 0.009 225); /* #E6EBF1 */
+  --color-neutral-200: oklch(88.5% 0.012 225); /* #D3DBE4 */
+  --color-neutral-300: oklch(80.8% 0.015 226); /* #B6C1CD */
+  --color-neutral-400: oklch(70.4% 0.018 228); /* #93A0AF */
+  --color-neutral-500: oklch(63.7% 0.02 230); /* #7F8D9E */
+  --color-neutral-600: oklch(57.7% 0.021 232); /* #6C7B8C */
+  --color-neutral-700: oklch(50.5% 0.021 234); /* #576676 */
+  --color-neutral-800: oklch(44.4% 0.02 236); /* #475563 */
+  --color-neutral-900: oklch(39.6% 0.019 238); /* #3B4855 */
+  --color-neutral-925: oklch(32% 0.018 240); /* #2C3742 */
+  --color-neutral-950: oklch(25.8% 0.017 240); /* #212A33 */
+  --color-neutral-975: oklch(21.5% 0.016 242); /* #1A222A */
+  --color-neutral-1000: oklch(17.5% 0.015 244); /* #141B22 */
+
+  /* ---- Danger — crimson raspberry, 17 degrees cooler than brand ----------
+     Two reds on one screen only works if form and placement separate them;
+     see the "one brand fill per decision context" rule in the base layer. */
+  --color-danger-50: oklch(97.1% 0.014 13);
+  --color-danger-100: oklch(93.6% 0.032 12.5);
+  --color-danger-200: oklch(88.5% 0.06 12);
+  --color-danger-300: oklch(80.8% 0.108 11.5);
+  --color-danger-400: oklch(70.4% 0.176 10.5); /* #F86985 */
+  --color-danger-500: oklch(63.7% 0.21 9.8);
+  --color-danger-600: oklch(57.7% 0.22 9); /* #DA1A5E */
+  --color-danger-700: oklch(50.5% 0.196 8.4); /* #B80E4E — destructive fill */
+  --color-danger-800: oklch(44.4% 0.16 8);
+  --color-danger-900: oklch(39.6% 0.128 7.5);
+  --color-danger-950: oklch(25.8% 0.082 7);
+
+  /* ---- Success — emerald. Carries the selected-seat state. --------------- */
+  --color-success-50: oklch(97.1% 0.02 160);
+  --color-success-100: oklch(93.6% 0.04 159);
+  --color-success-200: oklch(88.5% 0.07 158);
+  --color-success-300: oklch(80.8% 0.11 157);
+  --color-success-400: oklch(70.4% 0.145 156); /* #3FBA78 */
+  --color-success-500: oklch(63.7% 0.15 155.5);
+  --color-success-600: oklch(57.7% 0.14 155);
+  --color-success-700: oklch(50.5% 0.12 155); /* #0F7845 — selected seat */
+  --color-success-800: oklch(44.4% 0.1 156);
+  --color-success-900: oklch(39.6% 0.085 157);
+  --color-success-950: oklch(25.8% 0.06 158);
+
+  /* ---- Warning — amber (H 92 -> 58), deliberately not orange, so it never
+     crowds the brand vermilion at H 26. 600 is fill-only: 4.43:1 fails AA. */
+  --color-warning-50: oklch(97.1% 0.03 92);
+  --color-warning-100: oklch(93.6% 0.06 90);
+  --color-warning-200: oklch(88.5% 0.1 88);
+  --color-warning-300: oklch(80.8% 0.14 86);
+  --color-warning-400: oklch(70.4% 0.15 83);
+  --color-warning-500: oklch(63.7% 0.135 80);
+  --color-warning-600: oklch(57.7% 0.122 75);
+  --color-warning-700: oklch(50.5% 0.11 70); /* #8C5700 — warning text floor */
+  --color-warning-800: oklch(44.4% 0.099 66);
+  --color-warning-900: oklch(39.6% 0.091 62);
+  --color-warning-950: oklch(25.8% 0.061 58);
+
+  /* ---- Info — azure. Doubles as the focus-ring source and male seat. ----- */
+  --color-info-50: oklch(97.1% 0.014 245);
+  --color-info-100: oklch(93.6% 0.032 246); /* #D9EDFF */
+  --color-info-200: oklch(88.5% 0.059 247);
+  --color-info-300: oklch(80.8% 0.1 248);
+  --color-info-400: oklch(70.4% 0.14 249); /* #52A5F2 */
+  --color-info-500: oklch(63.7% 0.16 250);
+  --color-info-600: oklch(57.7% 0.17 252); /* #087AD9 */
+  --color-info-700: oklch(50.5% 0.155 254);
+  --color-info-800: oklch(44.4% 0.128 256);
+  --color-info-900: oklch(39.6% 0.104 258); /* #1F467D */
+  --color-info-950: oklch(25.8% 0.07 260);
+
+  /* ---- Pink — seat "female" only. Pushed to magenta-rose, 49 degrees off
+     brand, so a female seat is never misread as an error state. ----------- */
+  --color-pink-50: oklch(97.1% 0.014 344);
+  --color-pink-100: oklch(93.6% 0.03 343); /* #F9E2EF */
+  --color-pink-200: oklch(88.5% 0.055 342);
+  --color-pink-300: oklch(80.8% 0.09 341);
+  --color-pink-400: oklch(70.4% 0.12 340);
+  --color-pink-500: oklch(63.7% 0.135 339);
+  --color-pink-600: oklch(57.7% 0.14 338); /* #AC5596 */
+  --color-pink-700: oklch(50.5% 0.125 337);
+  --color-pink-800: oklch(44.4% 0.105 336);
+  --color-pink-900: oklch(39.6% 0.088 335); /* #633359 */
+  --color-pink-950: oklch(25.8% 0.06 334);
+
+  /* ---- Type ------------------------------------------------------------
+     Inter carries the UI: cv05 gives lowercase l a tail and cv08 gives
+     uppercase I a serif, which is what separates I / l / ı / i / İ — a
+     correctness requirement in Turkish, where i vs ı is phonemic.
+     Archivo's width axis condenses long Turkish headlines instead of
+     wrapping them. */
+  --font-sans:
+    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
+    sans-serif;
+  --font-display: 'Archivo', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, monospace;
+
+  /* Modular scale: 1.2 (minor third) at 360px opening to 1.25 at 1280px.
+     Each clamp keeps a rem term supplying most of the value so text-only
+     zoom still works (SC 1.4.4) — a pure vw expression would not. */
+  --text-2xs: 0.75rem;
+  --text-2xs--line-height: 1.4;
+  --text-2xs--letter-spacing: 0.06em;
+  --text-xs: 0.8125rem;
+  --text-xs--line-height: 1.45;
+  --text-xs--letter-spacing: 0.01em;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.45;
+  --text-sm--letter-spacing: 0.005em;
+  --text-base: clamp(1rem, 0.9755rem + 0.1087vw, 1.0625rem);
+  --text-base--line-height: 1.55;
+  --text-lg: clamp(1.1875rem, 1.1386rem + 0.2174vw, 1.3125rem);
+  --text-lg--line-height: 1.45;
+  --text-lg--letter-spacing: -0.005em;
+  --text-xl: clamp(1.4375rem, 1.3397rem + 0.4348vw, 1.6875rem);
+  --text-xl--line-height: 1.35;
+  --text-xl--letter-spacing: -0.01em;
+  --text-2xl: clamp(1.75rem, 1.6277rem + 0.5435vw, 2.0625rem);
+  --text-2xl--line-height: 1.28;
+  --text-2xl--letter-spacing: -0.014em;
+  --text-3xl: clamp(2.0625rem, 1.8424rem + 0.9783vw, 2.625rem);
+  --text-3xl--line-height: 1.2;
+  --text-3xl--letter-spacing: -0.018em;
+  --text-4xl: clamp(2.5rem, 2.2065rem + 1.3043vw, 3.25rem);
+  --text-4xl--line-height: 1.14;
+  --text-4xl--letter-spacing: -0.022em;
+  --text-5xl: clamp(3rem, 2.5842rem + 1.8478vw, 4.0625rem);
+  --text-5xl--line-height: 1.1;
+  --text-5xl--letter-spacing: -0.026em;
+
+  /* ---- Geometry --------------------------------------------------------- */
+  --spacing: 0.25rem;
+
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem; /* seat */
+  --radius-lg: 0.625rem; /* input, secondary button */
+  --radius-xl: 0.875rem; /* card */
+  --radius-2xl: 1.25rem; /* modal */
+  --radius-3xl: 1.5rem; /* sheet */
+  --radius-full: 9999px;
+
+  --breakpoint-xs: 26.25rem; /* 420px */
+
+  --container-prose: 42rem;
+  --container-app: 75rem;
+
+  /* ---- Depth — tinted oklch(0.36 0.045 245), the same ocean blue as the
+     neutrals. Pure black reads as dirt on any tinted ground, and a WARM
+     shadow over a cool surface is what makes a page look smudged. --------- */
+  --shadow-xs: 0 1px 2px oklch(0.36 0.045 245 / 0.06);
+  --shadow-sm: 0 1px 2px oklch(0.36 0.045 245 / 0.06), 0 2px 4px oklch(0.36 0.045 245 / 0.05);
+  --shadow-md:
+    0 1px 2px oklch(0.36 0.045 245 / 0.05), 0 4px 8px -1px oklch(0.36 0.045 245 / 0.07),
+    0 8px 20px -4px oklch(0.36 0.045 245 / 0.06);
+  --shadow-lg:
+    0 2px 4px oklch(0.36 0.045 245 / 0.05), 0 8px 16px -2px oklch(0.36 0.045 245 / 0.08),
+    0 20px 40px -8px oklch(0.36 0.045 245 / 0.1);
+  --shadow-xl:
+    0 4px 8px oklch(0.36 0.045 245 / 0.06), 0 16px 32px -4px oklch(0.36 0.045 245 / 0.1),
+    0 40px 72px -12px oklch(0.32 0.05 248 / 0.18);
+  --shadow-brand:
+    0 2px 6px oklch(0.577 0.1885 26 / 0.24), 0 8px 20px -4px oklch(0.577 0.1885 26 / 0.3);
+
+  /* ---- Motion ----------------------------------------------------------- */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 260ms;
+  --duration-slower: 380ms;
+  --duration-sheet: 420ms;
+
+  --default-transition-duration: var(--duration-base);
+  --default-transition-timing-function: var(--ease-standard);
+
+  --animate-rise: rise var(--duration-slow) var(--ease-out) both;
+  --animate-seat-pop: seat-pop 220ms var(--ease-spring) both;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(0.5rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes seat-pop {
+    0% {
+      transform: scale(0.6);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+}
+
+/* ==========================================================================
+   2. SEMANTICS — plain custom properties, switched by theme
+   ========================================================================== */
+
+:root {
+  color-scheme: light;
+
+  --app-bg: var(--color-neutral-25);
+  --app-surface: var(--color-neutral-0);
+  --app-surface-raised: var(--color-neutral-0); /* light elevates by shadow */
+  --app-surface-sunken: var(--color-neutral-100);
+  /* Alternating full-width page bands. Kept separate from surface-sunken:
+     a band covers half the viewport, so the tint that reads right behind a
+     hovered row is far too heavy across a whole section. */
+  --app-bg-alt: var(--color-neutral-50);
+
+  /* Two border tokens with disjoint jobs. `border` is a hairline divider and
+     is exempt from 3:1. `border-strong` is the sole edge of a control and
+     MUST clear 3:1 — on EVERY ground it can sit on, not just white.
+     neutral-500 measured 3.39:1 on white but only 2.81:1 on a sunken panel,
+     so this steps to 600: 4.31 on surface, 4.17 on bg, 3.58 on sunken. */
+  --app-border: var(--color-neutral-200); /* decorative divider, exempt */
+  --app-border-strong: var(--color-neutral-600);
+
+  --app-text: var(--color-neutral-950); /* 15.65:1 */
+  --app-text-secondary: var(--color-neutral-800); /* 7.60:1 */
+  --app-text-muted: var(--color-neutral-700); /* 5.90:1 — NOT 600 (4.34:1 fails) */
+  --app-text-subtle: var(--color-neutral-500); /* 3.40:1, large/disabled only */
+
+  --app-brand: var(--color-brand-600);
+  --app-brand-hover: var(--color-brand-700); /* darker on hover, never lighter */
+  --app-brand-text: var(--color-brand-700); /* brand as text on surface, 6.39:1 */
+  --app-on-brand: var(--color-neutral-0); /* 4.75:1 — the tightest pair we ship */
+
+  --app-danger: var(--color-danger-700);
+  --app-danger-text: var(--color-danger-800);
+  --app-danger-tint: var(--color-danger-50);
+  --app-on-danger: var(--color-neutral-0);
+
+  --app-success: var(--color-success-700);
+  --app-success-text: var(--color-success-800);
+  --app-success-tint: var(--color-success-50);
+
+  --app-warning: var(--color-warning-500);
+  --app-warning-text: var(--color-warning-700); /* 600 is fill-only */
+  --app-warning-tint: var(--color-warning-50);
+
+  --app-info: var(--color-info-600);
+  --app-info-text: var(--color-info-800);
+  --app-info-tint: var(--color-info-50);
+
+  --app-ring: var(--color-info-600);
+  --app-ring-halo: var(--color-neutral-0);
+  --app-overlay: oklch(0.22 0.03 240 / 0.55);
+
+  /* ---- Seat states -----------------------------------------------------
+     Preserves the encoding Turkish travellers already read instinctively
+     (blue = male, pink = female, green = selected, white = empty, grey =
+     taken) while fixing every contrast failure in the originals. Note
+     `selected` is success-700, not 600: white on success-600 is 4.05:1 and
+     fails for a 13px seat number. */
+  --seat-available-fill: var(--color-neutral-0);
+  --seat-available-border: var(--color-neutral-500);
+  --seat-available-text: var(--color-neutral-800);
+
+  --seat-male-fill: var(--color-info-100);
+  --seat-male-border: var(--color-info-600);
+  --seat-male-text: var(--color-info-900);
+
+  --seat-female-fill: var(--color-pink-100);
+  --seat-female-border: var(--color-pink-600);
+  --seat-female-text: var(--color-pink-900);
+
+  --seat-selected-fill: var(--color-success-700);
+  --seat-selected-border: var(--color-success-800);
+  --seat-selected-text: var(--color-neutral-0);
+
+  --seat-blocked-fill: var(--color-neutral-200);
+  --seat-blocked-border: var(--color-neutral-600);
+  --seat-blocked-text: var(--color-neutral-800);
+
+  --seat-disabled-fill: var(--color-neutral-50);
+  --seat-disabled-border: var(--color-neutral-300);
+  --seat-disabled-text: var(--color-neutral-500);
+
+  --deck-shell: var(--color-neutral-0);
+  --deck-shell-border: var(--color-neutral-400);
+  --deck-floor: var(--color-neutral-50);
+  --deck-chrome: var(--color-neutral-300);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --app-bg: var(--color-neutral-1000);
+  --app-surface: var(--color-neutral-975);
+  --app-surface-raised: var(--color-neutral-950); /* dark elevates by lightness */
+  --app-surface-sunken: oklch(19.2% 0.016 242);
+  --app-bg-alt: oklch(19.8% 0.016 242);
+
+  --app-border: oklch(27.8% 0.018 240);
+  --app-border-strong: var(--color-neutral-600); /* inverts: 500 is only 2.96:1 here */
+
+  --app-text: var(--color-neutral-50);
+  --app-text-secondary: var(--color-neutral-300);
+  --app-text-muted: var(--color-neutral-400);
+  --app-text-subtle: var(--color-neutral-500);
+
+  --app-brand: var(--color-brand-600); /* the CTA reads identically in both themes */
+  --app-brand-hover: var(--color-brand-500);
+  --app-brand-text: var(--color-brand-400); /* 6.24:1 */
+  --app-on-brand: var(--color-neutral-0);
+
+  /* Destructive flips polarity: no dark crimson holds 4.5:1 on a dark
+     surface without turning to mud. Intentional — do not "fix" it back. */
+  --app-danger: var(--color-danger-400);
+  --app-danger-text: var(--color-danger-300);
+  --app-danger-tint: oklch(28% 0.07 10);
+  --app-on-danger: var(--color-neutral-950);
+
+  --app-success: var(--color-success-400);
+  --app-success-text: var(--color-success-300);
+  --app-success-tint: oklch(27% 0.05 158);
+
+  --app-warning: var(--color-warning-400);
+  --app-warning-text: var(--color-warning-300);
+  --app-warning-tint: oklch(28% 0.05 85);
+
+  --app-info: var(--color-info-400);
+  --app-info-text: var(--color-info-300);
+  --app-info-tint: oklch(28% 0.06 250);
+
+  --app-ring: var(--color-info-400);
+  --app-ring-halo: var(--color-neutral-1000);
+  --app-overlay: oklch(0.08 0.02 245 / 0.76);
+
+  --seat-available-fill: var(--color-neutral-950);
+  --seat-available-border: var(--color-neutral-600);
+  --seat-available-text: var(--color-neutral-100);
+
+  --seat-male-fill: oklch(31.5% 0.055 250);
+  --seat-male-border: var(--color-info-400);
+  --seat-male-text: var(--color-info-200);
+
+  --seat-female-fill: oklch(31.5% 0.05 340);
+  --seat-female-border: var(--color-pink-400);
+  --seat-female-text: var(--color-pink-200);
+
+  --seat-selected-fill: var(--color-success-400);
+  --seat-selected-border: var(--color-success-300);
+  --seat-selected-text: var(--color-neutral-950);
+
+  --seat-blocked-fill: var(--color-neutral-925);
+  --seat-blocked-border: var(--color-neutral-500);
+  --seat-blocked-text: var(--color-neutral-300);
+
+  --seat-disabled-fill: oklch(24.5% 0.016 241);
+  --seat-disabled-border: oklch(30% 0.018 240);
+  --seat-disabled-text: var(--color-neutral-500);
+
+  --deck-shell: var(--color-neutral-975);
+  --deck-shell-border: var(--color-neutral-600);
+  --deck-floor: var(--color-neutral-950);
+  --deck-chrome: var(--color-neutral-700);
+}
+
+/* ==========================================================================
+   3. ALIASES — semantics become utility namespaces. `inline` is required.
+   ========================================================================== */
+
+@theme inline {
+  --color-bg: var(--app-bg);
+  --color-surface: var(--app-surface);
+  --color-surface-raised: var(--app-surface-raised);
+  --color-surface-sunken: var(--app-surface-sunken);
+  --color-bg-alt: var(--app-bg-alt);
+
+  --color-border: var(--app-border);
+  --color-border-strong: var(--app-border-strong);
+
+  --color-fg: var(--app-text);
+  --color-fg-secondary: var(--app-text-secondary);
+  --color-fg-muted: var(--app-text-muted);
+  --color-fg-subtle: var(--app-text-subtle);
+
+  --color-brand: var(--app-brand);
+  --color-brand-hover: var(--app-brand-hover);
+  --color-brand-fg: var(--app-brand-text);
+  --color-on-brand: var(--app-on-brand);
+
+  --color-danger: var(--app-danger);
+  --color-danger-fg: var(--app-danger-text);
+  --color-danger-tint: var(--app-danger-tint);
+  --color-on-danger: var(--app-on-danger);
+
+  --color-success: var(--app-success);
+  --color-success-fg: var(--app-success-text);
+  --color-success-tint: var(--app-success-tint);
+
+  --color-warning: var(--app-warning);
+  --color-warning-fg: var(--app-warning-text);
+  --color-warning-tint: var(--app-warning-tint);
+
+  --color-info: var(--app-info);
+  --color-info-fg: var(--app-info-text);
+  --color-info-tint: var(--app-info-tint);
+
+  --color-ring: var(--app-ring);
+  --color-ring-halo: var(--app-ring-halo);
+  --color-overlay: var(--app-overlay);
+
+  --color-deck-shell: var(--deck-shell);
+  --color-deck-shell-border: var(--deck-shell-border);
+  --color-deck-floor: var(--deck-floor);
+  --color-deck-chrome: var(--deck-chrome);
+}
+
+/* ==========================================================================
+   BASE
+   ========================================================================== */
+
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--color-border);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+    /* Keeps a sticky header from covering an anchored heading (SC 2.4.11). */
+    scroll-padding-top: --spacing(20);
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* cv05: l with a tail. cv08: I with serifs. Together these separate
+       I / l / ı / i / İ, which Turkish needs and a geometric sans loses. */
+    font-feature-settings:
+      'cv05' 1,
+      'cv08' 1,
+      'ss03' 1;
+    text-rendering: optimizeLegibility;
+  }
+
+  :lang(tr) {
+    font-feature-settings:
+      'cv05' 1,
+      'cv08' 1,
+      'ss03' 1,
+      'locl' 1;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-variation-settings: 'wdth' 92;
+    text-wrap: balance;
+    /* Never below 1.20: İ and Ğ sit above cap height and collide. */
+    line-height: 1.2;
+    color: var(--color-fg);
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Fares, times and seat numbers must not shift width between digits. */
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings:
+      'cv05' 1,
+      'cv08' 1,
+      'tnum' 1;
+  }
+
+  /* Double-ring focus. A single ring cannot satisfy SC 2.4.13 here: blue on
+     the brand-red CTA is only 1.81:1. The halo guarantees a >=3:1 boundary on
+     any background. The transparent outline is not decoration — Windows High
+     Contrast discards box-shadow and repaints exactly that outline. */
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    box-shadow:
+      0 0 0 2px var(--color-ring-halo),
+      0 0 0 4px var(--color-ring);
+    border-radius: var(--radius-sm);
+    position: relative;
+    z-index: 1;
+  }
+
+  /* On a brand fill the ring inverts, or it disappears into the red. */
+  .on-brand :focus-visible {
+    --app-ring-halo: var(--color-brand-600);
+    --app-ring: var(--color-neutral-0);
+  }
+
+  @media (forced-colors: active) {
+    :focus-visible {
+      outline: 3px solid Highlight;
+      outline-offset: 2px;
+      box-shadow: none;
+    }
+  }
+
+  ::selection {
+    background-color: var(--color-brand-200);
+    color: var(--color-brand-950);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-neutral-300);
+    border-radius: var(--radius-full);
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-neutral-400);
+    background-clip: content-box;
+  }
+
+  /* Do NOT blanket-kill transitions — that strips the state feedback a
+     booking flow depends on. Zero out transforms, cap colour/opacity at
+     100ms, and keep the change itself instant. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      --duration-fast: 0ms;
+      --duration-base: 0ms;
+      --duration-slow: 100ms;
+      --duration-slower: 100ms;
+      --duration-sheet: 100ms;
+      --ease-spring: var(--ease-standard);
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 100ms !important;
+      transition-property: opacity, color, background-color, border-color, box-shadow !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* ==========================================================================
+   UTILITIES
+   ========================================================================== */
+
+/* The page gutter. One definition, used by every section. */
+@utility app-container {
+  margin-inline: auto;
+  width: 100%;
+  max-width: var(--container-app);
+  padding-inline: clamp(1rem, 0.6087rem + 1.7391vw, 2rem);
+}
+
+/* Vertical section rhythm: 32px on mobile opening to 80px on desktop. */
+@utility section-y {
+  padding-block: clamp(2rem, 0.8261rem + 5.2174vw, 5rem);
+}
+
+/* Expands a small control's hit area to 44px without changing its box.
+   Used on the swap arrow, calendar days and chip remove buttons. */
+@utility tap-44 {
+  position: relative;
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 50% auto auto 50%;
+    translate: -50% -50%;
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Fades the edges of a horizontally scrolling strip so it reads as
+   continuing rather than clipped. */
+@utility fade-inline-edges {
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 1.5rem,
+    #000 calc(100% - 1.5rem),
+    transparent 100%
+  );
+}
+
+@utility text-balance-tr {
+  text-wrap: balance;
+  hyphens: none;
+}
