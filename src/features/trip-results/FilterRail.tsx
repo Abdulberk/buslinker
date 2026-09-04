@@ -184,25 +184,67 @@ function FacetRow({
   // list reflow under the pointer and read as a broken filter.
   const disabled = bucket.count === 0 && !checked
 
-  return (
-    <label
-      className={cn(
-        '-mx-2 flex min-h-11 items-center gap-3 rounded-lg px-2 py-1.5',
-        'transition-colors duration-(--duration-fast)',
-        disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-surface-sunken',
-      )}
-    >
-      <Checkbox checked={checked} disabled={disabled} onCheckedChange={() => onToggle()} />
-      {icon ? <AssetIcon src={icon} className="size-6 shrink-0 text-fg-muted" /> : null}
-      <span className="min-w-0 flex-1 truncate text-sm text-fg">{bucket.label}</span>
+  // 44px stays the target where fingers are; a pointer does not need it, and
+  // at six groups the rail reads as a list rather than a stack of buttons.
+  const row = cn(
+    '-mx-2 flex min-h-11 w-[calc(100%+1rem)] items-center gap-3 rounded-lg px-2 py-1 text-left',
+    'transition-colors duration-(--duration-fast) sm:min-h-9',
+  )
+
+  const body = (
+    <>
+      {icon ? (
+        <AssetIcon src={icon} className={cn('size-6 shrink-0', !checked && 'text-fg-muted')} />
+      ) : null}
+      <span className="min-w-0 flex-1 truncate text-sm">{bucket.label}</span>
 
       {/* A band shows its hours where the others show their count. The count
           still goes to assistive tech: it is the only thing that explains why
           a row is greyed out, and dropping it would leave that silent. */}
-      <span className="shrink-0 text-xs text-fg-muted" data-numeric>
+      <span
+        className={cn('shrink-0 text-xs', checked ? 'text-brand-fg/75' : 'text-fg-muted')}
+        data-numeric
+      >
         {hint ?? bucket.count}
         <span className="sr-only">{hint ? `, ${bucket.count} sefer` : ' sefer'}</span>
       </span>
+    </>
+  )
+
+  // The bands drop the checkbox and let the whole row be the control. There is
+  // no box left to carry the state, so the row itself has to show it — hence
+  // the brand tint rather than only a colour change on the text.
+  if (icon) {
+    return (
+      <button
+        type="button"
+        role="checkbox"
+        aria-checked={checked}
+        disabled={disabled}
+        onClick={onToggle}
+        className={cn(
+          row,
+          disabled && 'cursor-not-allowed opacity-50',
+          checked
+            ? 'bg-brand/10 font-medium text-brand-fg'
+            : 'text-fg not-disabled:cursor-pointer hover:bg-surface-sunken',
+        )}
+      >
+        {body}
+      </button>
+    )
+  }
+
+  return (
+    <label
+      className={cn(
+        row,
+        'text-fg',
+        disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-surface-sunken',
+      )}
+    >
+      <Checkbox checked={checked} disabled={disabled} onCheckedChange={() => onToggle()} />
+      {body}
     </label>
   )
 }
