@@ -13,10 +13,11 @@ import { cn } from '@/shared/lib/cn'
 import { formatPrice } from '@/shared/lib/tr'
 import { countActiveFilters, toggleFacet } from '@/shared/lib/search-params'
 import { TIME_BANDS } from '@/shared/api/catalog'
-// The morning/noon/evening/night files are icon+LABEL lockups (37x53, with the
-// word drawn as outlines), not bare glyphs, so they are not used beside the
-// row labels — they would repeat the word illegibly at 20px.
-import { ICON } from '@/shared/config/assets'
+// The morning/noon/evening/night files shipped as icon+LABEL lockups, with
+// "Sabah"/"Öğle"/"Akşam"/"Gece" drawn into the artwork as outlined paths.
+// Their viewBoxes are now cropped to the glyph, so they can sit beside a row
+// label without repeating the word.
+import { BAND_ICON, ICON } from '@/shared/config/assets'
 import { AssetIcon } from '@/shared/ui/asset-icon'
 import type { FacetBucket, SearchResult, SortKey, TripFilters } from '@/shared/api/mock-server'
 
@@ -31,7 +32,7 @@ interface FacetGroup {
 
 const GROUPS: readonly FacetGroup[] = [
   { key: 'bands', title: 'Kalkış Saati', icon: ICON.departureHour },
-  { key: 'operators', title: 'Firma', icon: null },
+  { key: 'operators', title: 'Firma', icon: ICON.bus },
   { key: 'layouts', title: 'Koltuk Düzeni', icon: ICON.seatLayout },
   { key: 'amenities', title: 'Araç Özellikleri', icon: ICON.extraServices },
   { key: 'fromTerminals', title: 'Kalkış Terminali', icon: ICON.from },
@@ -114,6 +115,7 @@ export function FilterRail({
                         bucket={bucket}
                         checked={selected.includes(bucket.value)}
                         hint={group.key === 'bands' ? BAND_HINTS.get(bucket.value) : undefined}
+                        icon={group.key === 'bands' ? BAND_ICON[bucket.value]?.base : undefined}
                         onToggle={() => onChange(toggleFacet(filters, group.key, bucket.value))}
                       />
                     </li>
@@ -168,11 +170,14 @@ function FacetRow({
   bucket,
   checked,
   hint,
+  icon,
   onToggle,
 }: {
   bucket: FacetBucket
   checked: boolean
   hint: string | undefined
+  /** Only the departure bands carry one; masked, so it takes the row colour. */
+  icon?: string | undefined
   onToggle: () => void
 }) {
   // A zero-count value stays put and greys out. Removing it would make the
@@ -188,6 +193,7 @@ function FacetRow({
       )}
     >
       <Checkbox checked={checked} disabled={disabled} onCheckedChange={() => onToggle()} />
+      {icon ? <AssetIcon src={icon} className="size-6 shrink-0 text-fg-muted" /> : null}
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm text-fg">{bucket.label}</span>
         {hint ? (

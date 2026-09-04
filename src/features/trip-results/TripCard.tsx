@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { Armchair, BedDouble, Bus, Coffee, Snowflake, Sparkles, Star } from 'lucide-react'
+import { Armchair, BedDouble, Bus, Coffee, Snowflake, Sparkles } from 'lucide-react'
 import type { CSSProperties, ComponentType, ReactNode, SVGProps } from 'react'
 import { Badge } from '@/shared/ui/badge'
 import { Button } from '@/shared/ui/button'
@@ -73,11 +73,6 @@ function amenityArt(art: AmenityArt): ReactNode {
 const MAX_AMENITY_ICONS = 4
 
 /** Ratings are the one decimal number on this page with no formatter of its own. */
-const ratingFmt = new Intl.NumberFormat('tr-TR', {
-  minimumFractionDigits: 1,
-  maximumFractionDigits: 1,
-})
-
 function terminalName(cityId: string, terminalId: string): string {
   const city = cityById(cityId)
   return city?.terminals.find((t) => t.id === terminalId)?.name ?? city?.name ?? ''
@@ -121,11 +116,6 @@ export function TripCard({ trip, className }: TripCardProps) {
               <h3 className="truncate font-display text-sm font-semibold text-fg">
                 {operatorName}
               </h3>
-              <p className="mt-0.5 flex items-center gap-1 text-xs text-fg-muted">
-                <Star className="size-3.5 text-warning" fill="currentColor" aria-hidden="true" />
-                <span data-numeric>{ratingFmt.format(trip.rating)}</span>
-                <span className="sr-only">puan, 10 üzerinden</span>
-              </p>
             </div>
             {trip.premium ? (
               <Badge tone="brand" size="sm" className="shrink-0">
