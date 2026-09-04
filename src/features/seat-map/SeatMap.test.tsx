@@ -36,15 +36,15 @@ function renderMap(data = buildMap()) {
 
 const tabStops = (container: HTMLElement) => container.querySelectorAll('[tabindex="0"]')
 
+// Every case here drives real keyboard interaction across a 38-seat deck, so
+// several run close to the default 5s. They were failing on a busy machine
+// for timing alone, which says nothing about the code under test.
 describe('SeatMap — roving tabindex', () => {
   it('starts with exactly one tab stop', () => {
     const { container } = renderMap()
     expect(tabStops(container)).toHaveLength(1)
   })
 
-  // Slow by nature: it drives ~40 real keyboard interactions across the whole
-  // deck. The default 5s is close enough to the true runtime that a busy
-  // machine fails it on timing alone.
   it('keeps exactly one tab stop after arrowing across the whole coach', async () => {
     const user = userEvent.setup()
     const { container } = renderMap()
@@ -59,7 +59,7 @@ describe('SeatMap — roving tabindex', () => {
         expect(tabStops(container)).toHaveLength(1)
       }
     }
-  }, 20_000)
+  })
 
   it('never parks focus on a door or WC cell', async () => {
     const user = userEvent.setup()
@@ -132,7 +132,7 @@ describe('SeatMap — roving tabindex', () => {
       expect(tabStops(container)[0]?.tagName).toBe('BUTTON')
     }
   })
-})
+}, 20_000)
 
 describe('SeatMap — ARIA', () => {
   it('exposes the APG grid structure', () => {
