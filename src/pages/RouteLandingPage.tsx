@@ -629,10 +629,6 @@ function TripRow({ trip, from, to }: { trip: Trip; from: City; to: City }) {
       <div className="min-w-0 flex-1 basis-32">
         <h3 className="truncate font-display text-sm font-semibold text-fg">{operatorName}</h3>
         <p className="mt-0.5 flex items-center gap-1.5 text-xs text-fg-muted">
-          <Star className="size-3.5 text-warning" fill="currentColor" aria-hidden="true" />
-          <span data-numeric>{ratingFmt.format(trip.rating)}</span>
-          <span className="sr-only">puan, 10 üzerinden</span>
-          <span aria-hidden="true">·</span>
           <span>{trip.seatLayout} düzen</span>
         </p>
       </div>

@@ -1,7 +1,6 @@
 import { Link } from 'react-router'
-import { Armchair, BedDouble, Bus, Coffee, Snowflake, Sparkles } from 'lucide-react'
+import { Armchair, BedDouble, Bus, Coffee, Snowflake } from 'lucide-react'
 import type { CSSProperties, ComponentType, ReactNode, SVGProps } from 'react'
-import { Badge } from '@/shared/ui/badge'
 import { Button } from '@/shared/ui/button'
 import { Card } from '@/shared/ui/card'
 import { Skeleton } from '@/shared/ui/skeleton'
@@ -35,9 +34,7 @@ const CARD_BOX_STYLE: CSSProperties = {
 
 const GRID = cn(
   'grid flex-1 gap-4 p-4 sm:p-5',
-  // `items-stretch` is what lets the fare column's leading rule run the full
-  // height of the row instead of stopping at its own content.
-  'lg:grid-cols-[9.5rem_minmax(0,1fr)_11rem] lg:items-stretch lg:gap-6',
+  'lg:grid-cols-[9.5rem_minmax(0,1fr)_auto] lg:items-center lg:gap-6',
 )
 
 type IconComponent = ComponentType<SVGProps<SVGSVGElement>>
@@ -102,10 +99,11 @@ export function TripCard({ trip, className }: TripCardProps) {
     <article className={cn(CARD_BOX, className)} style={CARD_BOX_STYLE}>
       <Card
         className={cn(
-          'flex w-full flex-col overflow-hidden',
-          'transition-[border-color,box-shadow] duration-(--duration-base) ease-standard',
-          'hover:border-brand/30 hover:shadow-md',
-          'has-[a:focus-visible]:border-brand/30 has-[a:focus-visible]:shadow-md',
+          // No hairline: the card sits on the page by its shadow alone, the
+          // same soft lift the search strip has, and rises a step on hover.
+          'flex w-full flex-col overflow-hidden border-0 shadow-lg',
+          'transition-shadow duration-(--duration-base) ease-standard',
+          'hover:shadow-xl has-[a:focus-visible]:shadow-xl',
         )}
       >
         <div className={GRID}>
@@ -117,12 +115,6 @@ export function TripCard({ trip, className }: TripCardProps) {
                 {operatorName}
               </h3>
             </div>
-            {trip.premium ? (
-              <Badge tone="brand" size="sm" className="shrink-0">
-                <Sparkles aria-hidden="true" />
-                Premium
-              </Badge>
-            ) : null}
           </div>
 
           {/* 2 — journey */}
@@ -166,11 +158,13 @@ export function TripCard({ trip, className }: TripCardProps) {
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Badge tone="outline" size="sm">
-                <Armchair aria-hidden="true" />
+              {/* The layout is a fact about the coach, not a status: text, not
+                  a badge. */}
+              <span className="inline-flex items-center gap-1 pe-1 text-xs font-medium text-fg-secondary">
+                <Armchair className="size-3.5" aria-hidden="true" />
                 {trip.seatLayout}
                 <VisuallyHidden> koltuk düzeni</VisuallyHidden>
-              </Badge>
+              </span>
               {shownAmenities.map((id) => {
                 const amenity = amenityById(id)
                 if (!amenity) return null
@@ -194,9 +188,10 @@ export function TripCard({ trip, className }: TripCardProps) {
           {/* 3 — fare and action */}
           <div
             className={cn(
-              'flex items-end justify-between gap-3 border-t border-border pt-4',
-              'lg:flex-col lg:items-stretch lg:justify-center lg:gap-3',
-              'lg:border-s lg:border-t-0 lg:ps-6 lg:pt-0',
+              // No rule between the journey and the fare: the price is set
+              // large enough to be its own column.
+              'flex items-end justify-between gap-3 pt-1',
+              'lg:flex-col lg:items-end lg:justify-center lg:gap-3 lg:pt-0',
             )}
           >
             <div className="lg:text-end">
@@ -211,9 +206,9 @@ export function TripCard({ trip, className }: TripCardProps) {
               ) : null}
             </div>
 
-            <Button asChild variant="brand-outline" size="md" className="shrink-0 lg:w-full">
+            <Button asChild variant="primary" size="md" className="shrink-0">
               <Link to={seatPath(trip.id)}>
-                Seç
+                Koltuk Seç
                 <VisuallyHidden>
                   {` — ${departure} ${fromCity?.name ?? ''} ${toCity?.name ?? ''} seferi, ${formatPrice(trip.price)}`}
                 </VisuallyHidden>
@@ -229,7 +224,7 @@ export function TripCard({ trip, className }: TripCardProps) {
 export function TripCardSkeleton({ className }: { className?: string }) {
   return (
     <div className={cn(CARD_BOX, className)} style={CARD_BOX_STYLE} aria-hidden="true">
-      <Card className="flex w-full flex-col overflow-hidden">
+      <Card className="flex w-full flex-col overflow-hidden border-0 shadow-lg">
         <div className={GRID}>
           <div className="flex items-center gap-3 lg:flex-col lg:items-start lg:gap-2.5">
             <Skeleton className="size-11 shrink-0 rounded-lg" />
@@ -255,23 +250,24 @@ export function TripCardSkeleton({ className }: { className?: string }) {
               </div>
             </div>
             <div className="mt-3 flex items-center gap-2">
-              <Skeleton className="h-5 w-12 rounded-full" />
-              <Skeleton className="size-8 rounded-lg" />
-              <Skeleton className="size-8 rounded-lg" />
-              <Skeleton className="size-8 rounded-lg" />
-              <Skeleton className="size-8 rounded-lg" />
+              <Skeleton className="h-4 w-10" />
+              <Skeleton className="size-5 rounded" />
+              <Skeleton className="size-5 rounded" />
+              <Skeleton className="size-5 rounded" />
+              <Skeleton className="size-5 rounded" />
             </div>
           </div>
 
           <div
             className={cn(
-              'flex items-end justify-between gap-3 border-t border-border pt-4',
-              'lg:flex-col lg:items-stretch lg:justify-center lg:gap-3',
-              'lg:border-s lg:border-t-0 lg:ps-6 lg:pt-0',
+              // No rule between the journey and the fare: the price is set
+              // large enough to be its own column.
+              'flex items-end justify-between gap-3 pt-1',
+              'lg:flex-col lg:items-end lg:justify-center lg:gap-3 lg:pt-0',
             )}
           >
             <Skeleton className="h-8 w-24 lg:ms-auto" />
-            <Skeleton className="h-11 w-24 rounded-lg lg:w-full" />
+            <Skeleton className="h-11 w-28 rounded-lg" />
           </div>
         </div>
       </Card>

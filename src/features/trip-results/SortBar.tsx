@@ -1,9 +1,16 @@
-import { useId, type Ref } from 'react'
+import type { Ref } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/shared/lib/cn'
+import { pluralTr } from '@/shared/lib/tr'
 import { ICON } from '@/shared/config/assets'
 import { AssetIcon } from '@/shared/ui/asset-icon'
-import { pluralTr } from '@/shared/lib/tr'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@/shared/ui/primitives'
 import { SORT_OPTIONS } from '@/shared/lib/search-params'
 import type { SortKey } from '@/shared/api/mock-server'
 
@@ -18,6 +25,10 @@ export interface SortBarProps {
   className?: string
 }
 
+/**
+ * The bar above the results: the count on the left, sort on the right and,
+ * on a phone, the filters button beside it.
+ */
 export function SortBar({
   total,
   sort,
@@ -27,7 +38,7 @@ export function SortBar({
   activeFilterCount,
   className,
 }: SortBarProps) {
-  const selectId = useId()
+  const current = SORT_OPTIONS.find((o) => o.value === sort) ?? SORT_OPTIONS[0]!
 
   return (
     <div
@@ -36,82 +47,79 @@ export function SortBar({
         // if the shell ever publishes one.
         'sticky top-[var(--header-h,4rem)] lg:top-[var(--header-h,4.5rem)]',
         // No rule underneath: when stuck, the translucent surface over the
-        // scrolling cards is separation enough, and a line here was one more
-        // frame stacked under the search strip.
+        // scrolling cards is separation enough.
         'z-20 -mx-4 px-4 py-2 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0',
-        'bg-surface/85 backdrop-blur-md supports-[not(backdrop-filter:blur(0))]:bg-surface',
-        'flex flex-wrap items-center gap-x-4 gap-y-3',
+        // The page's own ground, not a surface: at rest the bar is invisible, and
+        // once stuck the translucency still masks the cards scrolling under it.
+        'bg-bg/85 backdrop-blur-md supports-[not(backdrop-filter:blur(0))]:bg-bg',
+        'flex items-center gap-2',
         className,
       )}
     >
-      <p className="text-sm text-fg-secondary">
+      <p className="me-auto text-sm whitespace-nowrap text-fg-secondary">
         <b className="font-display font-semibold text-fg" data-numeric>
           {pluralTr(total, 'sefer')}
         </b>{' '}
         bulundu
       </p>
 
-      <div className="ms-auto flex items-center gap-2">
-        <label htmlFor={selectId} className="hidden text-sm text-fg-muted xs:block">
-          Sırala
-        </label>
-        <div className="relative">
-          {/* Decorative: the <select> carries its own label, so the glyph is
-              orientation for sighted users only. */}
-          <AssetIcon
-            src={ICON.sort}
-            className="pointer-events-none absolute start-3 top-1/2 size-4 -translate-y-1/2 text-fg-muted"
-          />
-          <select
-            id={selectId}
-            value={sort}
-            onChange={(event) => onSortChange(event.target.value as SortKey)}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
             className={cn(
-              // A native <select> for its behaviour — keyboard, mobile pickers,
-              // assistive tech — dressed as a ghost control rather than a box.
-              'h-10 appearance-none rounded-lg border-0 bg-transparent',
-              'ps-9 pe-8 text-sm font-medium text-fg',
+              'group inline-flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-medium whitespace-nowrap text-fg',
               'transition-colors duration-(--duration-fast) hover:bg-surface-sunken',
+              'data-[state=open]:bg-surface-sunken',
             )}
           >
+            <AssetIcon src={ICON.sort} className="size-4 text-fg-muted" />
+            {/* On a phone the count, this and the filters button share one
+                row, so the label lives in the menu and the trigger is its glyph. */}
+            <span className="sr-only">Sıralama: </span>
+            <span className="sr-only sm:not-sr-only">{current.label}</span>
+            <ChevronDown
+              className="size-4 text-fg-muted transition-transform duration-(--duration-fast) group-data-[state=open]:rotate-180"
+              aria-hidden="true"
+            />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuRadioGroup value={sort} onValueChange={(v) => onSortChange(v as SortKey)}>
             {SORT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
+              <DropdownMenuRadioItem key={option.value} value={option.value}>
                 {option.label}
-              </option>
+              </DropdownMenuRadioItem>
             ))}
-          </select>
-          <ChevronDown
-            className="pointer-events-none absolute end-3 top-1/2 size-4 -translate-y-1/2 text-fg-muted"
-            aria-hidden="true"
-          />
-        </div>
+          </DropdownMenuRadioGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
-        <button
-          ref={filterButtonRef}
-          type="button"
-          onClick={onOpenFilters}
-          className={cn(
-            'inline-flex h-10 items-center gap-2 rounded-lg bg-surface-sunken px-3',
-            'text-sm font-medium text-fg transition-colors duration-(--duration-fast)',
-            'hover:bg-border lg:hidden',
-          )}
-        >
-          <AssetIcon src={ICON.filters} className="size-4" />
-          Filtrele
-          {activeFilterCount > 0 ? (
-            <span
-              className={cn(
-                'inline-flex min-w-5 items-center justify-center rounded-full',
-                'bg-brand px-1.5 py-px text-2xs font-semibold text-on-brand',
-              )}
-              data-numeric
-            >
-              {activeFilterCount}
-              <span className="sr-only"> filtre etkin</span>
-            </span>
-          ) : null}
-        </button>
-      </div>
+      <button
+        ref={filterButtonRef}
+        type="button"
+        onClick={onOpenFilters}
+        className={cn(
+          'inline-flex h-10 items-center gap-2 rounded-lg bg-surface-sunken px-3',
+          'text-sm font-medium text-fg transition-colors duration-(--duration-fast)',
+          'hover:bg-border lg:hidden',
+        )}
+      >
+        <AssetIcon src={ICON.filters} className="size-4" />
+        Filtrele
+        {activeFilterCount > 0 ? (
+          <span
+            className={cn(
+              'inline-flex min-w-5 items-center justify-center rounded-full',
+              'bg-brand px-1.5 py-px text-2xs font-semibold text-on-brand',
+            )}
+            data-numeric
+          >
+            {activeFilterCount}
+            <span className="sr-only"> filtre etkin</span>
+          </span>
+        ) : null}
+      </button>
     </div>
   )
 }

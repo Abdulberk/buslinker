@@ -2,6 +2,7 @@ import {
   Accordion as A,
   Checkbox as C,
   Dialog as D,
+  DropdownMenu as DM,
   Popover as P,
   Slider as S,
   Tooltip as T,
@@ -129,6 +130,65 @@ export function PopoverContent({
         {...props}
       />
     </P.Portal>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Dropdown menu
+//
+// For a short list of exclusive choices — the sort order. A native <select>
+// was tried first and its open list is drawn by the OS, so it can never be
+// the same material as the page; this is. Radix keeps the semantics the
+// native control had: a real menu, radio items, arrow keys, typeahead.
+
+export const DropdownMenu = DM.Root
+export const DropdownMenuTrigger = DM.Trigger
+export const DropdownMenuRadioGroup = DM.RadioGroup
+
+export function DropdownMenuContent({
+  className,
+  sideOffset = 6,
+  ...props
+}: ComponentProps<typeof DM.Content>) {
+  return (
+    <DM.Portal>
+      <DM.Content
+        sideOffset={sideOffset}
+        className={cn(
+          'z-50 min-w-56 rounded-xl border border-border bg-surface p-1.5 shadow-lg outline-none',
+          'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
+          'data-[state=closed]:animate-out data-[state=closed]:fade-out-0',
+          className,
+        )}
+        {...props}
+      />
+    </DM.Portal>
+  )
+}
+
+export function DropdownMenuRadioItem({
+  className,
+  children,
+  ...props
+}: ComponentProps<typeof DM.RadioItem>) {
+  return (
+    <DM.RadioItem
+      className={cn(
+        'relative flex h-10 cursor-pointer items-center rounded-lg ps-9 pe-3 text-sm text-fg outline-none select-none',
+        'transition-colors duration-(--duration-fast)',
+        'data-highlighted:bg-surface-sunken',
+        'data-[state=checked]:font-medium data-[state=checked]:text-brand-fg',
+        className,
+      )}
+      {...props}
+    >
+      <span className="pointer-events-none absolute inset-s-3 grid size-4 place-items-center">
+        <DM.ItemIndicator>
+          <Check className="size-4" strokeWidth={2.5} aria-hidden="true" />
+        </DM.ItemIndicator>
+      </span>
+      {children}
+    </DM.RadioItem>
   )
 }
 
@@ -293,7 +353,8 @@ export function IconWithLabel({
       <TooltipTrigger asChild>
         <span
           className={cn(
-            'inline-grid size-8 place-items-center rounded-lg bg-surface-sunken text-fg-secondary',
+            // A bare glyph, not a tile: eight tiles in a row read as buttons.
+            'inline-grid size-6 place-items-center text-fg-muted',
             className,
           )}
         >

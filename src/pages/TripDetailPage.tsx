@@ -1,16 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { Link, useParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
-import {
-  Armchair,
-  ArrowRight,
-  BedDouble,
-  Bus,
-  Coffee,
-  Snowflake,
-  Sparkles,
-  Star,
-} from 'lucide-react'
+import { Armchair, ArrowRight, BedDouble, Bus, Coffee, Snowflake, Sparkles } from 'lucide-react'
 import type { ComponentType, ReactNode, SVGProps } from 'react'
 import { PageHeader, Prose } from '@/shared/ui/page-header'
 import { Badge } from '@/shared/ui/badge'
@@ -44,11 +35,6 @@ import {
 
 /** How many alternatives are offered at the foot of the page. */
 const SIMILAR_COUNT = 3
-
-const ratingFmt = new Intl.NumberFormat('tr-TR', {
-  minimumFractionDigits: 1,
-  maximumFractionDigits: 1,
-})
 
 type IconComponent = ComponentType<SVGProps<SVGSVGElement>>
 type AmenityArt = { asset: string; Icon?: never } | { asset?: never; Icon: IconComponent }
@@ -153,12 +139,6 @@ function TripDetail({
               <div className="min-w-0 flex-1">
                 <h2 className="font-display text-lg font-semibold text-fg">{operatorName}</h2>
                 <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-fg-muted">
-                  <span className="inline-flex items-center gap-1">
-                    <Star className="size-4 text-warning" fill="currentColor" aria-hidden="true" />
-                    <span data-numeric>{ratingFmt.format(trip.rating)}</span>
-                    <span className="sr-only">puan, 10 üzerinden</span>
-                  </span>
-                  <span aria-hidden="true">·</span>
                   <span>{formatDateLong(trip.departsAt)}</span>
                 </p>
               </div>
