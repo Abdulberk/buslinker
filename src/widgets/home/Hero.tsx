@@ -5,7 +5,10 @@ import { AssetIcon, Illustration } from '@/shared/ui/asset-icon'
 
 /**
  * Only the bus search exists, so the other three modes render as genuinely
- * disabled buttons with a "Yakında" cue rather than links that go nowhere.
+ * disabled buttons rather than links that go nowhere: pressing one does
+ * nothing, and there is no handler behind it to do anything. From sm they
+ * carry a "Yakında" caption as well; a phone has no room for a line of text
+ * under every tab, and dimmed-and-inert already says it cannot be pressed.
  */
 const TRAVEL_MODES = [
   { id: 'bus', label: 'Otobüs', icon: ICON.bus, available: true },
@@ -144,8 +147,8 @@ export function Hero() {
                 className={cn(
                   'group relative flex flex-col items-center',
                   // A tab was 94px on a phone: desktop padding, a desktop glyph
-                  // and desktop gaps around the caption, on a 390-wide screen.
-                  // 72 now — this bar is the first thing under the header and
+                  // and desktop gaps around a caption, on a 390-wide screen.
+                  // 58 now — this bar is the first thing under the header and
                   // should not eat a tenth of the screen before the form starts.
                   'gap-0.5 pt-2 pb-2',
                   'sm:gap-1 sm:pt-3 sm:pb-3.5',
@@ -162,10 +165,15 @@ export function Hero() {
                 <AssetIcon src={icon} className="size-5 sm:size-7" />
                 <span className="text-sm font-semibold">{label}</span>
                 {/* Plain caption, not a badge: a pill inside a tab made the row
-                    lumpy and fought the tab's own shape. */}
+                    lumpy and fought the tab's own shape.
+
+                    Not on a phone. It is a whole line under every tab, and the
+                    line is what made the bar tall; the disabled modes are
+                    already dimmed, inert and announced as such. The desktop
+                    tabs have the room, so they keep the words. */}
                 <span
                   className={cn(
-                    'text-2xs leading-none font-medium',
+                    'hidden text-2xs leading-none font-medium sm:block',
                     available ? 'text-transparent' : 'text-fg-subtle',
                   )}
                 >
