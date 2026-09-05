@@ -148,10 +148,18 @@ export function SiteFooter() {
             // Held well back: it is the ground the footer stands on, not a
             // picture in it. Most of the drawing is dissolved by the mask and
             // what survives is faint enough to read as texture.
-            // Capped so the band is a strip along the foot rather than a
-            // third of the footer's height; the road stays at the bottom.
-            'block max-h-52 w-full object-cover object-bottom opacity-50',
-            'mask-[linear-gradient(to_top,black_25%,transparent)]',
+            // No height cap: capped at 208px the drawing lost a third of
+            // itself at 1280 and well over half at 1920, and a cropped skyline
+            // reads as a mistake. It runs at its own proportions and grows up
+            // behind the columns instead — which the mask makes safe, since
+            // whatever reaches the text has already faded out.
+            // Half opacity behind a mask that kept only the bottom quarter
+            // left the light theme with three units of contrast across the
+            // whole band — the drawing was there and could not be seen. Dark
+            // never had that problem: inverted ink on a near-black ground
+            // carries itself, so it keeps the lower setting.
+            'block w-full opacity-80',
+            'mask-[linear-gradient(to_top,black_45%,transparent)]',
             'dark:opacity-35 dark:hue-rotate-180 dark:invert',
           )}
         />
