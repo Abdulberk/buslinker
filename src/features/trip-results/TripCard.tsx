@@ -24,7 +24,7 @@ import type { Trip } from '@/shared/api/mock-server'
  * `content-visibility: auto` cause the scroll jumping it is meant to avoid.
  */
 const CARD_BOX = cn(
-  '[--card-min-h:18.25rem] lg:[--card-min-h:11rem]',
+  '[--card-min-h:13.25rem] lg:[--card-min-h:11rem]',
   'flex min-h-[var(--card-min-h)]',
   // The shadow is on this box, not on the card inside it. `content-visibility:
   // auto` brings paint containment, which clips whatever a descendant paints
@@ -46,7 +46,10 @@ const CARD_BOX_STYLE: CSSProperties = {
 }
 
 const GRID = cn(
-  'grid flex-1 gap-4 p-4 sm:p-5',
+  // Tighter on a phone: at gap-4 and p-4 the three rows carried 48px of air
+  // they had no use for, on a card that repeats nine times down the page.
+  'grid flex-1 gap-2.5 p-3.5',
+  'sm:gap-4 sm:p-5',
   'lg:grid-cols-[9.5rem_minmax(0,1fr)_auto] lg:items-center lg:gap-6',
 )
 
@@ -114,14 +117,27 @@ export function TripCard({ trip, className }: TripCardProps) {
       {/* No hairline and no shadow of its own: the box above carries both. */}
       <Card className="flex w-full flex-col overflow-hidden border-0 shadow-none">
         <div className={GRID}>
-          {/* 1 — carrier */}
+          {/* 1 — carrier, and on a phone the fare beside it */}
           <div className="flex items-center gap-3 lg:flex-col lg:items-start lg:gap-2.5">
-            <OperatorLogo operatorId={trip.operatorId} className="size-16 lg:size-20" />
+            {/* A 64px mark made this row 73px tall to hold a single line of
+                text. 44 is still the largest the logos are legible at. */}
+            <OperatorLogo operatorId={trip.operatorId} className="size-11 lg:size-20" />
             <div className="min-w-0 flex-1 lg:flex-none">
               <h3 className="truncate font-display text-sm font-semibold text-fg">
                 {operatorName}
               </h3>
             </div>
+
+            {/* The price sits here on a phone, in the space the operator's name
+                leaves empty, and in the fare column from lg. Two elements, one
+                displayed at a time — `hidden` is display:none, so only one ever
+                reaches the accessibility tree. */}
+            <p
+              className="shrink-0 font-display text-xl font-semibold text-fg lg:hidden"
+              data-numeric
+            >
+              {formatPrice(trip.price)}
+            </p>
           </div>
 
           {/* 2 — journey */}
@@ -164,7 +180,7 @@ export function TripCard({ trip, className }: TripCardProps) {
               </div>
             </div>
 
-            <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="mt-2 flex flex-wrap items-center gap-2 sm:mt-3">
               {/* The layout is a fact about the coach, not a status: text, not
                   a badge. */}
               <span className="inline-flex items-center gap-1 pe-1 text-xs font-medium text-fg-secondary">
@@ -200,16 +216,19 @@ export function TripCard({ trip, className }: TripCardProps) {
             className={cn(
               // No rule between the journey and the fare: the price is set
               // large enough to be its own column.
-              'flex items-end justify-between gap-3 pt-1',
+              'flex items-center justify-between gap-3',
               'lg:flex-col lg:items-end lg:justify-center lg:gap-3 lg:pt-0',
             )}
           >
             <div className="lg:text-end">
-              <p className="font-display text-2xl font-semibold text-fg" data-numeric>
+              <p
+                className="hidden font-display text-2xl font-semibold text-fg lg:block"
+                data-numeric
+              >
                 {formatPrice(trip.price)}
               </p>
               {scarce ? (
-                <p className="mt-1 flex items-center gap-1 text-xs font-medium text-warning-fg lg:justify-end">
+                <p className="flex items-center gap-1 text-xs font-medium text-warning-fg lg:mt-1 lg:justify-end">
                   <Armchair className="size-3.5 shrink-0" aria-hidden="true" />
                   <span data-numeric>{t('results.seatsLeft', { count: trip.seatsLeft })}</span>
                 </p>
@@ -242,6 +261,8 @@ export function TripCardSkeleton({ className }: { className?: string }) {
               <Skeleton className="h-4 w-28" />
               <Skeleton className="h-3 w-12" />
             </div>
+            {/* Stands in for the fare that sits here below lg. */}
+            <Skeleton className="h-6 w-20 shrink-0 lg:hidden" />
           </div>
 
           <div className="min-w-0">
