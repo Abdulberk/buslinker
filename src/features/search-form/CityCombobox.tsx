@@ -292,6 +292,10 @@ export function CityCombobox({
           onBlur={(event) => {
             const next = event.relatedTarget
             if (next instanceof Node && rootRef.current?.contains(next)) return
+            // Leaving the field empty is a choice, not an abandoned edit: with
+            // no clear button, selecting the city and deleting it is how a
+            // field is cleared, and snapping the old value back undid that.
+            if (dirty && query.trim() === '' && value !== null) onChange(null)
             reset()
           }}
           className={cn(

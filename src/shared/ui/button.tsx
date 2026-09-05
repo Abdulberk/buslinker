@@ -33,8 +33,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
+        // No coloured shadow under the fill: a red glow around a red button
+        // read as a second, softer button behind the first.
         primary:
-          'on-brand bg-brand text-on-brand shadow-brand hover:bg-brand-hover focus-visible:bg-brand-hover',
+          'on-brand bg-brand text-on-brand hover:bg-brand-hover focus-visible:bg-brand-hover',
         'brand-outline':
           'border border-brand/40 bg-surface text-brand-fg hover:border-brand hover:bg-brand hover:text-on-brand',
         secondary: 'border border-border-strong bg-surface text-fg hover:bg-surface-sunken',

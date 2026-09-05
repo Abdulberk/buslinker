@@ -35,14 +35,17 @@ export function SortBar({
         // The header is 4rem tall (4.5rem from lg); `--header-h` overrides both
         // if the shell ever publishes one.
         'sticky top-[var(--header-h,4rem)] lg:top-[var(--header-h,4.5rem)]',
-        'z-20 -mx-4 border-b border-border px-4 py-3 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0',
+        // No rule underneath: when stuck, the translucent surface over the
+        // scrolling cards is separation enough, and a line here was one more
+        // frame stacked under the search strip.
+        'z-20 -mx-4 px-4 py-2 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0',
         'bg-surface/85 backdrop-blur-md supports-[not(backdrop-filter:blur(0))]:bg-surface',
         'flex flex-wrap items-center gap-x-4 gap-y-3',
         className,
       )}
     >
       <p className="text-sm text-fg-secondary">
-        <b className="font-semibold text-fg" data-numeric>
+        <b className="font-display font-semibold text-fg" data-numeric>
           {pluralTr(total, 'sefer')}
         </b>{' '}
         bulundu
@@ -64,8 +67,10 @@ export function SortBar({
             value={sort}
             onChange={(event) => onSortChange(event.target.value as SortKey)}
             className={cn(
-              'h-11 appearance-none rounded-lg border border-border-strong bg-surface',
-              'ps-9 pe-9 text-sm font-medium text-fg',
+              // A native <select> for its behaviour — keyboard, mobile pickers,
+              // assistive tech — dressed as a ghost control rather than a box.
+              'h-10 appearance-none rounded-lg border-0 bg-transparent',
+              'ps-9 pe-8 text-sm font-medium text-fg',
               'transition-colors duration-(--duration-fast) hover:bg-surface-sunken',
             )}
           >
@@ -86,9 +91,9 @@ export function SortBar({
           type="button"
           onClick={onOpenFilters}
           className={cn(
-            'inline-flex h-11 items-center gap-2 rounded-lg border border-border-strong bg-surface px-3',
+            'inline-flex h-10 items-center gap-2 rounded-lg bg-surface-sunken px-3',
             'text-sm font-medium text-fg transition-colors duration-(--duration-fast)',
-            'hover:bg-surface-sunken lg:hidden',
+            'hover:bg-border lg:hidden',
           )}
         >
           <AssetIcon src={ICON.filters} className="size-4" />
