@@ -142,10 +142,13 @@ export function Hero() {
                 aria-pressed={available}
                 title={available ? undefined : `${label} aramaları yakında açılıyor`}
                 className={cn(
-                  // 94px a tab on a phone was a desktop measurement worn on a
-                  // 390-wide screen; the bar is the first thing under the header
-                  // and should not take a fifth of what is above the fold.
-                  'group relative flex flex-col items-center gap-1 pt-2.5 pb-2.5 sm:pt-3 sm:pb-3.5',
+                  'group relative flex flex-col items-center',
+                  // A tab was 94px on a phone: desktop padding, a desktop glyph
+                  // and desktop gaps around the caption, on a 390-wide screen.
+                  // 72 now — this bar is the first thing under the header and
+                  // should not eat a tenth of the screen before the form starts.
+                  'gap-0.5 pt-2 pb-2',
+                  'sm:gap-1 sm:pt-3 sm:pb-3.5',
                   // A phone gets four equal columns; from sm the tabs take
                   // their own width back and the folder shape returns.
                   'flex-1 basis-0 px-1',
@@ -156,7 +159,7 @@ export function Hero() {
                     : 'cursor-not-allowed text-fg-muted sm:hover:bg-surface/50',
                 )}
               >
-                <AssetIcon src={icon} className="size-6 sm:size-7" />
+                <AssetIcon src={icon} className="size-5 sm:size-7" />
                 <span className="text-sm font-semibold">{label}</span>
                 {/* Plain caption, not a badge: a pill inside a tab made the row
                     lumpy and fought the tab's own shape. */}
