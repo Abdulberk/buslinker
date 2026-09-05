@@ -23,7 +23,22 @@ export function Hero() {
     // `overflow-hidden` lives on the gradient wrapper, not the section: on the
     // section it also clipped the city dropdown, which opens downward and has
     // to escape the hero.
-    <section className="relative isolate border-b border-border bg-bg">
+    <section
+      // A phone stacks white cards on this, and on --color-bg they were one
+      // pale mass: ground and card sat about a point and a half apart in
+      // lightness. --color-surface-sunken is seven apart, which is what makes
+      // a card read as a card — and it is the tone the filters and the search
+      // boxes already use, not a colour invented for the hero. A ground rather
+      // than a red header, so the brand colour stays the thing you press.
+      //
+      // From sm the hero has its own heading, artwork and single card, and
+      // keeps the page ground.
+      //
+      // Light only: dark elevates by lightness, so there the sunken tone sits
+      // ABOVE the card surface and the step would run the wrong way, leaving
+      // the cards darker than the ground they stand on.
+      className="relative isolate border-b border-border bg-surface-sunken sm:bg-bg dark:bg-bg"
+    >
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
