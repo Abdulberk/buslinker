@@ -1,5 +1,6 @@
 import { ICON, VALUE_ICON } from '@/shared/config/assets'
 import { AssetIcon, Illustration } from '@/shared/ui/asset-icon'
+import { cn } from '@/shared/lib/cn'
 
 interface ValueProp {
   /** One of the project's own two-tone 80x80 illustrations. */
@@ -56,12 +57,25 @@ export function ValueProps() {
         {PROPS.map(({ art, title, body }) => (
           <li
             key={title}
-            className="flex h-full flex-col gap-3 rounded-xl border border-border bg-surface p-5"
+            className={cn(
+              'flex h-full gap-3 rounded-xl border border-border bg-surface',
+              // On a phone the illustration sits beside the words. Stacked, it
+              // took a row of its own and left each card 181px tall for three
+              // lines of text — six of those is a wall to scroll past.
+              'items-start p-4',
+              'sm:flex-col sm:items-stretch sm:p-5',
+            )}
           >
             {/* These illustrations carry their own two-tone palette, so they
                 are images rather than masked icons — and they need no tinted
                 tile behind them. */}
-            <Illustration src={art} alt="" width={80} height={80} className="size-14" />
+            <Illustration
+              src={art}
+              alt=""
+              width={80}
+              height={80}
+              className="size-10 shrink-0 sm:size-14"
+            />
             <div>
               <h3 className="text-base">{title}</h3>
               <p className="mt-1.5 text-sm text-fg-secondary">{body}</p>

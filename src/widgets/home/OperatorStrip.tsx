@@ -22,6 +22,9 @@ export function OperatorStrip() {
             // white tile — the marks are PNGs on white and need that ground to
             // survive dark mode — so a second bordered box around it just put
             // one frame inside another.
+            // 128px is the narrowest cell that still fits the longest name on
+            // one line. Narrowing it to show a third mark wrapped "Pamukkale
+            // Turizm" onto two lines and made the whole strip taller.
             className="flex w-32 shrink-0 flex-col items-center gap-2.5 py-2 text-center md:w-36"
           >
             <OperatorLogo operatorId={operator.id} className="size-20" />

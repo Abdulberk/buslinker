@@ -67,18 +67,24 @@ export function PopularTerminals() {
 
       {/* The route illustration closes the section the way the original design
           did. Purely ornamental, so it is hidden from assistive tech and
-          dimmed enough not to compete with the links above it. */}
-      <Illustration
-        src={IMAGE.routePath.src}
-        alt=""
-        width={IMAGE.routePath.width}
-        height={IMAGE.routePath.height}
-        // The file has an alpha channel but was exported over opaque white, so
-        // it draws a white box on the tinted section. `multiply` drops the
-        // white out against any lighter ground. It cannot do that on a dark
-        // ground, and this is purely ornamental, so dark mode simply omits it.
-        className="mx-auto mt-10 h-auto w-full max-w-2xl opacity-90 mix-blend-multiply dark:hidden"
-      />
+          dimmed enough not to compete with the links above it.
+
+          Not on a phone: at 390px it costs 175px of scroll to draw a doodle
+          two thumbs wide. The wrapper carries that rule rather than the image,
+          so it cannot race the dark-mode rule below. */}
+      <div className="hidden sm:block">
+        <Illustration
+          src={IMAGE.routePath.src}
+          alt=""
+          width={IMAGE.routePath.width}
+          height={IMAGE.routePath.height}
+          // The file has an alpha channel but was exported over opaque white,
+          // so it draws a white box on the tinted section. `multiply` drops
+          // the white out against any lighter ground. It cannot do that on a
+          // dark ground, and this is ornament, so dark mode simply omits it.
+          className="mx-auto mt-10 h-auto w-full max-w-2xl opacity-90 mix-blend-multiply dark:hidden"
+        />
+      </div>
     </>
   )
 }
