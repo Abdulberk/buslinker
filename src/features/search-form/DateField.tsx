@@ -291,9 +291,11 @@ export function DateField({
         id={labelId}
         className={cn(
           'mb-1.5 block text-xs font-semibold text-fg-secondary uppercase',
-          // `not-sr-only` also resets margin, which would eat the mb-1.5 above
-          // and shift every field up at sm and over. Put it back explicitly.
-          flush && 'sr-only sm:not-sr-only sm:mb-1.5',
+          // On a phone the caption sits tight above its value rather than
+          // hiding: naming the field is what lets the three rows read as a
+          // form instead of three anonymous boxes. It returns to its full
+          // size from sm, where the layout has room for it.
+          flush && 'mb-0 text-2xs sm:mb-1.5 sm:text-xs',
           // On the strip the value is the label: a city name, a date. The
           // caption stays in the document as the field's accessible name and
           // leaves the screen.

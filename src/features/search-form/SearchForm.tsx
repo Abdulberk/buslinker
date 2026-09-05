@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { FormEvent, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { ICON } from '@/shared/config/assets'
@@ -79,6 +79,20 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
     void navigate(resultsPath(from.slug, to.slug, date))
   }
 
+  /** One field, in its own card on a phone and bare from sm up. */
+  const heroCard = (children: ReactNode) => (
+    // `sm:contents` dissolves this box from sm up, so anything that has to
+    // survive into the desktop grid — a width, for one — goes on the child.
+    <div className="rounded-xl bg-surface p-3 shadow-sm sm:contents">{children}</div>
+  )
+
+  /** The ISO day this many days from today, in Istanbul time. */
+  const relativeISO = (offsetDays: number) => {
+    const day = new Date()
+    day.setDate(day.getDate() + offsetDays)
+    return toISODate(day)
+  }
+
   const swapButton = (bare: boolean) => (
     <button
       type="button"
@@ -142,7 +156,6 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
       size={fieldSize}
       flush={hero}
       bare={!hero}
-      className={hero ? 'border-t border-border sm:border-t-0' : undefined}
       ref={toRef}
     />
   )
@@ -156,7 +169,6 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
       size={fieldSize}
       flush={hero}
       bare={!hero}
-      className={hero ? 'border-t border-border sm:border-t-0' : undefined}
     />
   )
 
@@ -234,28 +246,63 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
     <form
       onSubmit={onSubmit}
       aria-label={t('search.formLabel')}
-      className={cn('rounded-2xl border border-border bg-surface p-4 shadow-lg sm:p-6', className)}
+      className={cn(
+        'rounded-2xl',
+        // On a phone the form has no frame of its own: each field is its own
+        // card on the page's ground, which is how every Turkish ticket app
+        // lays this out. From sm the single card comes back exactly as it was.
+        'sm:border sm:border-border sm:bg-surface sm:p-6 sm:shadow-lg',
+        className,
+      )}
     >
-      {/* Below sm the three fields collapse into one divided list — the card
-          around them is the only frame, which is how a phone form should read.
-          From sm up nothing changes: the gaps and borders come straight back. */}
-      <div className="grid gap-0 sm:gap-4 lg:grid-cols-[1fr_auto_1fr_auto_auto] lg:items-start">
+      <div className="grid gap-2 sm:gap-4 lg:grid-cols-[1fr_auto_1fr_auto_auto] lg:items-start">
         {/* On mobile the swap straddles the seam between the two fields, which
             is what says it acts on the pair. Right-aligning it on a row of its
             own read as an orphan and cost a row of height. `lg:contents`
             dissolves this wrapper on desktop so the five columns still line up. */}
-        <div className="relative grid gap-0 sm:gap-4 lg:contents">
-          {fromField}
+        <div className="relative grid gap-2 sm:gap-4 lg:contents">
+          {heroCard(fromField)}
 
           <div className="absolute top-1/2 right-3 z-10 -translate-y-1/2 lg:static lg:z-auto lg:flex lg:translate-y-0 lg:flex-col lg:justify-start">
             <LabelSpacer className="hidden lg:block" />
             <span className="flex items-center lg:h-14">{swapButton(false)}</span>
           </div>
 
-          {toField}
+          {heroCard(toField)}
         </div>
 
-        <div className="lg:w-56">{dateField}</div>
+        {/* Today and tomorrow are most of what a coach site is asked for, and
+            on a phone they save opening a calendar to say so. */}
+        {heroCard(
+          <div className="flex items-center gap-2 lg:w-56">
+            <div className="min-w-0 flex-1">{dateField}</div>
+            <div className="flex shrink-0 flex-col gap-1 sm:hidden">
+              {[
+                { label: t('search.today'), offset: 0 },
+                { label: t('search.tomorrow'), offset: 1 },
+              ].map((chip) => {
+                const iso = relativeISO(chip.offset)
+                return (
+                  <button
+                    key={chip.label}
+                    type="button"
+                    aria-pressed={date === iso}
+                    onClick={() => setDate(iso)}
+                    className={cn(
+                      'rounded-lg border px-2.5 py-1 text-xs font-medium',
+                      'transition-colors duration-(--duration-fast)',
+                      date === iso
+                        ? 'border-brand/40 bg-brand/10 text-brand-fg'
+                        : 'border-border bg-surface text-fg-secondary',
+                    )}
+                  >
+                    {chip.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>,
+        )}
 
         <div className="flex flex-col pt-4 sm:pt-1 lg:pt-0">
           <LabelSpacer className="hidden lg:block" />
