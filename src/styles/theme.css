@@ -682,11 +682,21 @@
    ========================================================================== */
 
 /* The page gutter. One definition, used by every section. */
+/**
+ * The gutter every page is written against. It is a variable rather than a
+ * literal because anything that has to bleed to the viewport edge — the mode
+ * rail under the header, for one — has to cancel exactly this much, and a
+ * hand-copied `-mx-4` only matches it at the narrowest widths.
+ */
+@theme {
+  --app-pad: clamp(1rem, 0.6087rem + 1.7391vw, 2rem);
+}
+
 @utility app-container {
   margin-inline: auto;
   width: 100%;
   max-width: var(--container-app);
-  padding-inline: clamp(1rem, 0.6087rem + 1.7391vw, 2rem);
+  padding-inline: var(--app-pad);
 }
 
 /* Vertical section rhythm: 32px on mobile opening to 80px on desktop. */

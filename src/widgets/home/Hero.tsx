@@ -65,7 +65,7 @@ export function Hero() {
         />
       </div>
 
-      <div className="app-container pt-5 pb-12 sm:pt-14 sm:pb-16 lg:pt-20 lg:pb-24">
+      <div className="app-container pb-12 sm:pt-14 sm:pb-16 lg:pt-20 lg:pb-24">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-center lg:gap-16">
           <div className="max-w-2xl">
             {/* Kept in the document but not on screen below sm: on a phone the
@@ -103,7 +103,7 @@ export function Hero() {
         {/* The mode strip sits ON the search card rather than floating above
             it as chips: the active tab shares the card's surface and loses its
             bottom corner radius, so the two read as one control. */}
-        <div className="mt-8 sm:mt-10">
+        <div className="sm:mt-10">
           <div
             role="group"
             aria-label="Seyahat türü"
@@ -111,9 +111,14 @@ export function Hero() {
             // they do not. Without the fade the last tab just stops at the edge
             // and reads as clipped rather than scrollable.
             className={cn(
-              '-mx-4 scrollbar-none flex gap-1 overflow-x-auto px-4 sm:mx-0 sm:px-0',
-              '[mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]',
-              'sm:[mask-image:none]',
+              // On a phone this is the bar under the header: bled to the
+              // viewport edges, sitting on its own surface, with the four
+              // modes sharing the width — so nothing scrolls and nothing has
+              // to be faded off at the edge. From sm it is a row of folder
+              // tabs on the search card again, and scrolls if it must.
+              'scrollbar-none flex gap-1',
+              '-mx-(--app-pad) border-b border-border bg-surface px-(--app-pad)',
+              'sm:mx-0 sm:overflow-x-auto sm:border-b-0 sm:bg-transparent sm:px-0',
             )}
           >
             {TRAVEL_MODES.map(({ id, label, icon, available }) => (
@@ -125,11 +130,15 @@ export function Hero() {
                 aria-pressed={available}
                 title={available ? undefined : `${label} aramaları yakında açılıyor`}
                 className={cn(
-                  'group relative flex min-w-24 shrink-0 flex-col items-center gap-1 rounded-t-xl px-5 pt-3 pb-3.5 sm:min-w-28',
+                  'group relative flex flex-col items-center gap-1 pt-3 pb-3.5',
+                  // A phone gets four equal columns; from sm the tabs take
+                  // their own width back and the folder shape returns.
+                  'flex-1 basis-0 px-1',
+                  'sm:min-w-28 sm:flex-none sm:shrink-0 sm:basis-auto sm:rounded-t-xl sm:px-5',
                   'transition-colors duration-(--duration-fast) ease-standard',
                   available
-                    ? 'bg-surface text-brand-fg shadow-[0_-2px_12px_oklch(0.36_0.045_245/0.06)]'
-                    : 'cursor-not-allowed text-fg-muted hover:bg-surface/50',
+                    ? 'text-brand-fg sm:bg-surface sm:shadow-[0_-2px_12px_oklch(0.36_0.045_245/0.06)]'
+                    : 'cursor-not-allowed text-fg-muted sm:hover:bg-surface/50',
                 )}
               >
                 <AssetIcon src={icon} className="size-7" />
@@ -147,14 +156,16 @@ export function Hero() {
                 {available ? (
                   <span
                     aria-hidden="true"
-                    className="absolute inset-x-4 top-0 h-0.5 rounded-full bg-brand"
+                    // Underneath the label on a phone, which is where a tab
+                    // bar puts it; back on top of the folder tab from sm.
+                    className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-brand sm:top-0 sm:bottom-auto"
                   />
                 ) : null}
               </button>
             ))}
           </div>
 
-          <SearchForm variant="hero" className="rounded-tl-none" />
+          <SearchForm variant="hero" className="mt-3 rounded-tl-none sm:mt-0" />
         </div>
       </div>
     </section>
