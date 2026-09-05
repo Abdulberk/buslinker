@@ -25,6 +25,13 @@ export interface CityComboboxProps {
    * button further down the screen. Never affects sm and up.
    */
   flush?: boolean | undefined
+  /**
+   * No frame of its own, at any size: the parent draws one around a row of
+   * fields. Unlike `flush`, which only applies below sm, this is what the
+   * results-page search strip wants everywhere — one surface, hairlines
+   * between cells, and nothing boxed inside it.
+   */
+  bare?: boolean | undefined
   className?: string | undefined
   ref?: Ref<HTMLInputElement>
 }
@@ -71,6 +78,7 @@ export function CityCombobox({
   error,
   size = 'lg',
   flush,
+  bare,
   className,
   ref,
 }: CityComboboxProps) {
@@ -213,6 +221,7 @@ export function CityCombobox({
           // `not-sr-only` also resets margin, which would eat the mb-1.5 above
           // and shift every field up at sm and over. Put it back explicitly.
           flush && 'sr-only sm:not-sr-only sm:mb-1.5',
+          bare && 'mb-0.5 text-2xs tracking-wider text-fg-muted',
         )}
       >
         {label}
@@ -228,6 +237,9 @@ export function CityCombobox({
           // error keeps a tint, since without a border there would be no
           // sign of it beside the message.
           flush && 'border-0 sm:border',
+          bare &&
+            'rounded-none border-0 bg-transparent focus-within:border-transparent hover:border-transparent',
+          bare && error && 'bg-danger/8',
           flush && error && 'bg-danger/8 sm:bg-surface',
         )}
       >

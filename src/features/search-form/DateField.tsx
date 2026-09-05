@@ -29,6 +29,13 @@ export interface DateFieldProps {
   size?: 'md' | 'lg' | undefined
   /** See CityCombobox: below sm the label is hidden and the field sits flat. */
   flush?: boolean | undefined
+  /**
+   * No frame of its own, at any size: the parent draws one around a row of
+   * fields. Unlike `flush`, which only applies below sm, this is what the
+   * results-page search strip wants everywhere — one surface, hairlines
+   * between cells, and nothing boxed inside it.
+   */
+  bare?: boolean | undefined
   className?: string | undefined
 }
 
@@ -266,6 +273,7 @@ export function DateField({
   minDate,
   size = 'lg',
   flush,
+  bare,
   className,
 }: DateFieldProps) {
   const [open, setOpen] = useState(false)
@@ -283,6 +291,7 @@ export function DateField({
           // `not-sr-only` also resets margin, which would eat the mb-1.5 above
           // and shift every field up at sm and over. Put it back explicitly.
           flush && 'sr-only sm:not-sr-only sm:mb-1.5',
+          bare && 'mb-0.5 text-2xs tracking-wider text-fg-muted',
         )}
       >
         {label}
@@ -301,6 +310,8 @@ export function DateField({
               'hover:border-border-strong data-[state=open]:border-brand',
               size === 'lg' ? 'h-14 px-3.5 text-lg' : 'h-11 px-3 text-base',
               flush && 'border-0 px-0 sm:border sm:px-3.5',
+              bare &&
+                'rounded-none border-0 bg-transparent px-0 hover:border-transparent data-[state=open]:border-transparent',
             )}
           >
             <AssetIcon

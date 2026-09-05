@@ -135,7 +135,9 @@ function ResultsView({ from, to, date }: { from: City; to: City; date: string })
 
   return (
     <>
-      <div className="border-b border-border bg-surface">
+      {/* The strip floats on the page ground on its own shadow; a white
+          band with a rule under it was a second frame around it. */}
+      <div className="bg-bg">
         <div className="app-container py-4 sm:py-6">
           <h1 className="sr-only">
             {from.name} — {to.name} otobüs bileti, {formatDateLong(date)}
