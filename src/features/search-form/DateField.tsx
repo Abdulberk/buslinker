@@ -291,7 +291,10 @@ export function DateField({
           // `not-sr-only` also resets margin, which would eat the mb-1.5 above
           // and shift every field up at sm and over. Put it back explicitly.
           flush && 'sr-only sm:not-sr-only sm:mb-1.5',
-          bare && 'mb-0.5 text-2xs tracking-wider text-fg-muted',
+          // On the strip the value is the label: a city name, a date. The
+          // caption stays in the document as the field's accessible name and
+          // leaves the screen.
+          bare && 'sr-only',
         )}
       >
         {label}

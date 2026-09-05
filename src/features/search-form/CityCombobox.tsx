@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent, Ref } from 'react'
-import { Check, X } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { CITIES, type City } from '@/shared/api/catalog'
 import { compareTr, foldTr } from '@/shared/lib/tr'
 import { cn } from '@/shared/lib/cn'
@@ -221,7 +221,10 @@ export function CityCombobox({
           // `not-sr-only` also resets margin, which would eat the mb-1.5 above
           // and shift every field up at sm and over. Put it back explicitly.
           flush && 'sr-only sm:not-sr-only sm:mb-1.5',
-          bare && 'mb-0.5 text-2xs tracking-wider text-fg-muted',
+          // On the strip the value is the label: a city name, a date. The
+          // caption stays in the document as the field's accessible name and
+          // leaves the screen.
+          bare && 'sr-only',
         )}
       >
         {label}
@@ -280,7 +283,12 @@ export function CityCombobox({
             setActiveIndex(next.trim().length > 0 ? 0 : -1)
           }}
           onKeyDown={onKeyDown}
-          onFocus={() => setOpen(true)}
+          // No clear button any more: focusing selects the current city, so
+          // one tap and typing replaces it — the same gesture, one control less.
+          onFocus={(event) => {
+            setOpen(true)
+            event.currentTarget.select()
+          }}
           onBlur={(event) => {
             const next = event.relatedTarget
             if (next instanceof Node && rootRef.current?.contains(next)) return
@@ -290,36 +298,9 @@ export function CityCombobox({
             'w-full min-w-0 bg-transparent font-medium text-fg',
             'placeholder:font-normal placeholder:text-fg-subtle',
             size === 'lg' ? 'h-14 pl-10 text-lg' : 'h-11 pl-8 text-base',
-            // Only reserve room for the terminal count when the count is
-            // actually shown; otherwise the city name is squeezed to nothing.
-            // The clear button keeps a 44px touch target via `tap-44`, so the
-            // reserved box only has to cover its 28px visual size.
-            text.length > 0 ? 'pr-9' : 'pr-3',
+            'pr-3',
           )}
         />
-
-        <div className="absolute right-2 flex items-center gap-1">
-          {text.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => {
-                onChange(null)
-                setQuery('')
-                setDirty(false)
-                setActiveIndex(-1)
-                setOpen(true)
-                inputRef.current?.focus()
-              }}
-              aria-label={`${label} seçimini temizle`}
-              className={cn(
-                'tap-44 grid size-7 shrink-0 place-items-center rounded-full text-fg-muted',
-                'transition-colors duration-(--duration-fast) hover:bg-surface-sunken hover:text-fg',
-              )}
-            >
-              <X className="size-4" aria-hidden="true" />
-            </button>
-          ) : null}
-        </div>
       </div>
 
       <VisuallyHidden id={statusId} aria-live="polite">
