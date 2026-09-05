@@ -123,7 +123,7 @@ export function FilterRail({
                         groupKey={group.key}
                         checked={selected.includes(bucket.value)}
                         hint={group.key === 'bands' ? BAND_HINTS.get(bucket.value) : undefined}
-                        icon={group.key === 'bands' ? BAND_ICON[bucket.value]?.base : undefined}
+                        icon={group.key === 'bands' ? BAND_ICON[bucket.value] : undefined}
                         onToggle={() => onChange(toggleFacet(filters, group.key, bucket.value))}
                       />
                     </li>

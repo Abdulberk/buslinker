@@ -20,13 +20,9 @@ export const ICON = {
 
   // Departure-time bands
   morning: '/icons/morning.svg',
-  morningSelected: '/icons/morning-selected.svg',
   noon: '/icons/noon.svg',
-  noonSelected: '/icons/noon-selected.svg',
   evening: '/icons/evening.svg',
-  eveningSelected: '/icons/evening-selected.svg',
   night: '/icons/night.svg',
-  nightSelected: '/icons/night-selected.svg',
 
   // UI glyphs
   swap: '/icons/swap.svg',
@@ -147,9 +143,18 @@ export const CITY_PHOTO: Record<string, string> = {
 }
 
 /** Departure-band icon pair, so a selected band can swap to its filled variant. */
-export const BAND_ICON: Record<string, { base: string; selected: string }> = {
-  morning: { base: ICON.morning, selected: ICON.morningSelected },
-  noon: { base: ICON.noon, selected: ICON.noonSelected },
-  evening: { base: ICON.evening, selected: ICON.eveningSelected },
-  night: { base: ICON.night, selected: ICON.nightSelected },
+/**
+ * The departure-time bands, one glyph each.
+ *
+ * There used to be a second "selected" file per band. They were the same
+ * drawings with a red fill baked in — and `AssetIcon` renders these as a CSS
+ * mask painted with `currentColor`, so the fill in the file is discarded
+ * before it reaches the screen. Four files, 33 kB, that could never look
+ * different from the four beside them.
+ */
+export const BAND_ICON: Record<string, string> = {
+  morning: ICON.morning,
+  noon: ICON.noon,
+  evening: ICON.evening,
+  night: ICON.night,
 }

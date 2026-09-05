@@ -1,5 +1,4 @@
 import { useId, useState, type ComponentProps, type ReactNode } from 'react'
-import { Eye, EyeOff } from 'lucide-react'
 import { cn } from '@/shared/lib/cn'
 
 /**
@@ -87,11 +86,7 @@ export function Field({
               'hover:bg-surface-sunken hover:text-fg',
             )}
           >
-            {revealed ? (
-              <EyeOff className="size-4" aria-hidden="true" />
-            ) : (
-              <Eye className="size-4" aria-hidden="true" />
-            )}
+            <RevealIcon revealed={revealed} />
           </button>
         ) : null}
       </div>
@@ -105,5 +100,47 @@ export function Field({
         {error ?? hint ?? ''}
       </p>
     </div>
+  )
+}
+
+/**
+ * The password field's eye, with the slash drawn rather than swapped in.
+ *
+ * lucide ships `eye` and `eye-off` as separate glyphs, and switching between
+ * them is a hard cut: the eye's outline is redrawn as three fragments the
+ * instant you press. Here the eye never changes — only the slash arrives,
+ * stroked on with `pathLength="1"` so the dash maths is in fractions of the
+ * line and stays right at any size.
+ *
+ * A path morph was the other option and is the wrong tool here: the two states
+ * differ by an added line, not by a change of shape, and `flubber` would have
+ * to tear one outline into several to say so. Under reduced motion the theme
+ * zeroes the duration token, so the slash simply appears.
+ */
+function RevealIcon({ revealed }: { revealed: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="size-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      {/* lucide's `eye`, verbatim. */}
+      <path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0" />
+      <circle cx="12" cy="12" r="3" />
+      {/* lucide's `eye-off` slash, drawn from the top-left corner down. */}
+      <path
+        d="m2 2 20 20"
+        pathLength={1}
+        strokeDasharray={1}
+        strokeDashoffset={revealed ? 0 : 1}
+        className="transition-[stroke-dashoffset] duration-(--duration-slow) ease-out"
+      />
+    </svg>
   )
 }
