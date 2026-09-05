@@ -585,6 +585,13 @@
   }
 
   /* Fares, times and seat numbers must not shift width between digits. */
+  /* sonner enters on a 300ms `ease` fade of its own. Bring it onto the
+     product's curve; the reduced-motion block above still zeroes it. */
+  [data-sonner-toast][data-styled='true'] {
+    animation-duration: var(--duration-slow);
+    animation-timing-function: var(--ease-out);
+  }
+
   [data-numeric] {
     font-variant-numeric: tabular-nums;
     font-feature-settings:

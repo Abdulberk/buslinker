@@ -1,25 +1,30 @@
 import { Toaster as Sonner, type ToasterProps } from 'sonner'
-import { CircleAlert, CircleCheck, Info, LoaderCircle, TriangleAlert } from 'lucide-react'
+import { Check, Info, LoaderCircle, TriangleAlert, X } from 'lucide-react'
 import { useTheme } from '@/shared/lib/use-theme'
 import { useIsMobile } from '@/shared/lib/use-media-query'
 
 /**
  * Toasts, in the product's own design language.
  *
- * sonner ships its own palette, radii and shadows, which read as a third-party
- * widget dropped onto the page. Everything visual here is re-declared from our
- * tokens instead, so a toast is recognisably the same material as a Card: same
- * surface, same border, same `shadow-lg`, same type scale.
+ * sonner ships its own palette, radii, shadows and motion, which read as a
+ * third-party widget dropped onto the page. Everything visual here is
+ * re-declared from our tokens, so a toast is recognisably the same material
+ * as a Card: the same raised surface, the same hairline, the same soft
+ * `shadow-lg`, the display face on the title.
  *
- * `richColors` is deliberately OFF. It floods the whole toast with a status
- * colour, which (a) fights the "one brand fill per decision context" rule and
- * (b) puts a large red panel next to our red CTA. Status is carried by an icon
- * and a 3px leading bar instead — the same treatment inline validation uses —
- * so the toast reads as information rather than as a second call to action.
+ * Status is carried the way the rest of the product carries it — an icon in a
+ * tinted round well, the treatment the confirmation page and the value props
+ * already use — rather than by a coloured stripe down the edge or by flooding
+ * the card (`richColors` is off: a large red panel next to a red CTA is a
+ * second call to action, and this is information).
  *
- * Accessibility: sonner already renders an `aria-live` region and moves focus
- * on hotkey. What it does not do is localise, so the region label, the close
- * button and the dismiss hotkey hint are all set in Turkish.
+ * The close button is always visible. It was revealed on hover before, which
+ * is fine for a pointer and invisible for everyone else; a control you can
+ * only find by accident is not a control.
+ *
+ * Accessibility: sonner renders the `aria-live` region and moves focus on the
+ * hotkey. What it does not do is localise, so the region label, the close
+ * button and the hotkey hint are set in Turkish here.
  */
 export function Toaster(props: ToasterProps) {
   const { theme } = useTheme()
@@ -28,23 +33,41 @@ export function Toaster(props: ToasterProps) {
   return (
     <Sonner
       theme={theme}
-      // Centred on mobile, where the viewport is narrow and a toast reads as a
-      // banner; moved to the right on desktop because a centred toast lands
-      // squarely on the page title it is often reporting about.
+      // Centred on a phone, where the viewport is narrow and a toast reads as a
+      // banner; on the right otherwise, because centred it lands squarely on
+      // the page title it is often reporting about.
       position={isMobile ? 'top-center' : 'top-right'}
       closeButton
+      visibleToasts={3}
       gap={10}
-      // Clears the sticky header (64px, 72px from lg) so a toast never
-      // covers the navigation it might be telling you to use.
+      // Clears the sticky header (64px, 72px from lg) so a toast never covers
+      // the navigation it might be telling you to use.
       offset={{ top: 84 }}
-      mobileOffset={{ top: 76 }}
+      mobileOffset={{ top: 76, left: 16, right: 16 }}
       containerAriaLabel="Bildirimler"
+      style={
+        {
+          // sonner sizes and places its own parts through these. The width is
+          // ours; the close button moves from sonner's floating disc at the
+          // top-left corner to inside the card, top-right, where every other
+          // dismiss in the product lives.
+          '--width': '380px',
+          '--normal-bg': 'var(--color-surface-raised)',
+          '--normal-border': 'var(--color-border)',
+          '--normal-text': 'var(--color-fg)',
+          '--toast-close-button-start': 'auto',
+          '--toast-close-button-end': '0.5rem',
+          '--toast-close-button-transform': 'translateY(0.5rem)',
+        } as React.CSSProperties
+      }
       icons={{
-        success: <CircleCheck className="size-5 text-success" aria-hidden="true" />,
-        error: <CircleAlert className="size-5 text-danger" aria-hidden="true" />,
-        warning: <TriangleAlert className="size-5 text-warning" aria-hidden="true" />,
-        info: <Info className="size-5 text-info" aria-hidden="true" />,
-        loading: <LoaderCircle className="size-5 animate-spin text-fg-muted" aria-hidden="true" />,
+        success: <Check className="size-4.5" strokeWidth={2.5} aria-hidden="true" />,
+        error: <X className="size-4.5" strokeWidth={2.5} aria-hidden="true" />,
+        warning: <TriangleAlert className="size-4.5" strokeWidth={2.25} aria-hidden="true" />,
+        info: <Info className="size-4.5" strokeWidth={2.25} aria-hidden="true" />,
+        loading: (
+          <LoaderCircle className="size-4.5 animate-spin" strokeWidth={2.25} aria-hidden="true" />
+        ),
       }}
       toastOptions={{
         duration: 5000,
@@ -52,36 +75,43 @@ export function Toaster(props: ToasterProps) {
         classNames: {
           toast: [
             'group pointer-events-auto relative flex w-full items-start gap-3',
-            'overflow-hidden rounded-xl border border-border bg-surface-raised',
-            'px-4 py-3.5 shadow-lg',
-            // The status bar is a pseudo-element so no wrapper is needed and it
-            // cannot be knocked out of alignment by the icon or the text.
-            'before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-border-strong',
-            'data-[type=success]:before:bg-success',
-            'data-[type=error]:before:bg-danger',
-            'data-[type=warning]:before:bg-warning',
-            'data-[type=info]:before:bg-info',
+            'rounded-xl border border-border bg-surface-raised p-4 shadow-lg',
+            'text-fg',
           ].join(' '),
-          content: 'flex min-w-0 flex-1 flex-col gap-0.5',
-          title: 'text-sm font-semibold text-fg',
-          description: 'text-sm text-fg-secondary',
-          icon: 'mt-px flex shrink-0 items-center justify-center',
+          // The well: a neutral disc that takes the toast's tone. Tint and text
+          // are the semantic pair every status colour in the system ships with,
+          // so it holds up in both themes without a second set of rules.
+          icon: [
+            // sonner pins the icon box at 16px with a two-attribute selector,
+            // which beats a plain utility — hence the important modifier here.
+            'm-0! grid size-9! shrink-0 place-items-center! rounded-full!',
+            'bg-surface-sunken text-fg-muted',
+            'group-data-[type=success]:bg-success-tint group-data-[type=success]:text-success-fg',
+            'group-data-[type=error]:bg-danger-tint group-data-[type=error]:text-danger-fg',
+            'group-data-[type=warning]:bg-warning-tint group-data-[type=warning]:text-warning-fg',
+            'group-data-[type=info]:bg-info-tint group-data-[type=info]:text-info-fg',
+          ].join(' '),
+          // Room on the right for the close button, so a long title never runs
+          // underneath it.
+          content: 'flex min-w-0 flex-1 flex-col gap-1! pr-6',
+          title: 'font-display text-sm leading-5! font-semibold! text-fg',
+          // sonner mutes descriptions to 80% opacity on top of whatever colour
+          // they have; ours is already the secondary tone, so that would mute
+          // it twice.
+          description: 'text-sm leading-5! text-pretty text-fg-secondary opacity-100!',
           actionButton: [
-            'shrink-0 rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-on-brand',
+            'mt-2 h-8 shrink-0 self-start rounded-lg bg-brand px-3 text-xs font-semibold text-on-brand',
             'transition-colors duration-(--duration-fast) hover:bg-brand-hover',
           ].join(' '),
           cancelButton: [
-            'shrink-0 rounded-lg border border-border-strong bg-surface px-3 py-1.5',
+            'mt-2 h-8 shrink-0 self-start rounded-lg border border-border-strong bg-surface px-3',
             'text-xs font-medium text-fg-secondary',
             'transition-colors duration-(--duration-fast) hover:bg-surface-sunken',
           ].join(' '),
           closeButton: [
-            'absolute top-2 right-2 grid size-6 place-items-center rounded-md border-0',
-            'bg-transparent text-fg-muted opacity-0 transition-[opacity,color,background-color]',
-            'duration-(--duration-fast) hover:bg-surface-sunken hover:text-fg',
-            // Revealed on hover for pointer users, but always present for
-            // keyboard users — an invisible-yet-focusable control is a trap.
-            'group-hover:opacity-100 focus-visible:opacity-100',
+            'grid size-7! place-items-center rounded-lg! border-0! bg-transparent! text-fg-subtle',
+            'transition-colors duration-(--duration-fast)',
+            'hover:bg-surface-sunken hover:text-fg',
           ].join(' '),
         },
       }}
