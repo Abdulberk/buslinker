@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 import { ICON } from '@/shared/config/assets'
 import { AssetIcon } from '@/shared/ui/asset-icon'
@@ -42,6 +43,7 @@ function LabelSpacer({ className }: { className?: string }) {
 
 export function SearchForm({ variant = 'hero', initial, className }: SearchFormProps) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const hero = variant === 'hero'
   const fieldSize = hero ? 'lg' : 'md'
 
@@ -81,7 +83,7 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
     <button
       type="button"
       onClick={swap}
-      aria-label="Kalkış ve varış yerini değiştir"
+      aria-label={t('search.swap')}
       className={cn(
         'grid shrink-0 place-items-center rounded-full text-fg-secondary',
         // On the strip the disc is lifted by its shadow, not outlined: the
@@ -109,15 +111,15 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
   const fromField = (
     <CityCombobox
       id={`${variant}-from`}
-      label="Nereden"
-      placeholder="Kalkış şehri"
+      label={t('search.from')}
+      placeholder={t('search.fromPlaceholder')}
       value={from}
       onChange={(city) => {
         setFrom(city)
         if (invalid === 'from') setInvalid(null)
       }}
       excludeCityId={to?.id}
-      error={invalid === 'from' ? 'Kalkış şehrini seçin.' : undefined}
+      error={invalid === 'from' ? t('search.fromError') : undefined}
       size={fieldSize}
       flush={hero}
       bare={!hero}
@@ -128,15 +130,15 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
   const toField = (
     <CityCombobox
       id={`${variant}-to`}
-      label="Nereye"
-      placeholder="Varış şehri"
+      label={t('search.to')}
+      placeholder={t('search.toPlaceholder')}
       value={to}
       onChange={(city) => {
         setTo(city)
         if (invalid === 'to') setInvalid(null)
       }}
       excludeCityId={from?.id}
-      error={invalid === 'to' ? 'Varış şehrini seçin.' : undefined}
+      error={invalid === 'to' ? t('search.toError') : undefined}
       size={fieldSize}
       flush={hero}
       bare={!hero}
@@ -148,7 +150,7 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
   const dateField = (
     <DateField
       id={`${variant}-date`}
-      label="Tarih"
+      label={t('search.date')}
       value={date}
       onChange={setDate}
       size={fieldSize}
@@ -167,7 +169,7 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
     return (
       <form
         onSubmit={onSubmit}
-        aria-label="Sefer arama"
+        aria-label={t('search.formLabel')}
         className={cn(
           'flex flex-col overflow-visible rounded-2xl bg-surface shadow-md sm:flex-row sm:items-stretch',
           'dark:ring-1 dark:ring-border',
@@ -221,7 +223,7 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
             className="w-full rounded-xl px-5 sm:h-auto sm:w-auto"
           >
             <AssetIcon src={ICON.magnify} className="size-4" />
-            <span>Bilet Bul</span>
+            <span>{t('search.submit')}</span>
           </Button>
         </div>
       </form>
@@ -231,7 +233,7 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
   return (
     <form
       onSubmit={onSubmit}
-      aria-label="Sefer arama"
+      aria-label={t('search.formLabel')}
       className={cn('rounded-2xl border border-border bg-surface p-4 shadow-lg sm:p-6', className)}
     >
       {/* Below sm the three fields collapse into one divided list — the card
@@ -259,7 +261,7 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
           <LabelSpacer className="hidden lg:block" />
           <Button type="submit" size="lg" variant="primary" full className="lg:h-14 lg:w-auto">
             <AssetIcon src={ICON.magnify} className="size-5" />
-            <span>Bilet Bul</span>
+            <span>{t('search.submit')}</span>
           </Button>
         </div>
       </div>

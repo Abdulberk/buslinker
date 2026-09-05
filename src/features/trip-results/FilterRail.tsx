@@ -9,6 +9,7 @@ import {
   Slider,
 } from '@/shared/ui/primitives'
 import { Skeleton } from '@/shared/ui/skeleton'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/shared/lib/cn'
 import { formatPrice } from '@/shared/lib/tr'
 import { countActiveFilters, toggleFacet } from '@/shared/lib/search-params'
@@ -25,18 +26,17 @@ type FacetKey = 'bands' | 'operators' | 'layouts' | 'amenities' | 'fromTerminals
 
 interface FacetGroup {
   readonly key: FacetKey
-  readonly title: string
   /** Null where the project ships no glyph for that facet. */
   readonly icon: string | null
 }
 
 const GROUPS: readonly FacetGroup[] = [
-  { key: 'bands', title: 'Kalkış Saati', icon: ICON.departureHour },
-  { key: 'operators', title: 'Firma', icon: ICON.bus },
-  { key: 'layouts', title: 'Koltuk Düzeni', icon: ICON.seatLayout },
-  { key: 'amenities', title: 'Araç Özellikleri', icon: ICON.extraServices },
-  { key: 'fromTerminals', title: 'Kalkış Terminali', icon: ICON.from },
-  { key: 'toTerminals', title: 'Varış Terminali', icon: ICON.from },
+  { key: 'bands', icon: ICON.departureHour },
+  { key: 'operators', icon: ICON.bus },
+  { key: 'layouts', icon: ICON.seatLayout },
+  { key: 'amenities', icon: ICON.extraServices },
+  { key: 'fromTerminals', icon: ICON.from },
+  { key: 'toTerminals', icon: ICON.from },
 ]
 
 const DEFAULT_OPEN = ['bands', 'operators', 'price']
@@ -63,6 +63,7 @@ export function FilterRail({
   className,
   headingLevel = 'h2',
 }: FilterRailProps) {
+  const { t } = useTranslation()
   const activeCount = countActiveFilters(filters)
   const Heading = headingLevel
 
@@ -73,7 +74,9 @@ export function FilterRail({
   return (
     <div className={cn('text-fg', className)}>
       <div className="flex items-center justify-between gap-3 pb-1">
-        <Heading className="font-display text-base font-bold text-fg">Filtreler</Heading>
+        <Heading className="font-display text-base font-bold text-fg">
+          {t('results.filters')}
+        </Heading>
         {activeCount > 0 ? (
           <button
             type="button"
@@ -105,7 +108,11 @@ export function FilterRail({
               className="border-b border-border last:border-b-0"
             >
               <AccordionTrigger>
-                <GroupTitle title={group.title} icon={group.icon} count={selected.length} />
+                <GroupTitle
+                  title={t(`results.group.${group.key}`)}
+                  icon={group.icon}
+                  count={selected.length}
+                />
               </AccordionTrigger>
               <AccordionContent>
                 <ul className="space-y-0.5">
@@ -113,6 +120,7 @@ export function FilterRail({
                     <li key={bucket.value}>
                       <FacetRow
                         bucket={bucket}
+                        groupKey={group.key}
                         checked={selected.includes(bucket.value)}
                         hint={group.key === 'bands' ? BAND_HINTS.get(bucket.value) : undefined}
                         icon={group.key === 'bands' ? BAND_ICON[bucket.value]?.base : undefined}
@@ -168,18 +176,22 @@ function GroupTitle({ title, icon, count }: { title: string; icon: string | null
 
 function FacetRow({
   bucket,
+  groupKey,
   checked,
   hint,
   icon,
   onToggle,
 }: {
   bucket: FacetBucket
+  /** Bands are the one group whose values are UI words rather than data. */
+  groupKey: FacetKey
   checked: boolean
   hint: string | undefined
   /** Only the departure bands carry one; masked, so it takes the row colour. */
   icon?: string | undefined
   onToggle: () => void
 }) {
+  const { t } = useTranslation()
   // A zero-count value stays put and greys out. Removing it would make the
   // list reflow under the pointer and read as a broken filter.
   const disabled = bucket.count === 0 && !checked
@@ -196,7 +208,9 @@ function FacetRow({
       {icon ? (
         <AssetIcon src={icon} className={cn('size-6 shrink-0', !checked && 'text-fg-muted')} />
       ) : null}
-      <span className="min-w-0 flex-1 truncate text-sm">{bucket.label}</span>
+      <span className="min-w-0 flex-1 truncate text-sm">
+        {groupKey === 'bands' ? t(`results.band.${bucket.value}`) : bucket.label}
+      </span>
 
       {/* A band shows its hours where the others show their count. The count
           still goes to assistive tech: it is the only thing that explains why
@@ -258,6 +272,7 @@ function PriceFilter({
   filters: TripFilters
   onChange: (filters: TripFilters) => void
 }) {
+  const { t } = useTranslation()
   const labelId = useId()
   const min = Math.floor(bounds.min / PRICE_STEP) * PRICE_STEP
   const max = Math.ceil(bounds.max / PRICE_STEP) * PRICE_STEP
@@ -300,7 +315,7 @@ function PriceFilter({
         value={draft}
         onValueChange={(values) => setDraft([values[0] ?? min, values[1] ?? max])}
         onValueCommit={commit}
-        aria-label="Bilet fiyatı aralığı"
+        aria-label={t('results.priceRange')}
       />
       <div className="mt-1 flex items-center justify-between text-sm font-medium text-fg-secondary">
         <span data-numeric>{formatPrice(draft[0])}</span>

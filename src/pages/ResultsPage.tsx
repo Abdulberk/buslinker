@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { CompassIcon } from 'lucide-react'
@@ -6,7 +7,7 @@ import { SearchForm } from '@/features/search-form/SearchForm'
 import { Button } from '@/shared/ui/button'
 import { Dialog, DialogClose, DialogContent } from '@/shared/ui/primitives'
 import { cn } from '@/shared/lib/cn'
-import { formatDateLong, fromISODate, isValidISODate, pluralTr, toISODate } from '@/shared/lib/tr'
+import { formatDateLong, fromISODate, isValidISODate, toISODate } from '@/shared/lib/tr'
 import { useIsDesktop } from '@/shared/lib/use-media-query'
 import {
   countActiveFilters,
@@ -69,6 +70,7 @@ export default function ResultsPage() {
 }
 
 function ResultsView({ from, to, date }: { from: City; to: City; date: string }) {
+  const { t } = useTranslation()
   const [searchParams, setSearchParams] = useSearchParams()
   const { sort, filters } = useMemo(() => parseSearchState(searchParams), [searchParams])
   const activeFilterCount = countActiveFilters(filters)
@@ -109,9 +111,11 @@ function ResultsView({ from, to, date }: { from: City; to: City; date: string })
   const settled = data !== undefined && !isFetching
   useEffect(() => {
     if (!settled) return
-    const timer = setTimeout(() => setAnnouncement(`${pluralTr(total, 'sefer')} bulundu`), 400)
+    const timer = setTimeout(() => setAnnouncement(t('results.found', { count: total })), 400)
     return () => clearTimeout(timer)
-  }, [settled, total])
+    // `t` changes identity when the language does, which is exactly when the
+    // announcement should be re-made in the new language.
+  }, [settled, total, t])
 
   const nearestDate = useMemo(() => {
     const days = datePrices.data
@@ -228,7 +232,7 @@ function ResultsView({ from, to, date }: { from: City; to: City; date: string })
             if (button?.isConnected && button.offsetParent !== null) button.focus()
           }}
           side="bottom"
-          title="Filtreler"
+          title={t('results.filters')}
           description={`${from.name} — ${to.name}`}
           className="lg:hidden"
         >
@@ -244,7 +248,7 @@ function ResultsView({ from, to, date }: { from: City; to: City; date: string })
           <div className="border-t border-border bg-surface px-5 py-4">
             <DialogClose asChild>
               <Button variant="primary" size="lg" full>
-                {pluralTr(total, 'seferi')} göster
+                {t('results.showAll', { count: total })}
               </Button>
             </DialogClose>
           </div>

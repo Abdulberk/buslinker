@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { Armchair, BedDouble, Bus, Coffee, Snowflake } from 'lucide-react'
 import type { CSSProperties, ComponentType, ReactNode, SVGProps } from 'react'
@@ -93,10 +94,11 @@ export interface TripCardProps {
 }
 
 export function TripCard({ trip, className }: TripCardProps) {
+  const { t } = useTranslation()
   const operator = operatorById(trip.operatorId)
   const fromCity = cityById(trip.fromCityId)
   const toCity = cityById(trip.toCityId)
-  const operatorName = operator?.name ?? 'Otobüs firması'
+  const operatorName = operator?.name ?? t('results.operatorFallback')
 
   const departure = formatTime(trip.departsAt)
   const arrival = formatTime(trip.arrivesAt)
@@ -154,7 +156,7 @@ export function TripCard({ trip, className }: TripCardProps) {
                   {trip.overnight ? (
                     <sup className="ms-0.5 text-2xs font-bold text-warning-fg">
                       +1
-                      <VisuallyHidden> ertesi gün varış</VisuallyHidden>
+                      <VisuallyHidden> {t('results.nextDay')}</VisuallyHidden>
                     </sup>
                   ) : null}
                 </p>
@@ -168,7 +170,7 @@ export function TripCard({ trip, className }: TripCardProps) {
               <span className="inline-flex items-center gap-1 pe-1 text-xs font-medium text-fg-secondary">
                 <Armchair className="size-3.5" aria-hidden="true" />
                 {trip.seatLayout}
-                <VisuallyHidden> koltuk düzeni</VisuallyHidden>
+                <VisuallyHidden> {t('results.seatLayout')}</VisuallyHidden>
               </span>
               {shownAmenities.map((id) => {
                 const amenity = amenityById(id)
@@ -184,7 +186,10 @@ export function TripCard({ trip, className }: TripCardProps) {
               {hiddenAmenityCount > 0 ? (
                 <span className="text-xs font-medium text-fg-muted" data-numeric>
                   +{hiddenAmenityCount}
-                  <VisuallyHidden> özellik daha</VisuallyHidden>
+                  <VisuallyHidden>
+                    {' '}
+                    {t('results.moreAmenities', { count: hiddenAmenityCount })}
+                  </VisuallyHidden>
                 </span>
               ) : null}
             </div>
@@ -206,14 +211,14 @@ export function TripCard({ trip, className }: TripCardProps) {
               {scarce ? (
                 <p className="mt-1 flex items-center gap-1 text-xs font-medium text-warning-fg lg:justify-end">
                   <Armchair className="size-3.5 shrink-0" aria-hidden="true" />
-                  <span data-numeric>Son {trip.seatsLeft} koltuk</span>
+                  <span data-numeric>{t('results.seatsLeft', { count: trip.seatsLeft })}</span>
                 </p>
               ) : null}
             </div>
 
             <Button asChild variant="primary" size="md" className="shrink-0">
               <Link to={seatPath(trip.id)}>
-                Koltuk Seç
+                {t('results.select')}
                 <VisuallyHidden>
                   {` — ${departure} ${fromCity?.name ?? ''} ${toCity?.name ?? ''} seferi, ${formatPrice(trip.price)}`}
                 </VisuallyHidden>

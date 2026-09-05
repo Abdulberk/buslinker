@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, NavLink, useLocation } from 'react-router'
-import { Globe, LifeBuoy, Route as RouteIcon } from 'lucide-react'
+import { ChevronRight, Globe, LifeBuoy, Route as RouteIcon } from 'lucide-react'
+import { LocaleDialog, useLocaleSummary } from '@/features/locale/LocaleDialog'
+import { Flag } from '@/shared/ui/flag'
 import { ICON } from '@/shared/config/assets'
 import { cn } from '@/shared/lib/cn'
 import { useIsDesktop } from '@/shared/lib/use-media-query'
 import { AssetIcon } from '@/shared/ui/asset-icon'
-import { Badge } from '@/shared/ui/badge'
 import { Button } from '@/shared/ui/button'
 import { Logo } from '@/shared/ui/logo'
 import { ThemeToggle } from '@/shared/ui/theme-toggle'
@@ -37,9 +39,26 @@ function navClass({ isActive }: { isActive: boolean }) {
   return cn(NAV_BASE, isActive ? NAV_ACTIVE : NAV_IDLE)
 }
 
+/**
+ * The locale trigger. Filled rather than outlined: a hard ring around a small
+ * chip sitting between the theme toggle and the sign-in link read as the
+ * heaviest thing in the header, which it is not.
+ */
+const LOCALE_CHIP = [
+  'inline-flex h-9 items-center gap-2 rounded-full bg-surface-sunken py-1 pr-3.5 pl-1.5',
+  'text-xs font-semibold text-fg-secondary',
+  'transition-colors duration-(--duration-fast) ease-standard',
+  'hover:bg-border hover:text-fg',
+].join(' ')
+
 export function SiteHeader() {
+  const { t } = useTranslation()
+  const locale = useLocaleSummary()
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  // Opened from inside the mobile sheet, which closes first: a dialog launched
+  // from within another dialog stacks two focus traps.
+  const [localeOpen, setLocaleOpen] = useState(false)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const isDesktop = useIsDesktop()
   const { pathname } = useLocation()
@@ -95,15 +114,15 @@ export function SiteHeader() {
             <Logo />
           </Link>
 
-          <nav aria-label="Ana menü" className="ml-6 hidden items-center gap-1 lg:flex">
+          <nav aria-label={t('nav.main')} className="ml-6 hidden items-center gap-1 lg:flex">
             <NavLink to="/" end className={navClass}>
-              Otobüs Bileti
+              {t('nav.tickets')}
             </NavLink>
             <NavLink to="/hesabim/seferlerim" className={navClass}>
-              Seferlerim
+              {t('nav.myTrips')}
             </NavLink>
             <NavLink to="/sss" className={navClass}>
-              Yardım
+              {t('nav.help')}
             </NavLink>
           </nav>
 
@@ -111,28 +130,42 @@ export function SiteHeader() {
             {isDesktop ? (
               <>
                 <ThemeToggle />
-                <Badge tone="outline" size="md" className="hidden xl:inline-flex">
-                  <Globe aria-hidden="true" />
-                  <span className="sr-only">Para birimi ve dil:</span>
-                  TRY · TR
-                </Badge>
+                <LocaleDialog>
+                  <button
+                    type="button"
+                    className={cn(LOCALE_CHIP, 'hidden xl:inline-flex')}
+                    aria-label={`${t('locale.trigger')}: ${locale.aria}`}
+                  >
+                    <Flag code={locale.language} />
+                    <span aria-hidden="true">{locale.currencyLabel}</span>
+                  </button>
+                </LocaleDialog>
                 <span aria-hidden="true" className="mx-1 h-6 w-px bg-border" />
                 <Button asChild variant="ghost" size="sm">
-                  <Link to="/giris">Giriş Yap</Link>
+                  <Link to="/giris">{t('common.signIn')}</Link>
                 </Button>
                 <Button asChild variant="brand-outline" size="sm">
-                  <Link to="/kayit">Üye Ol</Link>
+                  <Link to="/kayit">{t('common.signUp')}</Link>
                 </Button>
               </>
             ) : (
               <Dialog open={menuOpen} onOpenChange={setMenuOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="ghost" size="icon-sm" className="tap-44" aria-label="Menü">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="tap-44"
+                    aria-label={t('common.menu')}
+                  >
                     <AssetIcon src={ICON.hamburger} className="size-5" />
                   </Button>
                 </DialogTrigger>
-                <DialogContent side="bottom" title="Menü" description="Sayfalar ve hesap işlemleri">
-                  <nav aria-label="Mobil menü" className="overflow-y-auto p-3">
+                <DialogContent
+                  side="bottom"
+                  title={t('common.menu')}
+                  description={t('nav.sheetDescription')}
+                >
+                  <nav aria-label={t('nav.mobile')} className="overflow-y-auto p-3">
                     <ul className="flex flex-col gap-1">
                       <li>
                         <NavLink
@@ -144,7 +177,7 @@ export function SiteHeader() {
                           }
                         >
                           <AssetIcon src={ICON.bus} className="size-5" />
-                          Otobüs Bileti
+                          {t('nav.tickets')}
                         </NavLink>
                       </li>
                       <li>
@@ -156,7 +189,7 @@ export function SiteHeader() {
                           }
                         >
                           <RouteIcon className="size-5" aria-hidden="true" />
-                          Seferlerim
+                          {t('nav.myTrips')}
                         </NavLink>
                       </li>
                       <li>
@@ -168,7 +201,7 @@ export function SiteHeader() {
                           }
                         >
                           <LifeBuoy className="size-5" aria-hidden="true" />
-                          Yardım
+                          {t('nav.help')}
                         </NavLink>
                       </li>
                     </ul>
@@ -176,22 +209,47 @@ export function SiteHeader() {
 
                   <div className="mt-1 flex flex-col gap-3 border-t border-border p-4">
                     <div className="flex items-center justify-between gap-4">
-                      <span className="text-sm font-medium text-fg-secondary">Görünüm</span>
+                      <span className="text-sm font-medium text-fg-secondary">
+                        {t('common.appearance')}
+                      </span>
                       <ThemeToggle />
                     </div>
+
+                    {/* The same dialog the desktop chip opens. */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false)
+                        setLocaleOpen(true)
+                      }}
+                      className={cn(
+                        '-mx-3 flex min-h-11 items-center justify-between gap-4 rounded-lg px-3',
+                        'text-sm transition-colors duration-(--duration-fast)',
+                        'hover:bg-surface-sunken',
+                      )}
+                    >
+                      <span className="flex items-center gap-2 font-medium text-fg-secondary">
+                        <Globe className="size-4" aria-hidden="true" />
+                        {t('locale.trigger')}
+                      </span>
+                      <span className="flex items-center gap-2 font-semibold text-fg">
+                        <Flag code={locale.language} />
+                        {locale.currencyLabel}
+                        <ChevronRight className="size-4 text-fg-muted" aria-hidden="true" />
+                      </span>
+                    </button>
                     <div className="flex gap-3">
                       <Button asChild variant="secondary" size="md" full>
                         <Link to="/giris" onClick={closeMenu}>
-                          Giriş Yap
+                          {t('common.signIn')}
                         </Link>
                       </Button>
                       <Button asChild variant="brand-outline" size="md" full>
                         <Link to="/kayit" onClick={closeMenu}>
-                          Üye Ol
+                          {t('common.signUp')}
                         </Link>
                       </Button>
                     </div>
-                    <p className="text-xs text-fg-muted">Para birimi ve dil: TRY · TR</p>
                   </div>
                 </DialogContent>
               </Dialog>
@@ -199,6 +257,8 @@ export function SiteHeader() {
           </div>
         </div>
       </header>
+
+      <LocaleDialog open={localeOpen} onOpenChange={setLocaleOpen} />
     </>
   )
 }

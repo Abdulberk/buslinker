@@ -1,4 +1,5 @@
 import { useId, useMemo, useState, type FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
 import { toast } from 'sonner'
 import { cn } from '@/shared/lib/cn'
@@ -10,11 +11,16 @@ import { AssetIcon, Illustration } from '@/shared/ui/asset-icon'
 import { Button } from '@/shared/ui/button'
 import { Logo } from '@/shared/ui/logo'
 
-type FooterLink = { label: string; href: string } | { label: string; to: string }
+/**
+ * A footer link is either an internal route or an external href, and its label
+ * is either a translation key or a piece of catalogue data — an operator's
+ * name, a city pair — which is never translated.
+ */
+type FooterLink = { to: string } & ({ key: string } | { label: string })
 
 interface FooterColumn {
   id: string
-  title: string
+  titleKey: string
   links: FooterLink[]
 }
 
@@ -24,19 +30,19 @@ const OPERATOR_LINKS: FooterLink[] = OPERATORS.map((operator) => ({
 }))
 
 const HELP_LINKS: FooterLink[] = [
-  { label: 'Yardım Merkezi', to: '/yardim' },
-  { label: 'Sıkça Sorulan Sorular', to: '/sss' },
-  { label: 'Bilet Sorgula', to: '/bilet-sorgula' },
-  { label: 'Bilet İptali', to: '/bilet-iptal' },
-  { label: 'İletişim', to: '/iletisim' },
+  { key: 'helpCenter', to: '/yardim' },
+  { key: 'faq', to: '/sss' },
+  { key: 'ticketLookup', to: '/bilet-sorgula' },
+  { key: 'ticketCancel', to: '/bilet-iptal' },
+  { key: 'contact', to: '/iletisim' },
 ]
 
 const CORPORATE_LINKS: FooterLink[] = [
-  { label: 'Hakkımızda', to: '/hakkimizda' },
-  { label: 'Blog', to: '/blog' },
-  { label: 'Kariyer', to: '/kariyer' },
-  { label: 'Basında Biz', to: '/basinda-biz' },
-  { label: 'Firma İş Birliği', to: '/firma-girisi' },
+  { key: 'about', to: '/hakkimizda' },
+  { key: 'blog', to: '/blog' },
+  { key: 'careers', to: '/kariyer' },
+  { key: 'press', to: '/basinda-biz' },
+  { key: 'partner', to: '/firma-girisi' },
 ]
 
 const POPULAR_ROUTE_SEEDS = [
@@ -48,11 +54,11 @@ const POPULAR_ROUTE_SEEDS = [
 ] as const
 
 const LEGAL_LINKS: FooterLink[] = [
-  { label: 'Kullanım Koşulları', to: '/kullanim-kosullari' },
-  { label: 'Gizlilik Politikası', to: '/gizlilik-politikasi' },
-  { label: 'Çerez Politikası', to: '/cerez-politikasi' },
-  { label: 'Erişilebilirlik', to: '/erisilebilirlik' },
-  { label: 'Site Haritası', to: '/site-haritasi' },
+  { key: 'terms', to: '/kullanim-kosullari' },
+  { key: 'privacy', to: '/gizlilik-politikasi' },
+  { key: 'cookies', to: '/cerez-politikasi' },
+  { key: 'accessibility', to: '/erisilebilirlik' },
+  { key: 'sitemap', to: '/site-haritasi' },
 ]
 
 const LINK_CLASS = [
@@ -62,6 +68,7 @@ const LINK_CLASS = [
 ].join(' ')
 
 export function SiteFooter() {
+  const { t } = useTranslation()
   const emailId = useId()
 
   // Deep links need a date; tomorrow is the shortest honest default and keeps
@@ -70,26 +77,26 @@ export function SiteFooter() {
 
   const columns = useMemo<FooterColumn[]>(() => {
     return [
-      { id: 'firmalar', title: 'Otobüs Firmaları', links: OPERATOR_LINKS },
+      { id: 'firmalar', titleKey: 'footer.columns.operators', links: OPERATOR_LINKS },
       {
         id: 'seferler',
-        title: 'Popüler Seferler',
+        titleKey: 'footer.columns.routes',
         links: POPULAR_ROUTE_SEEDS.map((seed) => ({
           label: seed.label,
           to: resultsPath(seed.from, seed.to, tomorrow),
         })),
       },
-      { id: 'yardim', title: 'Yardım', links: HELP_LINKS },
-      { id: 'kurumsal', title: 'Kurumsal', links: CORPORATE_LINKS },
+      { id: 'yardim', titleKey: 'footer.columns.help', links: HELP_LINKS },
+      { id: 'kurumsal', titleKey: 'footer.columns.corporate', links: CORPORATE_LINKS },
     ]
   }, [tomorrow])
+
+  const labelOf = (link: FooterLink) => ('key' in link ? t(`footer.links.${link.key}`) : link.label)
 
   function handleSubscribe(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     event.currentTarget.reset()
-    toast.success('Bültenimize kaydoldunuz.', {
-      description: 'Kampanyalardan ve yeni hatlardan ilk siz haberdar olacaksınız.',
-    })
+    toast.success(t('footer.subscribed'), { description: t('footer.subscribedBody') })
   }
 
   return (
@@ -117,11 +124,12 @@ export function SiteFooter() {
             // picture in it. Most of the drawing is dissolved by the mask and
             // what survives is faint enough to read as texture.
             'block w-full opacity-50',
-            '[mask-image:linear-gradient(to_top,black_25%,transparent)]',
+            'mask-[linear-gradient(to_top,black_25%,transparent)]',
             'dark:opacity-35 dark:hue-rotate-180 dark:invert',
           )}
         />
       </div>
+
       <div className="app-container section-y">
         {/* Deliberately not a card. It is a secondary ask sitting above the
             footer columns, so it gets a rule and nothing else — a tinted panel
@@ -136,17 +144,15 @@ export function SiteFooter() {
               className="flex items-center gap-2 font-display text-lg font-bold text-fg"
             >
               <AssetIcon src={ICON.subscribe} className="size-4 shrink-0 text-brand" />
-              Fırsatları kaçırmayın
+              {t('footer.newsletterTitle')}
             </h2>
-            <p className="mt-1 text-sm text-fg-muted">
-              Kampanyalardan ve indirimli biletlerden ilk siz haberdar olun.
-            </p>
+            <p className="mt-1 text-sm text-fg-muted">{t('footer.newsletterBody')}</p>
           </div>
 
           <form onSubmit={handleSubscribe} className="lg:w-96 lg:shrink-0">
             <div className="flex gap-2">
               <label htmlFor={emailId} className="sr-only">
-                E-posta adresiniz
+                {t('footer.email')}
               </label>
               <input
                 id={emailId}
@@ -159,11 +165,11 @@ export function SiteFooter() {
                 className="h-11 min-w-0 flex-1 rounded-lg border border-border-strong bg-surface px-3.5 text-base text-fg transition-colors duration-(--duration-fast) placeholder:text-fg-subtle hover:border-fg-muted"
               />
               <Button type="submit" variant="brand-outline" size="md" className="shrink-0">
-                Kaydol
+                {t('footer.subscribe')}
               </Button>
             </div>
             <p id={`${emailId}-consent`} className="mt-2 text-xs text-fg-subtle">
-              Dilediğiniz an çıkabilirsiniz.
+              {t('footer.consent')}
             </p>
           </form>
         </section>
@@ -171,17 +177,24 @@ export function SiteFooter() {
         <div className="mt-12 grid gap-10 sm:grid-cols-2 lg:mt-16 lg:grid-cols-5 lg:gap-8">
           <div className="sm:col-span-2 lg:col-span-1">
             <Logo className="text-brand" />
-            <p className="mt-4 max-w-xs text-sm text-fg-secondary">
-              Türkiye&apos;nin dört bir yanındaki otobüs firmalarını tek ekranda karşılaştırın,
-              koltuğunuzu saniyeler içinde seçin.
-            </p>
-            <ul className="mt-6 flex flex-wrap gap-2" aria-label="BusLinker sosyal medya hesapları">
+            <p className="mt-4 max-w-xs text-sm text-fg-secondary">{t('footer.tagline')}</p>
+
+            {/* Six icons in a narrow column wrapped four-and-two, which reads as
+                a mistake. A three-wide grid is the same six in a deliberate
+                block. The frames are gone with them: a row of bordered tiles
+                next to a row of bordered store badges was two competing grids
+                of boxes. */}
+            <ul className="mt-6 grid w-max grid-cols-3 gap-1" aria-label={t('footer.social')}>
               {SOCIAL.map((social) => (
                 <li key={social.id}>
                   <a
                     href="#"
                     aria-label={social.label}
-                    className="grid size-11 place-items-center rounded-lg border border-border bg-surface text-fg-secondary transition-colors duration-(--duration-fast) hover:border-border-strong hover:text-brand-fg"
+                    className={cn(
+                      'grid size-11 place-items-center rounded-lg text-fg-secondary',
+                      'transition-colors duration-(--duration-fast)',
+                      'hover:bg-surface hover:text-brand-fg',
+                    )}
                   >
                     <AssetIcon src={social.icon} className="size-5" />
                   </a>
@@ -191,9 +204,9 @@ export function SiteFooter() {
 
             {/* The store badges are supplied artwork with their own wordmarks,
                 so they stay images rather than being recoloured. */}
-            <ul className="mt-4 flex flex-wrap gap-2" aria-label="Mobil uygulamayı indir">
+            <ul className="mt-4 flex flex-wrap gap-2" aria-label={t('footer.apps')}>
               <li>
-                <a href="#" aria-label="App Store'dan indir" className="inline-flex rounded-lg">
+                <a href="#" aria-label="App Store" className="inline-flex rounded-lg">
                   <Illustration
                     src={BRAND.appStore}
                     alt=""
@@ -204,7 +217,7 @@ export function SiteFooter() {
                 </a>
               </li>
               <li>
-                <a href="#" aria-label="Google Play'den indir" className="inline-flex rounded-lg">
+                <a href="#" aria-label="Google Play" className="inline-flex rounded-lg">
                   <Illustration
                     src={BRAND.playStore}
                     alt=""
@@ -220,20 +233,14 @@ export function SiteFooter() {
           {columns.map((column) => (
             <nav key={column.id} aria-labelledby={`footer-col-${column.id}`}>
               <h3 id={`footer-col-${column.id}`} className="text-sm font-semibold text-fg">
-                {column.title}
+                {t(column.titleKey)}
               </h3>
               <ul className="mt-3 flex flex-col">
                 {column.links.map((link) => (
-                  <li key={link.label}>
-                    {'to' in link ? (
-                      <Link to={link.to} className={LINK_CLASS}>
-                        {link.label}
-                      </Link>
-                    ) : (
-                      <a href={link.href} className={LINK_CLASS}>
-                        {link.label}
-                      </a>
-                    )}
+                  <li key={link.to}>
+                    <Link to={link.to} className={LINK_CLASS}>
+                      {labelOf(link)}
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -245,18 +252,20 @@ export function SiteFooter() {
       <div className="border-t border-border">
         {/* Room at the foot so the drawing under the text is never crowded
             by it. */}
-        <div className="app-container flex flex-col gap-4 pt-6 pb-40 sm:pb-48 lg:flex-row lg:items-center lg:justify-between lg:pb-56">
-          <div className="flex flex-col gap-x-6 sm:flex-row sm:items-center">
-            <p className="text-xs text-fg-muted">© 2026 BusLinker. Tüm hakları saklıdır.</p>
-            <nav aria-label="Yasal bilgiler">
+        <div className="app-container flex flex-col gap-6 pt-6 pb-40 sm:pb-48 lg:flex-row lg:items-center lg:justify-between lg:gap-10 lg:pb-56">
+          <div className="flex flex-col gap-x-6 gap-y-1 sm:flex-row sm:items-center">
+            <p className="text-xs text-fg-muted">
+              {t('footer.rights', { year: new Date().getFullYear() })}
+            </p>
+            <nav aria-label={t('footer.legal')}>
               <ul className="flex flex-wrap items-center gap-x-5">
                 {LEGAL_LINKS.map((link) => (
-                  <li key={link.label}>
+                  <li key={link.to}>
                     <Link
-                      to={'to' in link ? link.to : '/'}
+                      to={link.to}
                       className="inline-flex min-h-11 items-center text-xs text-fg-muted transition-colors duration-(--duration-fast) hover:text-brand-fg"
                     >
-                      {link.label}
+                      {labelOf(link)}
                     </Link>
                   </li>
                 ))}
@@ -264,16 +273,16 @@ export function SiteFooter() {
             </nav>
           </div>
 
-          <ul
-            className="flex flex-wrap items-center gap-2"
-            aria-label="Kabul edilen ödeme yöntemleri"
-          >
+          {/* Six card marks wrapped five-and-one against the legal links. A
+              fixed six-column grid that refuses to shrink keeps them on one
+              line and lets the links wrap instead, which they do gracefully. */}
+          <ul className="grid shrink-0 grid-cols-6 gap-1.5" aria-label={t('footer.payments')}>
             {/* Card marks are multi-colour and brand-owned, so they keep their
                 own palette on a white tile that survives dark mode. */}
             {PAYMENT.map((method) => (
               <li
                 key={method.id}
-                className="grid h-10 w-15 place-items-center rounded-lg border border-border bg-neutral-0 p-1.5"
+                className="grid h-9 w-13 place-items-center rounded-md border border-border bg-neutral-0 p-1"
               >
                 <Illustration
                   src={method.src}

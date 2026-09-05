@@ -26,14 +26,19 @@ export const SORT_KEYS = [
   'rating_desc',
 ] as const
 
-export const SORT_OPTIONS: { value: SortKey; label: string }[] = [
-  { value: 'dep_asc', label: 'Kalkış: erken → geç' },
-  { value: 'dep_desc', label: 'Kalkış: geç → erken' },
-  { value: 'price_asc', label: 'Fiyat: düşük → yüksek' },
-  { value: 'price_desc', label: 'Fiyat: yüksek → düşük' },
-  { value: 'duration_asc', label: 'Süre: en kısa' },
-  { value: 'arr_asc', label: 'Varış: en erken' },
-  { value: 'rating_desc', label: 'Puan: en yüksek' },
+/**
+ * Sort orders, by translation key rather than by label: this module is imported
+ * by the URL parser and the mock server as well as the UI, and none of those
+ * may depend on the translation runtime.
+ */
+export const SORT_OPTIONS: { value: SortKey; key: string }[] = [
+  { value: 'dep_asc', key: 'depAsc' },
+  { value: 'dep_desc', key: 'depDesc' },
+  { value: 'price_asc', key: 'priceAsc' },
+  { value: 'price_desc', key: 'priceDesc' },
+  { value: 'duration_asc', key: 'durationAsc' },
+  { value: 'arr_asc', key: 'arrAsc' },
+  { value: 'rating_desc', key: 'ratingDesc' },
 ]
 
 export const DEFAULT_SORT: SortKey = 'dep_asc'

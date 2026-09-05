@@ -10,96 +10,130 @@
  * Intl handles display. date-fns handles arithmetic. The two never swap jobs.
  */
 
-const LOCALE = 'tr-TR'
+import {
+  DEFAULT_CURRENCY,
+  DEFAULT_LANGUAGE,
+  currencyOf,
+  languageOf,
+  type CurrencyCode,
+  type LanguageCode,
+} from '@/shared/i18n/config'
+
+/**
+ * The locale of Turkish TEXT operations — casing, folding, collation, slugs.
+ * It never follows the interface language: the catalogue is Turkish whatever
+ * the reader speaks, and `'İstanbul'.toLocaleLowerCase('en')` breaks matching
+ * for exactly the users who need it to work.
+ */
+const TR_LOCALE = 'tr-TR'
 const TIME_ZONE = 'Europe/Istanbul'
 
-/** Intl formatters are expensive to construct; build each one once. */
-const priceFmt = new Intl.NumberFormat(LOCALE, {
-  maximumFractionDigits: 0,
-  minimumFractionDigits: 0,
-})
+/**
+ * The locale of DISPLAY — dates, digit grouping, money. This one does follow
+ * the interface language, and is pushed here by the locale store rather than
+ * read from a hook, so the 20-odd call sites stay plain function calls.
+ */
+let uiLocale: string = languageOf(DEFAULT_LANGUAGE).locale
+let durationUnits: { h: string; m: string } = languageOf(DEFAULT_LANGUAGE).duration
+let money = currencyOf(DEFAULT_CURRENCY)
 
-const priceDecimalFmt = new Intl.NumberFormat(LOCALE, {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-})
+/** Intl formatters are expensive to construct; one per locale and shape. */
+const numberCache = new Map<string, Intl.NumberFormat>()
+const dateCache = new Map<string, Intl.DateTimeFormat>()
 
-const timeFmt = new Intl.DateTimeFormat(LOCALE, {
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-  timeZone: TIME_ZONE,
-})
-
-const dateLongFmt = new Intl.DateTimeFormat(LOCALE, {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-  weekday: 'long',
-  timeZone: TIME_ZONE,
-})
-
-const dateMediumFmt = new Intl.DateTimeFormat(LOCALE, {
-  day: 'numeric',
-  month: 'long',
-  weekday: 'short',
-  timeZone: TIME_ZONE,
-})
-
-const dateShortFmt = new Intl.DateTimeFormat(LOCALE, {
-  day: 'numeric',
-  month: 'short',
-  timeZone: TIME_ZONE,
-})
-
-const weekdayShortFmt = new Intl.DateTimeFormat(LOCALE, {
-  weekday: 'short',
-  timeZone: TIME_ZONE,
-})
-
-/** `959 TL`, `1.099 TL` — the symbol trails the number in Turkish usage. */
-export function formatPrice(value: number): string {
-  return `${priceFmt.format(Math.round(value))} TL`
+function num(key: string, options: Intl.NumberFormatOptions): Intl.NumberFormat {
+  const id = `${uiLocale}|${key}`
+  let fmt = numberCache.get(id)
+  if (!fmt) {
+    fmt = new Intl.NumberFormat(uiLocale, options)
+    numberCache.set(id, fmt)
+  }
+  return fmt
 }
 
-/** For a total that must reconcile to the kuruş, e.g. an itemised summary. */
+function dt(key: string, options: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const id = `${uiLocale}|${key}`
+  let fmt = dateCache.get(id)
+  if (!fmt) {
+    fmt = new Intl.DateTimeFormat(uiLocale, { timeZone: TIME_ZONE, ...options })
+    dateCache.set(id, fmt)
+  }
+  return fmt
+}
+
+/** Called by the locale store; nothing else should reach in here. */
+export function setActiveLocale(language: LanguageCode, currency: CurrencyCode): void {
+  const lang = languageOf(language)
+  uiLocale = lang.locale
+  durationUnits = lang.duration
+  money = currencyOf(currency)
+}
+
+/**
+ * A fare, in the reader's currency.
+ *
+ * Catalogue prices are lira; every other currency is derived here, so there is
+ * one stored number per fare and no rounding drift between pages. Lira are
+ * shown whole — a coach fare is never quoted in kuruş — and the rest to two
+ * decimals, since a euro fare that jumped to the nearest euro would look wrong
+ * next to the lira it converts from.
+ */
+export function formatPrice(value: number): string {
+  const amount = value / money.tryPerUnit
+  const text = num(`price${money.decimals}`, {
+    minimumFractionDigits: money.decimals,
+    maximumFractionDigits: money.decimals,
+  }).format(money.decimals === 0 ? Math.round(amount) : amount)
+  return money.position === 'suffix' ? `${text} ${money.display}` : `${money.display}${text}`
+}
+
+/** For a total that must reconcile line by line, e.g. an itemised summary. */
 export function formatPriceExact(value: number): string {
-  return `${priceDecimalFmt.format(value)} TL`
+  const text = num('priceExact', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value / money.tryPerUnit)
+  return money.position === 'suffix' ? `${text} ${money.display}` : `${money.display}${text}`
 }
 
 /** 24-hour, zero-padded: `08:30`, `23:15`. */
 export function formatTime(date: Date | string): string {
-  return timeFmt.format(toDate(date))
+  return dt('time', { hour: '2-digit', minute: '2-digit', hour12: false }).format(toDate(date))
 }
 
-/** `6s 59dk` — the form Turkish travel sites use for a journey duration. */
+/** `6s 59dk` in Turkish, `6h 59m` in English. */
 export function formatDuration(minutes: number): string {
   const total = Math.max(0, Math.round(minutes))
   const h = Math.floor(total / 60)
   const m = total % 60
-  if (h === 0) return `${m}dk`
-  if (m === 0) return `${h}s`
-  return `${h}s ${m}dk`
+  if (h === 0) return `${m}${durationUnits.m}`
+  if (m === 0) return `${h}${durationUnits.h}`
+  return `${h}${durationUnits.h} ${m}${durationUnits.m}`
 }
 
 /** `4 Eylül 2026 Cuma` */
 export function formatDateLong(date: Date | string): string {
-  return dateLongFmt.format(toDate(date))
+  return dt('dateLong', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    weekday: 'long',
+  }).format(toDate(date))
 }
 
 /** `4 Eylül Cum` */
 export function formatDateMedium(date: Date | string): string {
-  return dateMediumFmt.format(toDate(date))
+  return dt('dateMedium', { day: 'numeric', month: 'long', weekday: 'short' }).format(toDate(date))
 }
 
 /** `4 Eyl` */
 export function formatDateShort(date: Date | string): string {
-  return dateShortFmt.format(toDate(date))
+  return dt('dateShort', { day: 'numeric', month: 'short' }).format(toDate(date))
 }
 
 /** `Cum` */
 export function formatWeekdayShort(date: Date | string): string {
-  return weekdayShortFmt.format(toDate(date))
+  return dt('weekdayShort', { weekday: 'short' }).format(toDate(date))
 }
 
 /**
@@ -107,11 +141,11 @@ export function formatWeekdayShort(date: Date | string): string {
  * ı -> I, which the default locale gets wrong in both directions.
  */
 export function upperTr(value: string): string {
-  return value.toLocaleUpperCase(LOCALE)
+  return value.toLocaleUpperCase(TR_LOCALE)
 }
 
 export function lowerTr(value: string): string {
-  return value.toLocaleLowerCase(LOCALE)
+  return value.toLocaleLowerCase(TR_LOCALE)
 }
 
 /**
@@ -190,7 +224,7 @@ export function locativeTr(name: string): string {
 }
 
 /** Turkish alphabetical order: ç follows c, ğ follows g, ı precedes i, and so on. */
-const collator = new Intl.Collator(LOCALE, { sensitivity: 'base', numeric: true })
+const collator = new Intl.Collator(TR_LOCALE, { sensitivity: 'base', numeric: true })
 
 export function compareTr(a: string, b: string): number {
   return collator.compare(a, b)
@@ -276,5 +310,5 @@ function toDate(value: Date | string): Date {
 
 /** `2 sefer`, with the count emphasised by the caller. */
 export function pluralTr(count: number, word: string): string {
-  return `${priceFmt.format(count)} ${word}`
+  return `${num('count', {}).format(count)} ${word}`
 }

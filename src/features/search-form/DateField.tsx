@@ -1,6 +1,7 @@
 import 'react-day-picker/style.css'
 
 import { useId, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { DayPicker, getDefaultClassNames } from 'react-day-picker'
 import { tr } from 'date-fns/locale'
 import { ChevronDown } from 'lucide-react'
@@ -104,6 +105,7 @@ interface PanelProps {
  * Radix content — also discards a half-typed date and its error.
  */
 function DatePanel({ value, min, onPick }: PanelProps) {
+  const { t } = useTranslation()
   const inputId = useId()
   const errorId = `${inputId}-error`
   const hintId = `${inputId}-hint`
@@ -125,11 +127,11 @@ function DatePanel({ value, min, onPick }: PanelProps) {
     }
     const iso = parseTypedText(draft)
     if (!iso) {
-      setError('Geçerli bir tarih girin. Örnek: 04.09.2026')
+      setError(t('search.dateInvalid'))
       return
     }
     if (iso < min) {
-      setError('Geçmiş bir tarih için bilet aranamaz.')
+      setError(t('search.datePast'))
       return
     }
     setError(null)
@@ -137,16 +139,16 @@ function DatePanel({ value, min, onPick }: PanelProps) {
   }
 
   const chips: { label: string; iso: string }[] = [
-    { label: 'Bugün', iso: min },
-    { label: 'Yarın', iso: addDays(min, 1) },
-    { label: 'Bu hafta sonu', iso: upcomingWeekend(min) },
+    { label: t('search.today'), iso: min },
+    { label: t('search.tomorrow'), iso: addDays(min, 1) },
+    { label: t('search.thisWeekend'), iso: upcomingWeekend(min) },
   ]
 
   return (
     <div className="flex flex-col gap-3">
       <div>
         <label htmlFor={inputId} className="mb-1 block text-xs font-medium text-fg-secondary">
-          Tarihi yazarak girin
+          {t('search.dateTyped')}
         </label>
         <input
           id={inputId}
@@ -181,7 +183,7 @@ function DatePanel({ value, min, onPick }: PanelProps) {
           </p>
         ) : (
           <p id={hintId} className="mt-1 text-xs text-fg-muted">
-            Gün, ay ve yılı noktayla ayırın.
+            {t('search.dateHint')}
           </p>
         )}
       </div>
@@ -276,6 +278,7 @@ export function DateField({
   bare,
   className,
 }: DateFieldProps) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const labelId = `${id}-label`
   const min = minDate && isValidISODate(minDate) ? minDate : toISODate(new Date())
@@ -343,7 +346,7 @@ export function DateField({
         <PopoverContent
           align="start"
           className="w-auto max-w-[calc(100vw-2rem)] p-3"
-          aria-label={`${label} seç`}
+          aria-label={t('search.pickDate', { label })}
         >
           <DatePanel
             value={shown}

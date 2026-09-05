@@ -4,12 +4,14 @@ import {
   Dialog as D,
   DropdownMenu as DM,
   Popover as P,
+  RadioGroup as RG,
   Slider as S,
   Tooltip as T,
   ToggleGroup as TG,
 } from 'radix-ui'
 import { Check, ChevronDown, X } from 'lucide-react'
 import type { ComponentProps, ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/shared/lib/cn'
 
 /**
@@ -56,6 +58,7 @@ export function DialogContent({
   /** `bottom` gives the mobile filter sheet; `center` a regular modal. */
   side?: 'center' | 'bottom'
 }) {
+  const { t } = useTranslation()
   return (
     <D.Portal>
       <DialogOverlay />
@@ -91,7 +94,7 @@ export function DialogContent({
           </div>
           <D.Close
             className="tap-44 -m-1 rounded-lg p-1 text-fg-muted transition-colors hover:bg-surface-sunken hover:text-fg"
-            aria-label="Kapat"
+            aria-label={t('common.close')}
           >
             <X className="size-5" aria-hidden="true" />
           </D.Close>
@@ -189,6 +192,46 @@ export function DropdownMenuRadioItem({
       </span>
       {children}
     </DM.RadioItem>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Radio group
+//
+// For a small set of exclusive choices presented as tiles — the language and
+// currency pickers. Radix supplies the roving tab stop and the arrow-key
+// walk, which a row of plain buttons would not have.
+
+export const RadioGroup = RG.Root
+
+export function RadioGroupItem({ className, children, ...props }: ComponentProps<typeof RG.Item>) {
+  return (
+    <RG.Item
+      className={cn(
+        'group relative flex w-full items-center gap-3 rounded-xl border p-3 text-left',
+        'transition-colors duration-(--duration-fast) ease-standard',
+        'border-border bg-surface hover:border-border-strong hover:bg-surface-sunken',
+        'data-[state=checked]:border-brand/45 data-[state=checked]:bg-brand/8',
+        className,
+      )}
+      {...props}
+    >
+      {children}
+      {/* The tick is the only part that is purely decorative: the checked state
+          already reaches assistive tech through the radio's own role. */}
+      <span
+        aria-hidden="true"
+        className={cn(
+          'ms-auto grid size-5 shrink-0 place-items-center rounded-full border',
+          'transition-colors duration-(--duration-fast)',
+          'border-border-strong text-transparent',
+          'group-data-[state=checked]:border-brand group-data-[state=checked]:bg-brand',
+          'group-data-[state=checked]:text-on-brand',
+        )}
+      >
+        <Check className="size-3.5" strokeWidth={3} />
+      </span>
+    </RG.Item>
   )
 }
 

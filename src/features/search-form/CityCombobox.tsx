@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent, Ref } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Check } from 'lucide-react'
 import { CITIES, type City } from '@/shared/api/catalog'
 import { compareTr, foldTr } from '@/shared/lib/tr'
@@ -77,7 +78,7 @@ export function CityCombobox({
   onChange,
   label,
   id,
-  placeholder = 'Şehir veya plaka',
+  placeholder,
   excludeCityId,
   error,
   size = 'lg',
@@ -86,6 +87,7 @@ export function CityCombobox({
   className,
   ref,
 }: CityComboboxProps) {
+  const { t } = useTranslation()
   const reactId = useId()
   const listboxId = `${id}-listbox`
   const errorId = `${id}-error`
@@ -283,7 +285,7 @@ export function CityCombobox({
           aria-invalid={error ? true : undefined}
           {...(activeId ? { 'aria-activedescendant': activeId } : {})}
           value={text}
-          placeholder={placeholder}
+          placeholder={placeholder ?? t('search.cityPlaceholder')}
           onChange={(event) => {
             const next = event.target.value
             setQuery(next)
@@ -351,7 +353,7 @@ export function CityCombobox({
       </div>
 
       <VisuallyHidden id={statusId} aria-live="polite">
-        {open ? `${options.length} şehir listeleniyor` : ''}
+        {open ? t('search.listing', { count: options.length }) : ''}
       </VisuallyHidden>
 
       {error ? (
@@ -374,10 +376,8 @@ export function CityCombobox({
       >
         {options.length === 0 ? (
           <li role="presentation" className="px-3 py-6 text-center">
-            <p className="text-sm font-medium text-fg">Sonuç bulunamadı</p>
-            <p className="mt-1 text-xs text-fg-muted">
-              Şehir adını ya da plaka kodunu deneyin, örneğin 34.
-            </p>
+            <p className="text-sm font-medium text-fg">{t('search.noResults')}</p>
+            <p className="mt-1 text-xs text-fg-muted">{t('search.noResultsHint')}</p>
           </li>
         ) : (
           options.map((option, index) => {

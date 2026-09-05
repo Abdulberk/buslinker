@@ -1,7 +1,7 @@
 import type { Ref } from 'react'
+import { Trans, useTranslation } from 'react-i18next'
 import { ChevronDown } from 'lucide-react'
 import { cn } from '@/shared/lib/cn'
-import { pluralTr } from '@/shared/lib/tr'
 import { ICON } from '@/shared/config/assets'
 import { AssetIcon } from '@/shared/ui/asset-icon'
 import {
@@ -38,6 +38,7 @@ export function SortBar({
   activeFilterCount,
   className,
 }: SortBarProps) {
+  const { t } = useTranslation()
   const current = SORT_OPTIONS.find((o) => o.value === sort) ?? SORT_OPTIONS[0]!
 
   return (
@@ -57,10 +58,16 @@ export function SortBar({
       )}
     >
       <p className="me-auto text-sm whitespace-nowrap text-fg-secondary">
-        <b className="font-display font-semibold text-fg" data-numeric>
-          {pluralTr(total, 'sefer')}
-        </b>{' '}
-        bulundu
+        {/* The emphasis sits inside the sentence, and where in the sentence
+            differs by language, so the tag travels with the copy rather than
+            being wrapped around a slot here. */}
+        <Trans
+          i18nKey="results.foundRich"
+          count={total}
+          components={{
+            b: <b className="font-display font-semibold text-fg" data-numeric />,
+          }}
+        />
       </p>
 
       <DropdownMenu>
@@ -76,8 +83,8 @@ export function SortBar({
             <AssetIcon src={ICON.sort} className="size-4 text-fg-muted" />
             {/* On a phone the count, this and the filters button share one
                 row, so the label lives in the menu and the trigger is its glyph. */}
-            <span className="sr-only">Sıralama: </span>
-            <span className="sr-only sm:not-sr-only">{current.label}</span>
+            <span className="sr-only">{t('results.sort')}: </span>
+            <span className="sr-only sm:not-sr-only">{t(`results.sortOption.${current.key}`)}</span>
             <ChevronDown
               className="size-4 text-fg-muted transition-transform duration-(--duration-fast) group-data-[state=open]:rotate-180"
               aria-hidden="true"
@@ -88,7 +95,7 @@ export function SortBar({
           <DropdownMenuRadioGroup value={sort} onValueChange={(v) => onSortChange(v as SortKey)}>
             {SORT_OPTIONS.map((option) => (
               <DropdownMenuRadioItem key={option.value} value={option.value}>
-                {option.label}
+                {t(`results.sortOption.${option.key}`)}
               </DropdownMenuRadioItem>
             ))}
           </DropdownMenuRadioGroup>
@@ -106,7 +113,7 @@ export function SortBar({
         )}
       >
         <AssetIcon src={ICON.filters} className="size-4" />
-        Filtrele
+        {t('results.filter')}
         {activeFilterCount > 0 ? (
           <span
             className={cn(
@@ -116,7 +123,10 @@ export function SortBar({
             data-numeric
           >
             {activeFilterCount}
-            <span className="sr-only"> filtre etkin</span>
+            <span className="sr-only">
+              {' '}
+              {t('results.activeFilters', { count: activeFilterCount })}
+            </span>
           </span>
         ) : null}
       </button>
