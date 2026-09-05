@@ -223,7 +223,7 @@ export default function SeatPage() {
       </div>
 
       <div className="sticky bottom-0 z-40 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden">
-        <div className="app-container flex items-center gap-4 py-3">
+        <div className="app-container flex items-center gap-3 py-2.5 sm:gap-4 sm:py-3">
           {continueDisabled ? (
             // Kept short: the full sentence wrapped to three lines beside the
             // button in the 390px sticky bar.
@@ -231,7 +231,7 @@ export default function SeatPage() {
               Önce bir koltuk seçin
             </p>
           ) : (
-            <div>
+            <div className="shrink-0">
               <p className="text-2xs text-fg-muted">Toplam</p>
               <p className="font-display text-lg font-semibold text-fg tabular-nums">
                 {formatPrice(currentQuote.total)}
@@ -241,12 +241,19 @@ export default function SeatPage() {
           <Button
             variant="primary"
             size="lg"
-            className="shrink-0"
+            // Takes the width the total leaves rather than sizing to its own
+            // label: at 360px the long label pushed the button until the two
+            // were nearly touching.
+            className="flex-1 text-base sm:flex-none sm:shrink-0 sm:text-lg"
             onClick={handleContinue}
             disabled={continueDisabled}
             {...(continueDisabled && { 'aria-describedby': 'seat-cta-hint' })}
           >
-            Onayla ve Devam Et
+            {/* One shown per breakpoint, so only one reaches the accessible
+                name. "Onayla ve Devam Et" set in 19px is most of a 390-wide
+                bar on its own. */}
+            <span className="sm:hidden">Devam Et</span>
+            <span className="hidden sm:inline">Onayla ve Devam Et</span>
           </Button>
         </div>
       </div>
