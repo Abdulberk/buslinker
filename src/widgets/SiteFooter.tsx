@@ -1,6 +1,7 @@
 import { useId, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router'
 import { toast } from 'sonner'
+import { cn } from '@/shared/lib/cn'
 import { toISODate } from '@/shared/lib/tr'
 import { resultsPath } from '@/shared/lib/search-params'
 import { OPERATORS } from '@/shared/api/catalog'
@@ -92,7 +93,35 @@ export function SiteFooter() {
   }
 
   return (
-    <footer role="contentinfo" className="border-t border-border bg-bg-alt">
+    <footer
+      role="contentinfo"
+      // `isolate` keeps the art's negative z-index inside the footer rather
+      // than sending it behind the page; `overflow-hidden` clips its bleed.
+      className="relative isolate overflow-hidden border-t border-border bg-bg-alt"
+    >
+      {/* Line art embedded in the footer, not a strip appended under it: the
+          columns and the legal bar sit on top of it. Decorative, so hidden from
+          assistive tech and inert to the pointer. Its top is masked away so
+          text never meets a hard edge, and in dark mode the ink inverts into a
+          light line. */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 -z-10">
+        <img
+          src="/footer-art.webp"
+          alt=""
+          width={1920}
+          height={491}
+          loading="lazy"
+          decoding="async"
+          className={cn(
+            // Held well back: it is the ground the footer stands on, not a
+            // picture in it. Most of the drawing is dissolved by the mask and
+            // what survives is faint enough to read as texture.
+            'block w-full opacity-50',
+            '[mask-image:linear-gradient(to_top,black_25%,transparent)]',
+            'dark:opacity-35 dark:hue-rotate-180 dark:invert',
+          )}
+        />
+      </div>
       <div className="app-container section-y">
         {/* Deliberately not a card. It is a secondary ask sitting above the
             footer columns, so it gets a rule and nothing else — a tinted panel
@@ -214,7 +243,9 @@ export function SiteFooter() {
       </div>
 
       <div className="border-t border-border">
-        <div className="app-container flex flex-col gap-4 py-6 lg:flex-row lg:items-center lg:justify-between">
+        {/* Room at the foot so the drawing under the text is never crowded
+            by it. */}
+        <div className="app-container flex flex-col gap-4 pt-6 pb-40 sm:pb-48 lg:flex-row lg:items-center lg:justify-between lg:pb-56">
           <div className="flex flex-col gap-x-6 sm:flex-row sm:items-center">
             <p className="text-xs text-fg-muted">© 2026 BusLinker. Tüm hakları saklıdır.</p>
             <nav aria-label="Yasal bilgiler">

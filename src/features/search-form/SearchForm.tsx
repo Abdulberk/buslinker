@@ -176,7 +176,7 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
       >
         <div
           className={cn(
-            'relative min-w-0 px-4 py-2.5 transition-colors duration-(--duration-fast)',
+            'relative min-w-0 px-4 py-1 transition-colors duration-(--duration-fast)',
             'focus-within:bg-surface-sunken/60 hover:bg-surface-sunken/60',
             'flex-1 rounded-t-2xl sm:basis-0 sm:rounded-l-2xl sm:rounded-tr-none',
           )}
@@ -195,7 +195,7 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
 
         <div
           className={cn(
-            'relative min-w-0 px-4 py-2.5 transition-colors duration-(--duration-fast)',
+            'relative min-w-0 px-4 py-1 transition-colors duration-(--duration-fast)',
             'focus-within:bg-surface-sunken/60 hover:bg-surface-sunken/60',
             'flex-1 border-t border-border sm:basis-0 sm:border-t-0 sm:border-l sm:pl-8',
           )}
@@ -205,7 +205,7 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
 
         <div
           className={cn(
-            'relative min-w-0 px-4 py-2.5 transition-colors duration-(--duration-fast)',
+            'relative min-w-0 px-4 py-1 transition-colors duration-(--duration-fast)',
             'focus-within:bg-surface-sunken/60 hover:bg-surface-sunken/60',
             'border-t border-border sm:basis-52 sm:border-t-0 sm:border-l',
           )}

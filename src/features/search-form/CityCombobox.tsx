@@ -30,6 +30,10 @@ export interface CityComboboxProps {
    * fields. Unlike `flush`, which only applies below sm, this is what the
    * results-page search strip wants everywhere — one surface, hairlines
    * between cells, and nothing boxed inside it.
+   *
+   * The label floats: it sits in the field as its prompt while the field is
+   * empty and lifts to a small caption above the value once the field has
+   * focus or a city, so the strip carries no captions of its own.
    */
   bare?: boolean | undefined
   className?: string | undefined
@@ -92,6 +96,9 @@ export function CityCombobox({
   const inputRef = useRef<HTMLInputElement>(null)
 
   const [open, setOpen] = useState(false)
+  /** Drives the floating label. `open` is not a proxy for it: Escape closes
+   *  the list while the field keeps focus. */
+  const [focused, setFocused] = useState(false)
   const [query, setQuery] = useState('')
   /** True once the user edits the text; until then the field mirrors `value`. */
   const [dirty, setDirty] = useState(false)
@@ -214,25 +221,27 @@ export function CityCombobox({
 
   return (
     <div className={cn('relative', className)} ref={rootRef}>
-      <label
-        htmlFor={id}
-        className={cn(
-          'mb-1.5 block text-xs font-semibold text-fg-secondary uppercase',
-          // `not-sr-only` also resets margin, which would eat the mb-1.5 above
-          // and shift every field up at sm and over. Put it back explicitly.
-          flush && 'sr-only sm:not-sr-only sm:mb-1.5',
-          // On the strip the value is the label: a city name, a date. The
-          // caption stays in the document as the field's accessible name and
-          // leaves the screen.
-          bare && 'sr-only',
-        )}
-      >
-        {label}
-      </label>
+      {bare ? null : (
+        <label
+          htmlFor={id}
+          className={cn(
+            'mb-1.5 block text-xs font-semibold text-fg-secondary uppercase',
+            // `not-sr-only` also resets margin, which would eat the mb-1.5 above
+            // and shift every field up at sm and over. Put it back explicitly.
+            flush && 'sr-only sm:not-sr-only sm:mb-1.5',
+          )}
+        >
+          {label}
+        </label>
+      )}
 
       <div
+        // Read by the floating label: the caption is up while the field has
+        // focus or a value, and down — sitting where the value will be — when
+        // the field is empty and idle.
+        data-float={focused || text !== '' ? '' : undefined}
         className={cn(
-          'relative flex items-center rounded-xl border bg-surface',
+          'group relative flex items-center rounded-xl border bg-surface',
           'transition-colors duration-(--duration-fast) ease-standard',
           'focus-within:border-brand hover:border-border-strong',
           error ? 'border-danger' : 'border-border',
@@ -287,11 +296,13 @@ export function CityCombobox({
           // one tap and typing replaces it — the same gesture, one control less.
           onFocus={(event) => {
             setOpen(true)
+            setFocused(true)
             event.currentTarget.select()
           }}
           onBlur={(event) => {
             const next = event.relatedTarget
             if (next instanceof Node && rootRef.current?.contains(next)) return
+            setFocused(false)
             // Leaving the field empty is a choice, not an abandoned edit: with
             // no clear button, selecting the city and deleting it is how a
             // field is cleared, and snapping the old value back undid that.
@@ -303,8 +314,40 @@ export function CityCombobox({
             'placeholder:font-normal placeholder:text-fg-subtle',
             size === 'lg' ? 'h-14 pl-10 text-lg' : 'h-11 pl-8 text-base',
             'pr-3',
+            // Under a floating label the value sits low, leaving the caption
+            // its room above. The placeholder is concealed by opacity, not by a
+            // transparent colour — Windows High Contrast forces `color` and
+            // would print it over the label — and it fades in only once the
+            // caption has finished lifting, so the two never overlap.
+            bare && 'h-14 pt-6 pb-2 placeholder:opacity-0 focus:placeholder:opacity-100',
+            bare &&
+              'placeholder:transition-opacity placeholder:delay-(--duration-base) placeholder:duration-(--duration-fast)',
           )}
         />
+
+        {bare ? (
+          // The caption travels by `translate` and `scale`, never by `top` and
+          // `font-size`: those relayout on every frame and interpolate badly,
+          // and `transition-[top,translate,font-size]` did not even compile, so
+          // the label was snapping. Tailwind's plain `transition` covers the
+          // compositor-friendly pair. `origin-left` pins the caption's left
+          // edge to the value's while it shrinks.
+          <label
+            htmlFor={id}
+            className={cn(
+              'pointer-events-none absolute top-0 left-8 origin-left',
+              'text-base leading-6 font-medium text-fg-muted',
+              'transition duration-(--duration-base) ease-standard',
+              // At rest it sits exactly where the value will appear, so it
+              // reads as the field's own prompt.
+              'translate-y-6 scale-100',
+              // Lifted, leaving the value its line underneath.
+              'group-data-float:translate-y-[3px] group-data-float:scale-75',
+            )}
+          >
+            {label}
+          </label>
+        ) : null}
       </div>
 
       <VisuallyHidden id={statusId} aria-live="polite">

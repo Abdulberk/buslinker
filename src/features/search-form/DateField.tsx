@@ -313,15 +313,29 @@ export function DateField({
               'hover:border-border-strong data-[state=open]:border-brand',
               size === 'lg' ? 'h-14 px-3.5 text-lg' : 'h-11 px-3 text-base',
               flush && 'border-0 px-0 sm:border sm:px-3.5',
+              // Tall enough for the caption to sit above the date, matching the
+              // city fields beside it.
               bare &&
-                'rounded-none border-0 bg-transparent px-0 hover:border-transparent data-[state=open]:border-transparent',
+                'h-14 rounded-none border-0 bg-transparent px-0 hover:border-transparent data-[state=open]:border-transparent',
             )}
           >
             <AssetIcon
               src={ICON.date}
               className={cn('shrink-0 text-fg-muted', size === 'lg' ? 'size-5' : 'size-4')}
             />
-            <span className="min-w-0 flex-1 truncate">{formatDateMedium(shown)}</span>
+            {bare ? (
+              <span className="min-w-0 flex-1">
+                {/* A date is always set, so the caption is always lifted. It is
+                    the sr-only label's twin for sighted users; aria-labelledby
+                    already names the button, so this one is hidden from AT. */}
+                <span aria-hidden="true" className="block text-xs font-medium text-fg-muted">
+                  {label}
+                </span>
+                <span className="block truncate">{formatDateMedium(shown)}</span>
+              </span>
+            ) : (
+              <span className="min-w-0 flex-1 truncate">{formatDateMedium(shown)}</span>
+            )}
             <ChevronDown className="size-4 shrink-0 text-fg-muted" aria-hidden="true" />
           </button>
         </PopoverTrigger>

@@ -25,6 +25,18 @@ import type { Trip } from '@/shared/api/mock-server'
 const CARD_BOX = cn(
   '[--card-min-h:18.25rem] lg:[--card-min-h:11rem]',
   'flex min-h-[var(--card-min-h)]',
+  // The shadow is on this box, not on the card inside it. `content-visibility:
+  // auto` brings paint containment, which clips whatever a descendant paints
+  // outside the box — and a shadow is painted outside. On the card it survived
+  // only in the four wedges between the rounded corner and the rectangular
+  // clip, which is what showed as dark triangles on hover.
+  'rounded-xl shadow-lg',
+)
+
+/** The lift on hover and on keyboard focus within; the skeleton has none. */
+const CARD_LIFT = cn(
+  'transition-shadow duration-(--duration-base) ease-standard',
+  'hover:shadow-lift has-[a:focus-visible]:shadow-lift',
 )
 
 const CARD_BOX_STYLE: CSSProperties = {
@@ -96,16 +108,9 @@ export function TripCard({ trip, className }: TripCardProps) {
   const scarce = trip.seatsLeft <= 5
 
   return (
-    <article className={cn(CARD_BOX, className)} style={CARD_BOX_STYLE}>
-      <Card
-        className={cn(
-          // No hairline: the card sits on the page by its shadow alone, the
-          // same soft lift the search strip has, and rises a step on hover.
-          'flex w-full flex-col overflow-hidden border-0 shadow-lg',
-          'transition-shadow duration-(--duration-base) ease-standard',
-          'hover:shadow-xl has-[a:focus-visible]:shadow-xl',
-        )}
-      >
+    <article className={cn(CARD_BOX, CARD_LIFT, className)} style={CARD_BOX_STYLE}>
+      {/* No hairline and no shadow of its own: the box above carries both. */}
+      <Card className="flex w-full flex-col overflow-hidden border-0 shadow-none">
         <div className={GRID}>
           {/* 1 — carrier */}
           <div className="flex items-center gap-3 lg:flex-col lg:items-start lg:gap-2.5">
@@ -224,7 +229,7 @@ export function TripCard({ trip, className }: TripCardProps) {
 export function TripCardSkeleton({ className }: { className?: string }) {
   return (
     <div className={cn(CARD_BOX, className)} style={CARD_BOX_STYLE} aria-hidden="true">
-      <Card className="flex w-full flex-col overflow-hidden border-0 shadow-lg">
+      <Card className="flex w-full flex-col overflow-hidden border-0 shadow-none">
         <div className={GRID}>
           <div className="flex items-center gap-3 lg:flex-col lg:items-start lg:gap-2.5">
             <Skeleton className="size-11 shrink-0 rounded-lg" />
