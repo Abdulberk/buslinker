@@ -316,7 +316,7 @@ export function CityCombobox({
           className={cn(
             'w-full min-w-0 bg-transparent font-medium text-fg',
             'placeholder:font-normal placeholder:text-fg-subtle',
-            size === 'lg' ? 'h-14 pl-10 text-lg' : 'h-11 pl-8 text-base',
+            size === 'lg' ? 'h-11 pl-10 text-base sm:h-14 sm:text-lg' : 'h-11 pl-8 text-base',
             'pr-3',
             // Under a floating label the value sits low, leaving the caption
             // its room above. The placeholder is concealed by opacity, not by a

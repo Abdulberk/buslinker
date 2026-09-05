@@ -316,7 +316,7 @@ export function DateField({
               'text-left font-medium text-fg',
               'transition-colors duration-(--duration-fast) ease-standard',
               'hover:border-border-strong data-[state=open]:border-brand',
-              size === 'lg' ? 'h-14 px-3.5 text-lg' : 'h-11 px-3 text-base',
+              size === 'lg' ? 'h-11 px-3.5 text-base sm:h-14 sm:text-lg' : 'h-11 px-3 text-base',
               flush && 'border-0 px-0 sm:border sm:px-3.5',
               // Tall enough for the caption to sit above the date, matching the
               // city fields beside it.
