@@ -5,8 +5,9 @@ import { AuthDemoNotice, AuthLayout } from '@/features/auth/AuthLayout'
 import { Button } from '@/shared/ui/button'
 import { Checkbox } from '@/shared/ui/primitives'
 import { Field } from '@/shared/ui/field'
+import { PhoneField } from '@/shared/ui/phone-field'
 import { cn } from '@/shared/lib/cn'
-import { checkPassword, isEmail, isPhone, PASSWORD_LABELS } from '@/features/auth/validation'
+import { checkPassword, isEmail, PASSWORD_LABELS } from '@/features/auth/validation'
 
 type FieldName = 'fullName' | 'email' | 'phone' | 'password'
 // `| undefined` explicitly: under exactOptionalPropertyTypes, clearing a field
@@ -39,8 +40,9 @@ export default function SignupPage() {
     if (values.fullName.trim().length < 3) next.fullName = 'Ad ve soyadınızı girin.'
     if (!values.email.trim()) next.email = 'E-posta adresinizi girin.'
     else if (!isEmail(values.email)) next.email = 'Geçerli bir e-posta adresi girin.'
-    if (!values.phone.trim()) next.phone = 'Cep telefonu numaranızı girin.'
-    else if (!isPhone(values.phone)) next.phone = 'Numarayı 5XX XXX XX XX biçiminde girin.'
+    // The field emits E.164 or nothing, so empty covers both the untouched
+    // case and the half-typed one, and the message names the second.
+    if (!values.phone) next.phone = 'Numarayı ülke koduna uygun şekilde eksiksiz girin.'
     if (!strength.ok) next.password = strength.message
     if (!terms) next.terms = 'Devam etmek için koşulları onaylamanız gerekiyor.'
 
@@ -102,16 +104,16 @@ export default function SignupPage() {
           hint="Biletiniz bu adrese gönderilir."
         />
 
-        <Field
+        <PhoneField
           label="Cep Telefonu"
           name="phone"
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          placeholder="5XX XXX XX XX"
           value={values.phone}
-          onChange={set('phone')}
+          onChange={(phone) => {
+            setValues((v) => ({ ...v, phone }))
+            setErrors((e) => ({ ...e, phone: undefined }))
+          }}
           error={errors.phone}
+          hint="Bilet bilgileri bu numaraya SMS ile gönderilir."
         />
 
         <Field

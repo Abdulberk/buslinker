@@ -48,6 +48,13 @@ export const tr = {
     },
   },
 
+  phone: {
+    country: 'Ülke kodu',
+    search: 'Ülke ara',
+    noResults: 'Ülke bulunamadı',
+    invalid: 'Numarayı ülke koduna uygun şekilde eksiksiz girin.',
+  },
+
   search: {
     formLabel: 'Sefer arama',
     from: 'Nereden',

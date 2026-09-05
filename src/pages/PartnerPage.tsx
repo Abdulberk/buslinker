@@ -7,13 +7,14 @@ import { Button } from '@/shared/ui/button'
 import { Badge } from '@/shared/ui/badge'
 import { Card, CardBody } from '@/shared/ui/card'
 import { Field } from '@/shared/ui/field'
+import { PhoneField } from '@/shared/ui/phone-field'
 import { Illustration } from '@/shared/ui/asset-icon'
 import { OperatorLogo } from '@/shared/ui/operator-logo'
 import { VALUE_ICON } from '@/shared/config/assets'
 import { OPERATORS } from '@/shared/api/catalog'
 import { cn } from '@/shared/lib/cn'
 import { pluralTr } from '@/shared/lib/tr'
-import { isEmail, isPhone } from '@/features/auth/validation'
+import { isEmail } from '@/features/auth/validation'
 
 interface Value {
   readonly art: string
@@ -105,9 +106,7 @@ export default function PartnerPage() {
     if (values.contact.trim().length < 3) next.contact = 'Yetkilinin adını ve soyadını girin.'
     if (!values.email.trim()) next.email = 'E-posta adresinizi girin.'
     else if (!isEmail(values.email)) next.email = 'Geçerli bir e-posta adresi girin.'
-    if (!values.phone.trim()) next.phone = 'Telefon numaranızı girin.'
-    else if (!isPhone(values.phone))
-      next.phone = 'Numarayı 5 ile başlayan 10 hane olacak şekilde girin.'
+    if (!values.phone) next.phone = 'Numarayı ülke koduna uygun şekilde eksiksiz girin.'
     if (!values.fleet) next.fleet = 'Filo büyüklüğünü seçin.'
     if (values.message.trim().length < 20)
       next.message = 'İşlettiğiniz hatları en az 20 karakterle anlatın.'
@@ -248,15 +247,14 @@ export default function PartnerPage() {
                 hint="Dönüşü bu adrese yaparız."
               />
 
-              <Field
+              <PhoneField
                 label="Telefon"
                 name="phone"
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                placeholder="5xx xxx xx xx"
                 value={values.phone}
-                onChange={set('phone')}
+                onChange={(phone) => {
+                  setValues((v) => ({ ...v, phone }))
+                  setErrors((e) => ({ ...e, phone: undefined }))
+                }}
                 error={errors.phone}
                 hint="Gün içinde ulaşabileceğimiz bir numara yazın."
               />

@@ -13,11 +13,9 @@ export function isEmail(value: string): boolean {
   return EMAIL.test(value.trim())
 }
 
-/** Turkish mobile numbers, with or without the leading 0 and any spacing. */
-export function isPhone(value: string): boolean {
-  const digits = value.replace(/\D/g, '')
-  return /^(0?5\d{9})$/.test(digits)
-}
+// A phone validator used to live here: a regex for Turkish mobiles that
+// rejected every other country and accepted numbers no operator issues.
+// `shared/lib/phone` replaced it with the numbering plans themselves.
 
 export interface PasswordCheck {
   readonly ok: boolean

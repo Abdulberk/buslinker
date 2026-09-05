@@ -123,7 +123,9 @@ export function SiteFooter() {
             // Held well back: it is the ground the footer stands on, not a
             // picture in it. Most of the drawing is dissolved by the mask and
             // what survives is faint enough to read as texture.
-            'block w-full opacity-50',
+            // Capped so the band is a strip along the foot rather than a
+            // third of the footer's height; the road stays at the bottom.
+            'block max-h-52 w-full object-cover object-bottom opacity-50',
             'mask-[linear-gradient(to_top,black_25%,transparent)]',
             'dark:opacity-35 dark:hue-rotate-180 dark:invert',
           )}
@@ -250,9 +252,10 @@ export function SiteFooter() {
       </div>
 
       <div className="border-t border-border">
-        {/* Room at the foot so the drawing under the text is never crowded
-            by it. */}
-        <div className="app-container flex flex-col gap-6 pt-6 pb-40 sm:pb-48 lg:flex-row lg:items-center lg:justify-between lg:gap-10 lg:pb-56">
+        {/* Enough room for the text to clear the drawing's busy lower band and
+            no more: this padding is the whole of the footer's extra height,
+            since the art itself is positioned out of the flow. */}
+        <div className="app-container flex flex-col gap-6 pt-6 pb-28 sm:pb-32 lg:flex-row lg:items-center lg:justify-between lg:gap-10 lg:pb-36">
           <div className="flex flex-col gap-x-6 gap-y-1 sm:flex-row sm:items-center">
             <p className="text-xs text-fg-muted">
               {t('footer.rights', { year: new Date().getFullYear() })}
@@ -276,20 +279,18 @@ export function SiteFooter() {
           {/* Six card marks wrapped five-and-one against the legal links. A
               fixed six-column grid that refuses to shrink keeps them on one
               line and lets the links wrap instead, which they do gracefully. */}
-          <ul className="grid shrink-0 grid-cols-6 gap-1.5" aria-label={t('footer.payments')}>
-            {/* Card marks are multi-colour and brand-owned, so they keep their
-                own palette on a white tile that survives dark mode. */}
+          {/* Each mark already draws its own white card — stroke, corner radius
+              and shadow — inside its own file. Wrapping it in a bordered tile
+              drew that card a second time around the first. */}
+          <ul className="flex shrink-0 items-center" aria-label={t('footer.payments')}>
             {PAYMENT.map((method) => (
-              <li
-                key={method.id}
-                className="grid h-9 w-13 place-items-center rounded-md border border-border bg-neutral-0 p-1"
-              >
+              <li key={method.id} className="flex">
                 <Illustration
                   src={method.src}
                   alt={method.label}
                   width={120}
                   height={96}
-                  className="size-full object-contain"
+                  className="h-11 w-auto"
                 />
               </li>
             ))}

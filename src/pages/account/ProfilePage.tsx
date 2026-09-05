@@ -1,9 +1,10 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
-import { BellRing, CalendarDays, Mail, Phone, UserRound } from 'lucide-react'
+import { BellRing, CalendarDays, Mail, UserRound } from 'lucide-react'
 import { Button } from '@/shared/ui/button'
 import { Card, CardBody } from '@/shared/ui/card'
 import { Field } from '@/shared/ui/field'
+import { PhoneField } from '@/shared/ui/phone-field'
 import { Checkbox } from '@/shared/ui/primitives'
 import { DEMO_USER } from './AccountLayout'
 
@@ -96,16 +97,13 @@ export default function ProfilePage() {
               value={values.email}
               onChange={set('email')}
             />
-            <Field
+            <PhoneField
               label="Cep Telefonu"
               name="phone"
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              placeholder="0500 000 00 00"
-              icon={<Phone className="size-4" aria-hidden="true" />}
               value={values.phone}
-              onChange={set('phone')}
+              onChange={(phone) => {
+                setValues((v) => ({ ...v, phone }))
+              }}
             />
             <Field
               label="Doğum Tarihi"

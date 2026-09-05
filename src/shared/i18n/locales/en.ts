@@ -47,6 +47,13 @@ export const en: Resources = {
     },
   },
 
+  phone: {
+    country: 'Country code',
+    search: 'Search countries',
+    noResults: 'No country found',
+    invalid: 'Enter the full number for the country code you picked.',
+  },
+
   search: {
     formLabel: 'Trip search',
     from: 'From',

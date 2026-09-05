@@ -1,10 +1,11 @@
-import { Mail, Phone, User } from 'lucide-react'
+import { Mail, User } from 'lucide-react'
 import type { Gender, SeatPick } from '@/entities/seat/model'
-import { isEmail, isPhone } from '@/features/auth/validation'
+import { isEmail } from '@/features/auth/validation'
 import { GenderMark } from '@/features/seat-map/SeatGlyph'
 import { cn } from '@/shared/lib/cn'
 import { Checkbox } from '@/shared/ui/primitives'
 import { Field } from '@/shared/ui/field'
+import { PhoneField } from '@/shared/ui/phone-field'
 
 /**
  * The passenger step of checkout.
@@ -122,10 +123,7 @@ export function validateCheckout(values: CheckoutValues, seatCount: number): Val
   if (!values.contact.email.trim()) errors[emailKey] = 'E-posta adresinizi girin.'
   else if (!isEmail(values.contact.email)) errors[emailKey] = 'Geçerli bir e-posta adresi girin.'
 
-  if (!values.contact.phone.trim()) errors[phoneKey] = 'Cep telefonu numaranızı girin.'
-  else if (!isPhone(values.contact.phone)) {
-    errors[phoneKey] = 'Numarayı 5XX XXX XX XX biçiminde girin.'
-  }
+  if (!values.contact.phone) errors[phoneKey] = 'Numarayı ülke koduna uygun şekilde eksiksiz girin.'
 
   return { errors, firstInvalidKey: order.find((key) => errors[key]) ?? null }
 }
@@ -316,20 +314,15 @@ export function PassengerFields({
             autoCorrect="off"
             spellCheck={false}
           />
-          <Field
+          <PhoneField
             label="Cep telefonu"
             name={contactFieldKey('phone')}
-            type="tel"
-            inputMode="tel"
             value={contact.phone}
-            onChange={(event) => {
-              setContact('phone', event.target.value)
+            onChange={(phone) => {
+              setContact('phone', phone)
             }}
             error={errors[contactFieldKey('phone')]}
-            hint="5XX XXX XX XX"
-            placeholder="5XX XXX XX XX"
-            icon={<Phone className="size-4" aria-hidden="true" />}
-            autoComplete="tel-national"
+            hint="Yolculuk hatırlatmaları bu numaraya gider."
           />
         </div>
       </fieldset>
