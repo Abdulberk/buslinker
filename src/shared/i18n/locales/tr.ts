@@ -152,6 +152,7 @@ export const tr = {
     social: 'BusLinker sosyal medya hesapları',
     apps: 'Mobil uygulamayı indir',
     payments: 'Kabul edilen ödeme yöntemleri',
+    sections: 'Alt bilgi bağlantıları',
     legal: 'Yasal bilgiler',
     rights: '© {{year}} BusLinker. Tüm hakları saklıdır.',
     links: {

@@ -8,6 +8,13 @@ import { resultsPath } from '@/shared/lib/search-params'
 import { OPERATORS } from '@/shared/api/catalog'
 import { BRAND, ICON, PAYMENT, SOCIAL } from '@/shared/config/assets'
 import { AssetIcon, Illustration } from '@/shared/ui/asset-icon'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/shared/ui/primitives'
+import { useMediaQuery } from '@/shared/lib/use-media-query'
 import { Button } from '@/shared/ui/button'
 import { Logo } from '@/shared/ui/logo'
 
@@ -71,6 +78,12 @@ export function SiteFooter() {
   const { t } = useTranslation()
   const emailId = useId()
 
+  // Matches the breakpoint the column grid itself switches at, not a generic
+  // "is mobile": below it the four lists are stacked one under another, and
+  // twenty-one links in a single column is a wall to scroll past rather than
+  // a footer to use.
+  const stacked = !useMediaQuery('(min-width: 640px)')
+
   // Deep links need a date; tomorrow is the shortest honest default and keeps
   // the footer from pointing at a search that has already departed.
   const [tomorrow] = useState(() => toISODate(new Date(Date.now() + 86_400_000)))
@@ -92,6 +105,18 @@ export function SiteFooter() {
   }, [tomorrow])
 
   const labelOf = (link: FooterLink) => ('key' in link ? t(`footer.links.${link.key}`) : link.label)
+
+  const linkList = (column: FooterColumn, className?: string) => (
+    <ul className={cn('flex flex-col', className)}>
+      {column.links.map((link) => (
+        <li key={link.to}>
+          <Link to={link.to} className={LINK_CLASS}>
+            {labelOf(link)}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  )
 
   function handleSubscribe(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -176,7 +201,7 @@ export function SiteFooter() {
           </form>
         </section>
 
-        <div className="mt-12 grid gap-10 sm:grid-cols-2 lg:mt-16 lg:grid-cols-5 lg:gap-8">
+        <div className="mt-10 grid gap-8 sm:mt-12 sm:grid-cols-2 sm:gap-10 lg:mt-16 lg:grid-cols-5 lg:gap-8">
           <div className="sm:col-span-2 lg:col-span-1">
             <Logo className="text-brand" />
             <p className="mt-4 max-w-xs text-sm text-fg-secondary">{t('footer.tagline')}</p>
@@ -186,7 +211,10 @@ export function SiteFooter() {
                 block. The frames are gone with them: a row of bordered tiles
                 next to a row of bordered store badges was two competing grids
                 of boxes. */}
-            <ul className="mt-6 grid w-max grid-cols-3 gap-1" aria-label={t('footer.social')}>
+            <ul
+              className="mt-6 grid w-max grid-cols-6 gap-1 lg:grid-cols-3"
+              aria-label={t('footer.social')}
+            >
               {SOCIAL.map((social) => (
                 <li key={social.id}>
                   <a
@@ -232,22 +260,34 @@ export function SiteFooter() {
             </ul>
           </div>
 
-          {columns.map((column) => (
-            <nav key={column.id} aria-labelledby={`footer-col-${column.id}`}>
-              <h3 id={`footer-col-${column.id}`} className="text-sm font-semibold text-fg">
-                {t(column.titleKey)}
-              </h3>
-              <ul className="mt-3 flex flex-col">
-                {column.links.map((link) => (
-                  <li key={link.to}>
-                    <Link to={link.to} className={LINK_CLASS}>
-                      {labelOf(link)}
-                    </Link>
-                  </li>
+          {stacked ? (
+            // Collapsed on a phone. Radix renders each trigger inside its own
+            // heading, so the four sections keep the outline they had as
+            // columns; the landmark moves from four navs to the one around them.
+            <nav aria-label={t('footer.sections')}>
+              <Accordion type="multiple" className="border-t border-border">
+                {columns.map((column) => (
+                  <AccordionItem
+                    key={column.id}
+                    value={column.id}
+                    className="border-b border-border"
+                  >
+                    <AccordionTrigger>{t(column.titleKey)}</AccordionTrigger>
+                    <AccordionContent>{linkList(column, 'pb-2')}</AccordionContent>
+                  </AccordionItem>
                 ))}
-              </ul>
+              </Accordion>
             </nav>
-          ))}
+          ) : (
+            columns.map((column) => (
+              <nav key={column.id} aria-labelledby={`footer-col-${column.id}`}>
+                <h3 id={`footer-col-${column.id}`} className="text-sm font-semibold text-fg">
+                  {t(column.titleKey)}
+                </h3>
+                {linkList(column, 'mt-3')}
+              </nav>
+            ))
+          )}
         </div>
       </div>
 

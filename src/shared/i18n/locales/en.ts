@@ -149,6 +149,7 @@ export const en: Resources = {
     social: 'BusLinker on social media',
     apps: 'Get the mobile app',
     payments: 'Accepted payment methods',
+    sections: 'Footer links',
     legal: 'Legal',
     rights: '© {{year}} BusLinker. All rights reserved.',
     links: {
