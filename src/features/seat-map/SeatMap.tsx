@@ -234,9 +234,12 @@ export function SeatMap({ data, picks, onPick, onRemove, className }: SeatMapPro
     <div
       className={cn(
         'relative mx-auto w-full',
-        // 22rem is the width an upright coach wants; a turned one wants all of
-        // it, and capping it there is what kept the seats too small to read.
-        geometry.orientation === 'horizontal' ? 'max-w-full' : 'max-w-[22rem]',
+        // A turned coach wants all the width there is. An upright one is
+        // capped, because its height follows its width: on a phone the cap
+        // never bit — the deck simply took the card's 325px and stood 1407px
+        // tall, four and a half screens of coach. 15rem puts a seat at 47px,
+        // still past the 44px touch target, and the deck at 1039.
+        geometry.orientation === 'horizontal' ? 'max-w-full' : 'max-w-60 sm:max-w-[22rem]',
         className,
       )}
       style={{ aspectRatio: `${W} / ${H}` }}
