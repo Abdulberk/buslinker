@@ -12,6 +12,7 @@ import {
 import { cityById, operatorById } from '@/shared/api/catalog'
 import {
   demoTickets,
+  effectiveStatus,
   pastTickets,
   ticketRoute,
   upcomingTickets,
@@ -283,7 +284,7 @@ function RecentRow({ ticket }: { ticket: Ticket }) {
         <span className="block text-xs text-fg-muted">
           <span data-numeric>{formatDateMedium(ticket.purchasedAt)}</span>
           {' · '}
-          {TICKET_STATUS_LABEL[ticket.status]}
+          {TICKET_STATUS_LABEL[effectiveStatus(ticket)]}
         </span>
       </span>
       <span className="shrink-0 text-sm font-semibold text-fg" data-numeric>

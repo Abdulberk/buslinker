@@ -17,6 +17,7 @@ import {
 } from '@/features/checkout/PassengerFields'
 import { GenderMark } from '@/features/seat-map/SeatGlyph'
 import { seatMapQuery, tripQuery } from '@/shared/api/queries'
+import { issueDemoTicket } from '@/shared/api/tickets'
 import { cn } from '@/shared/lib/cn'
 import { checkoutSuccessPath, seatPath } from '@/shared/lib/search-params'
 import { formatPrice } from '@/shared/lib/tr'
@@ -124,10 +125,29 @@ export default function CheckoutPage() {
       return
     }
 
-    toast.info('Bu tanıtım sürümünde sizden ödeme alınmadı.', {
-      description: 'Rezervasyon yalnızca örnek amaçlıdır; gerçek bir bilet düzenlenmez.',
+    // The booking is written down here, before the draft is cleared, so the
+    // confirmation and "Bileti görüntüle" both open THIS trip, these seats and
+    // these names rather than a ticket invented from the code.
+    const ticket = issueDemoTicket({
+      tripId,
+      passengers: picks.map((pick, index) => ({
+        firstName: values.passengers[index]?.firstName ?? '',
+        lastName: values.passengers[index]?.lastName ?? '',
+        seat: pick.number,
+        gender: pick.gender,
+        fare: pick.price,
+      })),
+      surname: resolveContact(values).lastName,
+      fareLines: currentQuote.lines,
+      total: currentQuote.total,
     })
-    void navigate(checkoutSuccessPath(tripId))
+    if (!ticket) {
+      toast.error('Rezervasyon oluşturulamadı.', {
+        description: 'Sefer bilgisine ulaşılamadı. Sefer seçimini yeniden yapıp tekrar deneyin.',
+      })
+      return
+    }
+    void navigate(checkoutSuccessPath(tripId), { state: { pnr: ticket.pnr } })
   }
 
   if (!enabled) return <Navigate to="/" replace />

@@ -1,8 +1,21 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { CircleAlert, Mail, Search, Ticket, User } from 'lucide-react'
-import { DEMO_PNRS, getTicket, isPnrShape } from '@/shared/api/tickets'
-import { upperAscii } from '@/shared/lib/tr'
+import { CircleAlert, Search, Ticket, User } from 'lucide-react'
+import { PnrCode } from '@/features/ticket/PnrCode'
+import { TicketHeading } from '@/features/ticket/TicketActions'
+import {
+  DEMO_PNRS,
+  PNR_LENGTH,
+  effectiveStatus,
+  findTicket,
+  getTicket,
+  isPnrShape,
+  issuedTickets,
+  ticketRoute,
+  type Ticket as TicketRecord,
+  type TicketStatus,
+} from '@/shared/api/tickets'
+import { formatDateShort, upperAscii } from '@/shared/lib/tr'
 import { Button } from '@/shared/ui/button'
 import { Card, CardBody } from '@/shared/ui/card'
 import { Field } from '@/shared/ui/field'
@@ -15,15 +28,30 @@ interface Errors {
   surname?: string | undefined
 }
 
-const PNR_LENGTH = 6
+/** What a demo code will open, said before it is opened. */
+const DEMO_STATE: Record<TicketStatus, string> = {
+  confirmed: 'Yaklaşan yolculuk',
+  used: 'Tamamlandı',
+  cancelled: 'İptal edildi',
+}
+
+const LINK = 'font-medium text-brand-fg underline underline-offset-4 hover:no-underline'
 
 export default function TicketLookupPage() {
   const navigate = useNavigate()
-  const pnrRef = useRef<HTMLInputElement>(null)
+  const submitRef = useRef<HTMLButtonElement>(null)
 
   const [values, setValues] = useState({ pnr: '', surname: '' })
   const [errors, setErrors] = useState<Errors>({})
   const [notFound, setNotFound] = useState(false)
+
+  // Read once per visit: the demo set is fixed, and this session's bookings
+  // only change on the checkout screen.
+  const demos = useMemo(
+    () => DEMO_PNRS.map(getTicket).filter((t): t is TicketRecord => t !== undefined),
+    [],
+  )
+  const booked = useMemo(() => issuedTickets(), [])
 
   useEffect(() => {
     document.title = 'Bilet Sorgula | BusLinker'
@@ -43,9 +71,13 @@ export default function TicketLookupPage() {
     setNotFound(false)
   }
 
-  const fillDemo = (code: string) => {
-    setPnr(code)
-    pnrRef.current?.focus()
+  // A demo code needs its surname too, or the lookup below would refuse it.
+  // Focus goes to the submit button: one more press opens the ticket.
+  const fillDemo = (ticket: TicketRecord) => {
+    setValues({ pnr: ticket.pnr, surname: ticket.surname })
+    setErrors({})
+    setNotFound(false)
+    submitRef.current?.focus()
   }
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -66,7 +98,9 @@ export default function TicketLookupPage() {
       return
     }
 
-    const ticket = getTicket(pnr)
+    // Both halves must match: with the code alone, one mistyped character
+    // opened a stranger's ticket.
+    const ticket = findTicket(pnr, values.surname)
     if (!ticket) {
       setNotFound(true)
       return
@@ -97,14 +131,14 @@ export default function TicketLookupPage() {
                 <Field
                   label="PNR kodu"
                   name="pnr"
-                  ref={pnrRef}
                   value={values.pnr}
                   onChange={(event) => {
                     setPnr(event.target.value)
                   }}
                   error={errors.pnr}
                   hint="Bilette ve onay e-postasında yer alan 6 karakterlik kod."
-                  placeholder="BK7J2M"
+                  // A sample code here read as a value already filled in.
+                  placeholder="6 karakter"
                   icon={<Ticket className="size-4" aria-hidden="true" />}
                   maxLength={PNR_LENGTH}
                   autoCapitalize="characters"
@@ -112,7 +146,7 @@ export default function TicketLookupPage() {
                   spellCheck={false}
                   autoComplete="off"
                   inputMode="text"
-                  className="font-display font-semibold"
+                  className="font-display font-semibold tracking-[0.12em] uppercase placeholder:font-sans placeholder:font-normal placeholder:tracking-normal placeholder:normal-case"
                   data-numeric
                 />
 
@@ -122,8 +156,7 @@ export default function TicketLookupPage() {
                   value={values.surname}
                   onChange={setSurname}
                   error={errors.surname}
-                  hint="Bileti alan yolcunun soyadını yazın."
-                  placeholder="Yılmaz"
+                  hint="Bileti alan kişinin ya da yolculardan birinin soyadı."
                   icon={<User className="size-4" aria-hidden="true" />}
                   autoComplete="family-name"
                 />
@@ -142,14 +175,14 @@ export default function TicketLookupPage() {
                         Bu bilgilere ait bilet bulunamadı.
                       </p>
                       <p className="mt-1 text-sm text-fg-secondary">
-                        PNR kodunu onay e-postanızdan kontrol edip tekrar deneyin. Kodu SMS ile
+                        PNR kodunu ve soyadı biletteki gibi yazdığınızdan emin olun. Kodu SMS ile
                         aldıysanız baştaki ve sondaki boşlukları da temizleyin.
                       </p>
                     </div>
                   </div>
                 ) : null}
 
-                <Button type="submit" size="lg" full className="mt-6">
+                <Button ref={submitRef} type="submit" size="lg" full className="mt-6">
                   <Search className="size-4" aria-hidden="true" />
                   Bileti Sorgula
                 </Button>
@@ -157,84 +190,101 @@ export default function TicketLookupPage() {
             </CardBody>
           </Card>
 
-          <section aria-labelledby="demo-codes-title" className="mt-6">
-            <h2 id="demo-codes-title" className="text-sm font-semibold text-fg">
-              Deneme kodları
-            </h2>
-            <p className="mt-1 text-sm text-fg-muted">
-              Elinizde bir PNR yoksa aşağıdaki tanıtım kodlarından birini seçerek örnek bir bileti
-              görüntüleyebilirsiniz.
-            </p>
-            <ul className="mt-3 flex flex-wrap gap-2">
-              {DEMO_PNRS.map((code) => (
-                <li key={code}>
-                  <Button
-                    type="button"
-                    variant="subtle"
-                    size="sm"
-                    onClick={() => {
-                      fillDemo(code)
-                    }}
-                    className="tap-44 font-display font-semibold"
-                    data-numeric
-                  >
-                    {code}
-                    <span className="sr-only"> kodunu forma yazdır</span>
-                  </Button>
+          <section
+            aria-labelledby="recover-title"
+            className="mt-6 rounded-xl border border-border bg-surface-sunken p-4 sm:p-5"
+          >
+            <TicketHeading id="recover-title">PNR kodunuzu bulamıyor musunuz?</TicketHeading>
+            <ul className="mt-3 flex flex-col gap-2.5 text-sm text-fg-secondary">
+              <li>
+                <span className="font-medium text-fg">E-posta ve SMS: </span>
+                Kod, satın almadan sonra gönderilen onay e-postasında ve SMS’te yer alır. E-postayı
+                göremiyorsanız gereksiz (spam) klasörüne bakın.
+              </li>
+              <li>
+                <span className="font-medium text-fg">Üyelikle aldıysanız: </span>
+                biletleriniz{' '}
+                <Link to="/hesabim/seferlerim" className={LINK}>
+                  Seferlerim
+                </Link>{' '}
+                sayfasında listelenir.
+              </li>
+              {booked.length > 0 ? (
+                <li>
+                  <span className="font-medium text-fg">
+                    Bu tarayıcıda yaptığınız rezervasyonlar:{' '}
+                  </span>
+                  <span className="mt-1.5 flex flex-wrap gap-2">
+                    {booked.map((ticket) => (
+                      <BookedLink key={ticket.pnr} ticket={ticket} />
+                    ))}
+                  </span>
                 </li>
-              ))}
+              ) : null}
+              <li>
+                <span className="font-medium text-fg">Hâlâ bulamadıysanız: </span>
+                ad, soyad ve sefer tarihinizle{' '}
+                <Link to="/yardim" className={LINK}>
+                  Yardım merkezi
+                </Link>{' '}
+                üzerinden bize ulaşın.
+              </li>
             </ul>
           </section>
 
-          <section
-            aria-labelledby="where-is-pnr-title"
-            className="mt-6 rounded-xl border border-border bg-surface-sunken p-4 sm:p-5"
-          >
-            <h2
-              id="where-is-pnr-title"
-              className="flex items-center gap-2 font-display text-base font-semibold text-fg"
-            >
-              <Mail className="size-4 shrink-0 text-brand-fg" aria-hidden="true" />
-              Biletiniz e-postanızda
-            </h2>
-            <ul className="mt-3 flex flex-col gap-2 text-sm text-fg-secondary">
-              <li className="flex gap-2">
-                <span
-                  className="mt-2 size-1.5 shrink-0 rounded-full bg-brand/50"
-                  aria-hidden="true"
-                />
-                Satın alma tamamlandığında PNR kodunuz, sefer saatiniz ve koltuk numaralarınız
-                e-posta ile gönderilir.
-              </li>
-              <li className="flex gap-2">
-                <span
-                  className="mt-2 size-1.5 shrink-0 rounded-full bg-brand/50"
-                  aria-hidden="true"
-                />
-                E-postayı göremiyorsanız gereksiz (spam) klasörünü ve tanıtım sekmesini kontrol
-                edin.
-              </li>
-              <li className="flex gap-2">
-                <span
-                  className="mt-2 size-1.5 shrink-0 rounded-full bg-brand/50"
-                  aria-hidden="true"
-                />
-                PNR kodu her zaman 6 karakterdir ve büyük harf ile rakamlardan oluşur.
-              </li>
-            </ul>
-            <p className="mt-4 text-sm text-fg-muted">
-              Biletinizi iptal etmek istiyorsanız{' '}
-              <Link
-                to="/bilet-iptal"
-                className="font-medium text-brand-fg underline-offset-4 hover:underline"
-              >
-                bilet iptal sayfasını
-              </Link>{' '}
-              kullanabilirsiniz.
+          <section aria-labelledby="demo-codes-title" className="mt-6">
+            <TicketHeading id="demo-codes-title">Deneme kodları</TicketHeading>
+            <p className="mt-1 text-sm text-fg-muted">
+              Tanıtım sürümündeki örnek biletler. Birini seçtiğinizde kod ve soyad forma yazılır.
             </p>
+            <ul className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {demos.map((ticket) => {
+                const state = DEMO_STATE[effectiveStatus(ticket)]
+                return (
+                  <li key={ticket.pnr}>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => {
+                        fillDemo(ticket)
+                      }}
+                      className="h-auto w-full flex-col items-start gap-0.5 rounded-lg px-3 py-2 text-start"
+                    >
+                      <PnrCode code={ticket.pnr} className="text-base text-fg" />
+                      <span className="text-xs font-normal text-fg-muted">{state}</span>
+                      <span className="sr-only">: kodu ve soyadı forma yazın</span>
+                    </Button>
+                  </li>
+                )
+              })}
+            </ul>
           </section>
+
+          <p className="mt-6 text-sm text-fg-muted">
+            Biletinizi iptal etmek istiyorsanız{' '}
+            <Link to="/bilet-iptal" className={LINK}>
+              bilet iptal sayfasını
+            </Link>{' '}
+            kullanabilirsiniz.
+          </p>
         </div>
       </div>
     </>
+  )
+}
+
+/** One of this session's bookings, by code and route, straight to its ticket. */
+function BookedLink({ ticket }: { ticket: TicketRecord }) {
+  const { from, to } = ticketRoute(ticket)
+  return (
+    <Link
+      to={`/bilet/${ticket.pnr}`}
+      className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border-strong bg-surface px-3 py-1.5 text-fg hover:bg-hover"
+    >
+      <PnrCode code={ticket.pnr} className="text-sm" />
+      <span className="text-xs text-fg-muted">
+        {from?.name ?? '—'} – {to?.name ?? '—'}, {formatDateShort(ticket.trip.departsAt)}
+      </span>
+    </Link>
   )
 }

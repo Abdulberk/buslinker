@@ -1,11 +1,17 @@
-import { ArrowRight, Clock } from 'lucide-react'
+import { ArrowRight, Clock, Moon } from 'lucide-react'
 import type { Gender, SeatPick } from '@/entities/seat/model'
 import type { Quote } from '@/entities/seat/rules'
 import { GenderMark } from '@/features/seat-map/SeatGlyph'
 import { cityById, operatorById } from '@/shared/api/catalog'
 import type { Trip } from '@/shared/api/mock-server'
 import { cn } from '@/shared/lib/cn'
-import { formatDateLong, formatDuration, formatPrice, formatTime } from '@/shared/lib/tr'
+import {
+  formatDateLong,
+  formatDuration,
+  formatPrice,
+  formatTime,
+  nightOfLabel,
+} from '@/shared/lib/tr'
 import { Badge } from '@/shared/ui/badge'
 import { OperatorLogo } from '@/shared/ui/operator-logo'
 
@@ -37,6 +43,9 @@ export function OrderSummary({ trip, picks, quote, className }: OrderSummaryProp
   const toCity = cityById(trip.toCityId)
   const fromTerminal = terminalName(trip.fromCityId, trip.fromTerminalId)
   const toTerminal = terminalName(trip.toCityId, trip.toTerminalId)
+  // A 01:30 departure on "Çarşamba" is Tuesday night to the traveller; the
+  // summary names that night, as the ticket will, before anything is booked.
+  const night = nightOfLabel(trip.departsAt)
 
   return (
     <aside
@@ -56,6 +65,12 @@ export function OrderSummary({ trip, picks, quote, className }: OrderSummaryProp
                 {operator?.name ?? 'Sefer'}
               </p>
               <p className="mt-0.5 text-xs text-fg-muted">{formatDateLong(trip.departsAt)}</p>
+              {night ? (
+                <p className="mt-1 flex items-start gap-1 text-xs font-medium text-warning-fg">
+                  <Moon className="mt-px size-3.5 shrink-0" aria-hidden="true" />
+                  {night}
+                </p>
+              ) : null}
             </div>
           </div>
           <Badge tone="neutral" size="sm">

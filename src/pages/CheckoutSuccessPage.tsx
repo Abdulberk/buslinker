@@ -1,60 +1,67 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router'
-import { useQuery } from '@tanstack/react-query'
-import { CircleAlert, CircleCheck, Info, Search, Ticket } from 'lucide-react'
-import { DEFAULT_POLICY, type SeatPick } from '@/entities/seat/model'
-import { quote } from '@/entities/seat/rules'
+import { useEffect, useMemo } from 'react'
+import { Link, Navigate, useLocation, useParams } from 'react-router'
+import { ArrowRight, CalendarPlus, Copy, Moon, Search, Ticket as TicketIcon } from 'lucide-react'
 import { useBookingStore } from '@/features/booking/store'
-import { OrderSummary } from '@/features/checkout/OrderSummary'
-import { seatMapQuery, tripQuery } from '@/shared/api/queries'
-import { createRng } from '@/shared/lib/rng'
-import { Badge } from '@/shared/ui/badge'
+import { GenderMark } from '@/features/seat-map/SeatGlyph'
+import { copyPnr, downloadTicketIcs } from '@/features/ticket/actions'
+import { PnrCode } from '@/features/ticket/PnrCode'
+import { ticketFacts } from '@/features/ticket/ticket-text'
+import {
+  getTicket,
+  isPnrShape,
+  issuedTickets,
+  ticketRoute,
+  type Ticket,
+} from '@/shared/api/tickets'
+import {
+  formatDateLong,
+  formatDuration,
+  formatPrice,
+  formatTime,
+  nightOfLabel,
+} from '@/shared/lib/tr'
 import { Button } from '@/shared/ui/button'
-import { Card, CardBody } from '@/shared/ui/card'
+import { Card } from '@/shared/ui/card'
+import { OperatorLogo } from '@/shared/ui/operator-logo'
 import { PageHeader } from '@/shared/ui/page-header'
-import { Skeleton } from '@/shared/ui/skeleton'
+import { VisuallyHidden } from '@/shared/ui/visually-hidden'
 
 /**
  * The confirmation step.
  *
- * Nothing was sold here, and the page says so in as many words. The PNR is
- * derived from the trip id rather than drawn at random, so a refresh — or a
- * link sent to someone else — shows the same code instead of inventing a
- * second booking.
+ * It shows the booking checkout just wrote down — this trip, these seats,
+ * these names — and hands over its code. It used to derive a PNR from the trip
+ * id, which the ticket page then read as a different journey altogether.
+ *
+ * The page says once, in its lead, that nothing was sold; saying it four times
+ * made the one thing the traveller came for, the code, hard to find.
  */
 
-/** No I, O, 0 or 1: a code people read aloud should not have look-alikes. */
-const PNR_ALPHABET = [...'ABCDEFGHJKLMNPQRSTUVWXYZ23456789']
-const PNR_LENGTH = 6
-
-function demoPnr(tripId: string): string {
-  const rng = createRng(`checkout-pnr:${tripId}`)
-  return Array.from({ length: PNR_LENGTH }, () => rng.pick(PNR_ALPHABET)).join('')
+function pnrFromState(state: unknown): string | undefined {
+  if (typeof state !== 'object' || state === null || !('pnr' in state)) return undefined
+  const { pnr } = state
+  return typeof pnr === 'string' && isPnrShape(pnr) ? pnr : undefined
 }
 
 export default function CheckoutSuccessPage() {
   const { tripId = '' } = useParams<{ tripId: string }>()
-
-  // The draft is read into local state BEFORE it is cleared, or the page would
-  // render its own order as empty one tick after mounting.
-  const [picks] = useState<readonly SeatPick[]>(() => useBookingStore.getState().picks)
+  const location = useLocation()
   const clearDraft = useBookingStore((s) => s.clear)
 
-  const enabled = tripId !== ''
-  const tripResult = useQuery({ ...tripQuery(tripId), enabled })
-  const seatMapResult = useQuery({ ...seatMapQuery(tripId), enabled })
-  const trip = tripResult.data
-  const seatMap = seatMapResult.data
-
-  const pnr = useMemo(() => demoPnr(tripId), [tripId])
-  const currentQuote = useMemo(
-    () => quote(picks, seatMap?.policy ?? DEFAULT_POLICY),
-    [picks, seatMap?.policy],
-  )
+  // The code travels with the navigation from checkout, and the browser keeps
+  // that state across a refresh. Failing that, the newest booking this session
+  // made on this trip is the one being confirmed. A code is only honoured if it
+  // was issued here for this trip: a generated sample is not a booking.
+  const ticket = useMemo(() => {
+    const pnr = pnrFromState(location.state)
+    const fromState = pnr ? getTicket(pnr) : undefined
+    if (fromState?.origin === 'booking' && fromState.trip.id === tripId) return fromState
+    return issuedTickets().find((t) => t.trip.id === tripId)
+  }, [location.state, tripId])
 
   useEffect(() => {
-    document.title = 'Rezervasyon Onayı | BusLinker'
-  }, [])
+    document.title = ticket ? 'Rezervasyon Onayı | BusLinker' : 'Rezervasyon bulunamadı | BusLinker'
+  }, [ticket])
 
   // Clearing the draft is what stops the same seats from being submitted a
   // second time by going back.
@@ -62,196 +69,212 @@ export default function CheckoutSuccessPage() {
     clearDraft()
   }, [clearDraft])
 
-  if (!enabled) return <Navigate to="/" replace />
+  if (tripId === '') return <Navigate to="/" replace />
+  if (!ticket) return <NoBooking />
+  return <Confirmation ticket={ticket} />
+}
 
-  const header = (
-    <PageHeader
-      title="Tanıtım Rezervasyonunuz Oluşturuldu"
-      lead="Bu bir tanıtım kaydıdır: sizden ödeme alınmadı ve gerçek bir bilet düzenlenmedi."
-      breadcrumbs={[{ label: 'Ana sayfa', to: '/' }]}
-    />
-  )
-
-  if (tripResult.isError || seatMapResult.isError) {
-    return (
-      <>
-        {header}
-        <div className="app-container section-y">
-          <div className="mx-auto max-w-md text-center">
-            <span
-              className="mx-auto grid size-16 place-items-center rounded-full bg-surface-sunken text-fg-subtle"
-              aria-hidden="true"
-            >
-              <CircleAlert className="size-7" />
-            </span>
-            <h2 className="mt-5 font-display text-xl font-semibold text-balance-tr text-fg">
-              Sefer bilgilerine ulaşamadık
-            </h2>
-            <p className="mt-3 text-sm text-fg-secondary">
-              Rezervasyon kodunuz{' '}
-              <strong className="font-display font-semibold text-fg" data-numeric>
-                {pnr}
-              </strong>
-              . Sefer ayrıntılarını bilet sayfasından görüntüleyebilirsiniz.
-            </p>
-            <div className="mt-7 flex flex-col items-stretch gap-3 xs:flex-row xs:justify-center">
-              <Button variant="primary" size="lg" asChild>
-                <Link to={`/bilet/${pnr}`}>
-                  <Ticket className="size-4" aria-hidden="true" />
-                  Bileti görüntüleyin
-                </Link>
-              </Button>
-              <Button variant="secondary" size="lg" asChild>
-                <Link to="/">Sefer arayın</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </>
-    )
-  }
-
-  if (!trip || !seatMap) {
-    return (
-      <>
-        {header}
-        <div className="app-container section-y" aria-busy="true">
-          <span className="sr-only">Rezervasyon bilgileri yükleniyor</span>
-          <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
-            <Skeleton className="h-80 w-full rounded-xl" />
-            <Skeleton className="h-112 w-full rounded-xl" />
-          </div>
-        </div>
-      </>
-    )
-  }
+function Confirmation({ ticket }: { ticket: Ticket }) {
+  const { trip } = ticket
+  const { from, to, operator, fromTerminal, toTerminal } = ticketRoute(ticket)
+  const night = nightOfLabel(trip.departsAt)
 
   return (
     <>
-      {header}
+      <PageHeader
+        title="Rezervasyonunuz oluşturuldu"
+        lead="Tanıtım sürümü: ödeme alınmadı ve gerçek bir bilet düzenlenmedi."
+        breadcrumbs={[{ label: 'Ana sayfa', to: '/' }]}
+      />
 
       <div className="app-container section-y">
-        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
-          <div className="min-w-0">
-            <Card>
-              <CardBody>
-                <div className="flex flex-wrap items-center gap-3">
-                  <span
-                    className="grid size-12 shrink-0 place-items-center rounded-full bg-success-tint text-success-fg"
+        <Card className="mx-auto max-w-2xl">
+          <section aria-labelledby="recap-title" className="p-4 sm:p-6">
+            <div className="flex items-center gap-3">
+              <OperatorLogo operatorId={trip.operatorId} className="size-11" />
+              <div className="min-w-0">
+                <h2
+                  id="recap-title"
+                  className="font-display text-lg font-semibold text-balance-tr text-fg"
+                >
+                  {from?.name ?? '—'}
+                  <ArrowRight
+                    className="mx-1.5 inline size-4 align-[-0.125em] text-fg-muted"
                     aria-hidden="true"
-                  >
-                    <CircleCheck className="size-7" />
-                  </span>
-                  <div className="min-w-0">
-                    <h2 className="font-display text-xl font-semibold text-balance-tr text-fg">
-                      Rezervasyonunuz tamamlandı
-                    </h2>
-                    <Badge tone="success" size="md" className="mt-1.5">
-                      <CircleCheck aria-hidden="true" />
-                      Tanıtım kaydı · ödeme alınmadı
-                    </Badge>
-                  </div>
-                </div>
-
-                <div className="mt-6 rounded-xl border border-dashed border-border-strong bg-surface-sunken p-4 text-center">
-                  <p className="text-xs font-medium text-fg-muted">PNR kodunuz</p>
-                  <p
-                    className="mt-1 font-display text-3xl font-semibold text-fg tabular-nums"
-                    data-numeric
-                  >
-                    {pnr}
-                  </p>
-                  <p className="mt-2 text-xs text-fg-muted">
-                    Bileti sorgularken bu kodu ve yolcunun soyadını kullanabilirsiniz.
-                  </p>
-                </div>
-
-                <p className="mt-4 flex gap-2.5 rounded-lg border border-info/25 bg-info-tint p-3.5 text-sm">
-                  <Info className="mt-0.5 size-4 shrink-0 text-info-fg" aria-hidden="true" />
-                  <span className="text-fg-secondary">
-                    Bu ekran satın alma akışının son adımını gösterir. Gerçek bir satın alma
-                    yapılmadığı için tutar tahsil edilmedi, bilet düzenlenmedi ve e-posta
-                    gönderilmedi.
-                  </span>
+                  />
+                  <VisuallyHidden>–</VisuallyHidden>
+                  {to?.name ?? '—'}
+                </h2>
+                <p className="truncate text-sm text-fg-secondary">
+                  {operator?.name ?? 'Otobüs firması'}
                 </p>
+              </div>
+            </div>
 
-                <div className="mt-6 flex flex-col items-stretch gap-3 xs:flex-row xs:flex-wrap">
-                  <Button variant="primary" size="lg" asChild>
-                    <Link to={`/bilet/${pnr}`}>
-                      <Ticket className="size-4" aria-hidden="true" />
-                      Bileti Görüntüleyin
-                    </Link>
-                  </Button>
-                  <Button variant="secondary" size="lg" asChild>
-                    <Link to="/hesabim/seferlerim">Seferlerim</Link>
-                  </Button>
-                  <Button variant="ghost" size="lg" asChild>
-                    <Link to="/">
-                      <Search className="size-4" aria-hidden="true" />
-                      Yeni sefer arayın
-                    </Link>
-                  </Button>
-                </div>
-              </CardBody>
-            </Card>
+            <p className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+              <time
+                dateTime={trip.departsAt}
+                className="text-sm font-medium text-fg-secondary"
+                data-numeric
+              >
+                {formatDateLong(trip.departsAt)}
+              </time>
+              {night ? (
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-warning-tint px-2 py-0.5 text-xs font-medium text-warning-fg">
+                  <Moon className="size-3.5 shrink-0" aria-hidden="true" />
+                  {night}
+                </span>
+              ) : null}
+            </p>
 
-            <section
-              aria-labelledby="next-steps-title"
-              className="mt-6 rounded-xl border border-border bg-surface-sunken p-4 sm:p-5"
+            <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
+              <div className="min-w-0">
+                <dt className="text-xs text-fg-muted">Kalkış</dt>
+                <dd>
+                  <span className="font-display text-2xl font-semibold text-fg" data-numeric>
+                    {formatTime(trip.departsAt)}
+                  </span>
+                  <span className="block text-sm wrap-break-word text-fg-secondary">
+                    {fromTerminal?.name ?? from?.name ?? '—'}
+                  </span>
+                </dd>
+              </div>
+              <div className="min-w-0">
+                <dt className="text-xs text-fg-muted">
+                  Varış
+                  <span className="text-fg-subtle" data-numeric>
+                    {' · '}
+                    {formatDuration(trip.durationMin)}
+                  </span>
+                </dt>
+                <dd>
+                  <span className="font-display text-2xl font-semibold text-fg" data-numeric>
+                    {formatTime(trip.arrivesAt)}
+                  </span>
+                  {trip.overnight ? (
+                    <sup className="ms-0.5 text-xs font-bold text-warning-fg">
+                      +1
+                      <VisuallyHidden> ertesi gün varış</VisuallyHidden>
+                    </sup>
+                  ) : null}
+                  <span className="block text-sm wrap-break-word text-fg-secondary">
+                    {toTerminal?.name ?? to?.name ?? '—'}
+                  </span>
+                </dd>
+              </div>
+            </dl>
+
+            <ul
+              aria-label="Yolcular ve koltuklar"
+              className="mt-4 flex flex-col gap-1.5 border-t border-border pt-4"
             >
-              <h2 id="next-steps-title" className="font-display text-base font-semibold text-fg">
-                Gerçek bir satın almada sırada ne olurdu?
-              </h2>
-              <ul className="mt-3 flex flex-col gap-2 text-sm text-fg-secondary">
-                <li className="flex gap-2">
-                  <span
-                    className="mt-2 size-1.5 shrink-0 rounded-full bg-brand/50"
-                    aria-hidden="true"
-                  />
-                  Biletiniz, PNR kodunuz ve koltuk numaralarınızla birlikte iletişim adresinize
-                  gönderilirdi.
+              {ticket.passengers.map((passenger) => (
+                <li
+                  key={passenger.seat}
+                  className="flex items-center justify-between gap-3 text-sm"
+                >
+                  <span className="min-w-0 wrap-break-word text-fg">{passenger.fullName}</span>
+                  <span className="inline-flex shrink-0 items-center gap-1.5 text-fg-secondary">
+                    {passenger.gender === 'S' ? null : <GenderMark gender={passenger.gender} />}
+                    Koltuk{' '}
+                    <strong className="font-semibold text-fg" data-numeric>
+                      {passenger.seat}
+                    </strong>
+                  </span>
                 </li>
-                <li className="flex gap-2">
-                  <span
-                    className="mt-2 size-1.5 shrink-0 rounded-full bg-brand/50"
-                    aria-hidden="true"
-                  />
-                  Kalkıştan önce terminalde kimlik ibraz etmeniz yeterli olurdu; çıktı almanız
-                  gerekmezdi.
-                </li>
-                <li className="flex gap-2">
-                  <span
-                    className="mt-2 size-1.5 shrink-0 rounded-full bg-brand/50"
-                    aria-hidden="true"
-                  />
-                  Planınız değişirse bileti kalkış saatinden önce PNR kodunuzla iptal edebilirdiniz.
-                </li>
-              </ul>
-            </section>
+              ))}
+            </ul>
+
+            <p className="mt-4 flex items-baseline justify-between gap-4 border-t border-border pt-4">
+              <span className="text-sm font-semibold text-fg">Toplam</span>
+              <span className="font-display text-xl font-semibold text-fg" data-numeric>
+                {formatPrice(ticket.total)}
+              </span>
+            </p>
+          </section>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 border-y border-border bg-surface-sunken px-4 py-4 sm:px-6">
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-fg-muted">PNR kodunuz</p>
+              <PnrCode code={ticket.pnr} className="text-3xl text-fg" />
+              <p className="mt-1 text-xs text-fg-muted">
+                Bileti sorgularken bu kodu ve soyadınızı kullanın.
+              </p>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="tap-44"
+              onClick={() => {
+                void copyPnr(ticket.pnr)
+              }}
+            >
+              <Copy className="size-4" aria-hidden="true" />
+              Kopyala
+              <VisuallyHidden> — PNR kodunu panoya kopyalayın</VisuallyHidden>
+            </Button>
           </div>
 
-          {picks.length > 0 ? (
-            <OrderSummary trip={trip} picks={picks} quote={currentQuote} />
-          ) : (
-            <aside
-              aria-labelledby="summary-missing-title"
-              className="rounded-xl border border-border bg-surface-raised p-4 shadow-sm"
+          <div className="flex flex-col items-stretch gap-3 p-4 sm:flex-row sm:flex-wrap sm:p-6">
+            <Button variant="primary" size="lg" asChild>
+              <Link to={`/bilet/${ticket.pnr}`}>
+                <TicketIcon className="size-4" aria-hidden="true" />
+                Bileti görüntüle
+              </Link>
+            </Button>
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={() => {
+                downloadTicketIcs(ticketFacts(ticket))
+              }}
             >
-              <h2 id="summary-missing-title" className="text-sm font-semibold text-fg">
-                Sipariş özeti
-              </h2>
-              <p className="mt-2 text-sm text-fg-secondary">
-                Rezervasyon tamamlandığı için seçim ayrıntıları bu ekranda tutulmuyor. Koltuk ve
-                tutar bilgilerini bilet sayfasından görüntüleyebilirsiniz.
-              </p>
-              <Button variant="brand-outline" size="md" full asChild className="mt-4">
-                <Link to={`/bilet/${pnr}`}>
-                  <Ticket className="size-4" aria-hidden="true" />
-                  Bilet ayrıntıları
-                </Link>
-              </Button>
-            </aside>
-          )}
+              <CalendarPlus className="size-4" aria-hidden="true" />
+              Takvime ekle
+            </Button>
+            <Button variant="ghost" size="lg" asChild>
+              <Link to="/">
+                <Search className="size-4" aria-hidden="true" />
+                Yeni sefer ara
+              </Link>
+            </Button>
+          </div>
+        </Card>
+      </div>
+    </>
+  )
+}
+
+/**
+ * Reached by a link or a bookmark with no booking behind it in this browser:
+ * there is nothing to confirm, and inventing a code would send the traveller
+ * to someone else's ticket.
+ */
+function NoBooking() {
+  return (
+    <>
+      <PageHeader
+        title="Rezervasyon bulunamadı"
+        lead="Bu sefer için bu tarayıcıda oluşturulmuş bir rezervasyon yok."
+        breadcrumbs={[{ label: 'Ana sayfa', to: '/' }]}
+      />
+      <div className="app-container section-y">
+        <div className="mx-auto max-w-md text-center">
+          <p className="text-sm text-fg-secondary">
+            Rezervasyonu başka bir cihazda ya da tarayıcıda yaptıysanız biletinizi PNR kodunuz ve
+            soyadınızla sorgulayabilirsiniz.
+          </p>
+          <div className="mt-7 flex flex-col items-stretch gap-3 xs:flex-row xs:justify-center">
+            <Button variant="primary" size="lg" asChild>
+              <Link to="/bilet-sorgula">
+                <Search className="size-4" aria-hidden="true" />
+                Bilet sorgula
+              </Link>
+            </Button>
+            <Button variant="secondary" size="lg" asChild>
+              <Link to="/">Sefer ara</Link>
+            </Button>
+          </div>
         </div>
       </div>
     </>

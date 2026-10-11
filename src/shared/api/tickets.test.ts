@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import {
+  CANCEL_CUTOFF_HOURS,
   DEMO_PNRS,
+  cancellationState,
   demoTickets,
+  findTicket,
   getTicket,
   isPnrShape,
+  issueDemoTicket,
   pastTickets,
   upcomingTickets,
 } from './tickets'
@@ -118,5 +122,66 @@ describe('account lists', () => {
 
     const past = pastTickets().map((t) => t.trip.departsAt)
     expect([...past].sort().reverse()).toEqual(past)
+  })
+})
+
+describe('issued tickets', () => {
+  const tripId = getTicket('TR4NS9')!.trip.id
+  const issue = () =>
+    issueDemoTicket({
+      tripId,
+      passengers: [{ firstName: ' Ayşe ', lastName: 'Öztürk', seat: 12, gender: 'F', fare: 500 }],
+      fareLines: [{ label: '12 numaralı koltuk', amount: 500, kind: 'seat' }],
+      total: 500,
+      now: new Date('2026-10-12T09:00:00Z'),
+    })!
+
+  it('opens the booking just made, not a ticket generated from its code', () => {
+    const issued = issue()
+    const found = getTicket(issued.pnr.toLowerCase())!
+    expect(found.origin).toBe('booking')
+    expect(found.trip.id).toBe(tripId)
+    expect(found.passengers).toEqual([
+      { fullName: 'Ayşe Öztürk', lastName: 'Öztürk', seat: 12, gender: 'F', fare: 500 },
+    ])
+    expect(found.total).toBe(500)
+  })
+
+  it('never takes over a demo code', () => {
+    expect(DEMO_PNRS).not.toContain(issue().pnr)
+    expect(getTicket('TR4NS9')!.origin).toBe('sample')
+  })
+
+  it('opens only with a surname that belongs to it', () => {
+    const { pnr } = issue()
+    expect(findTicket(pnr, 'ozturk')?.pnr).toBe(pnr)
+    expect(findTicket(pnr, 'Yılmaz')).toBeUndefined()
+  })
+
+  it('refuses a trip that does not exist', () => {
+    expect(
+      issueDemoTicket({
+        tripId: 'no-such-trip',
+        passengers: [{ firstName: 'A', lastName: 'B', seat: 1, gender: 'M', fare: 1 }],
+        fareLines: [],
+        total: 1,
+      }),
+    ).toBeUndefined()
+  })
+})
+
+describe('cancellation rule', () => {
+  it('closes a fixed number of hours before departure, and for good once it leaves', () => {
+    const ticket = getTicket('TR4NS9')!
+    const departs = Date.parse(ticket.trip.departsAt)
+    const before = (hours: number) => new Date(departs - hours * 3_600_000)
+
+    const open = cancellationState(ticket, before(CANCEL_CUTOFF_HOURS + 1))
+    expect(open.deadline.getTime()).toBe(departs - CANCEL_CUTOFF_HOURS * 3_600_000)
+    expect(open.blocker).toBe(ticket.refundable ? null : 'nonrefundable')
+    if (ticket.refundable) {
+      expect(cancellationState(ticket, before(CANCEL_CUTOFF_HOURS - 1)).blocker).toBe('deadline')
+    }
+    expect(cancellationState(ticket, before(-1)).blocker).toBe('used')
   })
 })

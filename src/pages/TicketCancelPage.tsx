@@ -2,8 +2,23 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'rea
 import { Link, useSearchParams } from 'react-router'
 import { toast } from 'sonner'
 import { CircleAlert, Info, Search, Ticket as TicketIcon, User } from 'lucide-react'
-import { getTicket, isPnrShape, ticketRoute, type Ticket } from '@/shared/api/tickets'
-import { formatDateLong, formatPrice, formatTime, upperAscii } from '@/shared/lib/tr'
+import { PnrCode } from '@/features/ticket/PnrCode'
+import {
+  CANCEL_CUTOFF_HOURS,
+  cancellationState,
+  findTicket,
+  isPnrShape,
+  refundFor,
+  ticketRoute,
+  type Ticket,
+} from '@/shared/api/tickets'
+import {
+  formatDateLong,
+  formatDateMedium,
+  formatPrice,
+  formatTime,
+  upperAscii,
+} from '@/shared/lib/tr'
 import { Button } from '@/shared/ui/button'
 import { Card, CardBody } from '@/shared/ui/card'
 import { Field } from '@/shared/ui/field'
@@ -17,13 +32,10 @@ interface Errors {
 
 const PNR_LENGTH = 6
 
-/**
- * Illustrative only. A real deduction depends on the carrier's own tariff and
- * on how close to departure the request is; this build has no such contract,
- * so the number is presented as an example and labelled as one everywhere it
- * appears.
- */
-const DEDUCTION_RATE = 0.1
+/** `26 Ekim Pzt 23:30`: the deadline as a moment, with no suffix glued onto it. */
+function moment(date: Date): string {
+  return `${formatDateMedium(date)} ${formatTime(date)}`
+}
 
 export default function TicketCancelPage() {
   const [searchParams] = useSearchParams()
@@ -66,7 +78,9 @@ export default function TicketCancelPage() {
       return
     }
 
-    const found = getTicket(pnr)
+    // The code and the surname must both match: with the code alone, one
+    // mistyped character opened a stranger's ticket, ready to cancel.
+    const found = findTicket(pnr, values.surname)
     if (!found) {
       setNotFound(true)
       return
@@ -214,9 +228,10 @@ function ResolvedTicket({
   const { from, to, operator } = ticketRoute(ticket)
   const { trip } = ticket
 
-  const deduction = Math.round(ticket.total * DEDUCTION_RATE)
-  const refund = ticket.total - deduction
-
+  // The same rule and the same example deduction as the ticket page, from one
+  // source, so the two screens cannot disagree about one booking.
+  const { deduction, refund } = refundFor(ticket)
+  const { deadline } = cancellationState(ticket)
   const blocker = cancellationBlocker(ticket)
 
   const confirmCancel = () => {
@@ -233,12 +248,8 @@ function ResolvedTicket({
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <h2 className="font-display text-lg font-semibold text-fg">İptal edilecek bilet</h2>
-              <p
-                className="mt-1 text-sm font-semibold text-fg-secondary"
-                style={{ letterSpacing: '0.18em' }}
-                data-numeric
-              >
-                {ticket.pnr}
+              <p className="mt-1">
+                <PnrCode code={ticket.pnr} className="text-sm text-fg-secondary" />
               </p>
             </div>
             <Button variant="ghost" size="sm" className="tap-44" onClick={onReset}>
@@ -262,12 +273,22 @@ function ResolvedTicket({
                   <li key={passenger.seat}>
                     {passenger.fullName}
                     <span className="text-fg-muted" data-numeric>
-                      {` · ${passenger.seat}. koltuk`}
+                      {` · Koltuk ${passenger.seat}`}
                     </span>
                   </li>
                 ))}
               </ul>
             </SummaryRow>
+            {blocker ? null : (
+              <SummaryRow label="Son iptal zamanı">
+                <span className="font-semibold text-fg" data-numeric>
+                  {moment(deadline)}
+                </span>
+                <span className="block text-fg-muted">
+                  Kalkıştan {CANCEL_CUTOFF_HOURS} saat önce
+                </span>
+              </SummaryRow>
+            )}
             <SummaryRow label="Ödenen tutar">
               <span className="font-semibold text-fg" data-numeric>
                 {formatPrice(ticket.total)}
@@ -396,23 +417,29 @@ function SummaryRow({ label, children }: { label: string; children: ReactNode })
 }
 
 function cancellationBlocker(ticket: Ticket): { title: string; body: string } | null {
-  if (ticket.status === 'cancelled') {
-    return {
-      title: 'Bu bilet zaten iptal edilmiş',
-      body: 'Kayıtlarımızda bu bilet iptal edilmiş görünüyor, bu nedenle yeniden iptal edilemez.',
-    }
+  const { blocker, deadline } = cancellationState(ticket)
+  switch (blocker) {
+    case 'cancelled':
+      return {
+        title: 'Bu bilet zaten iptal edilmiş',
+        body: 'Kayıtlarımızda bu bilet iptal edilmiş görünüyor, bu nedenle yeniden iptal edilemez.',
+      }
+    case 'used':
+      return {
+        title: 'Bu seferin kalkış saati geçmiş',
+        body: 'Kalkışı gerçekleşmiş bir sefer için çevrim içi iptal yapılamaz.',
+      }
+    case 'nonrefundable':
+      return {
+        title: 'Bu bilet çevrim içi iptale kapalı',
+        body: 'Biletiniz iptal ve iade hakkı bulunmayan bir tarifeyle alınmış; bu nedenle bu sayfadan iptal edilemez.',
+      }
+    case 'deadline':
+      return {
+        title: 'Çevrim içi iptal süresi doldu',
+        body: `Çevrim içi iptal, kalkıştan ${CANCEL_CUTOFF_HOURS} saat önce kapanır. Son iptal zamanı: ${moment(deadline)}.`,
+      }
+    case null:
+      return null
   }
-  if (ticket.status === 'used') {
-    return {
-      title: 'Bu seferin kalkış saati geçmiş',
-      body: 'Kalkışı gerçekleşmiş bir sefer için çevrim içi iptal yapılamaz.',
-    }
-  }
-  if (!ticket.refundable) {
-    return {
-      title: 'Bu bilet çevrim içi iptale kapalı',
-      body: 'Biletiniz iptal ve iade hakkı bulunmayan bir tarifeyle alınmış; bu nedenle bu sayfadan iptal edilemez.',
-    }
-  }
-  return null
 }

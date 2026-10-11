@@ -2,7 +2,12 @@ import { useEffect, useMemo } from 'react'
 import { Link } from 'react-router'
 import { Award, Coins, Crown, Medal, Sparkles, TicketCheck } from 'lucide-react'
 import { cityById } from '@/shared/api/catalog'
-import { demoTickets, TICKET_STATUS_LABEL, type Ticket } from '@/shared/api/tickets'
+import {
+  demoTickets,
+  effectiveStatus,
+  TICKET_STATUS_LABEL,
+  type Ticket,
+} from '@/shared/api/tickets'
 import { formatDateMedium, formatPrice, pluralTr } from '@/shared/lib/tr'
 import { Badge } from '@/shared/ui/badge'
 import { Button } from '@/shared/ui/button'
@@ -271,7 +276,7 @@ export default function LoyaltyPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-sm whitespace-nowrap text-fg-muted">
-                          {TICKET_STATUS_LABEL[ticket.status]}
+                          {TICKET_STATUS_LABEL[effectiveStatus(ticket)]}
                         </td>
                         <td
                           className="px-4 py-3 text-right text-sm whitespace-nowrap text-fg-secondary"

@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { ArrowRight, Ban, Bus, CircleCheck, CircleX, Clock, History, Users } from 'lucide-react'
 import { cityById, operatorById } from '@/shared/api/catalog'
 import {
+  effectiveStatus,
   pastTickets,
   upcomingTickets,
   TICKET_STATUS_LABEL,
@@ -87,7 +88,9 @@ function TicketCard({ ticket }: { ticket: Ticket }) {
   const toCity = cityById(trip.toCityId)
   const fromTerminal = fromCity?.terminals.find((terminal) => terminal.id === trip.fromTerminalId)
   const toTerminal = toCity?.terminals.find((terminal) => terminal.id === trip.toTerminalId)
-  const status = STATUS_STYLE[ticket.status]
+  // As of now, like the ticket page: a confirmed trip that has left is used.
+  const current = effectiveStatus(ticket)
+  const status = STATUS_STYLE[current]
 
   return (
     <Card>
@@ -104,7 +107,7 @@ function TicketCard({ ticket }: { ticket: Ticket }) {
           </div>
           <Badge tone={status.tone} size="md">
             <status.Icon aria-hidden="true" />
-            {TICKET_STATUS_LABEL[ticket.status]}
+            {TICKET_STATUS_LABEL[current]}
           </Badge>
         </div>
 
