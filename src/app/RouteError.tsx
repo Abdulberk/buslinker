@@ -1,7 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, isRouteErrorResponse, useNavigate, useRouteError } from 'react-router'
-import { TriangleAlert } from 'lucide-react'
+import { LoaderCircle, TriangleAlert } from 'lucide-react'
 import { Button } from '@/shared/ui/button'
+import { isChunkLoadError, reloadForNewRelease } from './lazy-route'
 
 /** React Router keeps the position in the session in `history.state.idx`. */
 function canGoBack(): boolean {
@@ -15,6 +16,11 @@ export function RouteError() {
   const error = useRouteError()
   const navigate = useNavigate()
   const notFound = isRouteErrorResponse(error) && error.status === 404
+  // A chunk a deploy replaced is not a fault in the page, and a reload is the
+  // whole fix, so the page tries it first, within the shared reload budget,
+  // and only shows this screen when that has already failed.
+  const stale = !notFound && isChunkLoadError(error)
+  const [reloading] = useState(() => stale && reloadForNewRelease())
 
   // What went wrong is for the developer, not the traveller. The message of a
   // thrown Error or a response's statusText is English, technical, and often
@@ -28,6 +34,20 @@ export function RouteError() {
     document.title = `${notFound ? 'Sayfa bulunamadı' : 'Bir sorun oluştu'} | BusLinker`
   }, [notFound])
 
+  if (reloading) {
+    return (
+      <div className="app-container section-y">
+        <p
+          role="status"
+          className="mx-auto flex max-w-md items-center justify-center gap-2 text-fg-muted"
+        >
+          <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />
+          Sitenin yeni sürümü yükleniyor…
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div className="app-container section-y">
       <div className="mx-auto max-w-md text-center">
@@ -40,7 +60,9 @@ export function RouteError() {
         <p className="mt-2 text-fg-muted">
           {notFound
             ? 'Aradığınız sayfa taşınmış, kaldırılmış ya da bağlantı hatalı yazılmış olabilir.'
-            : 'Beklenmeyen bir sorun oluştu. Sayfayı yenilemek çoğu zaman yeterli olur; olmazsa ana sayfadan devam edebilirsiniz.'}
+            : stale
+              ? 'Sitenin yeni bir sürümü yayınlandı ve bu sekme eskisinde kaldı. Sayfayı yenilediğinizde yeni sürüm açılır.'
+              : 'Beklenmeyen bir sorun oluştu. Sayfayı yenilemek çoğu zaman yeterli olur; olmazsa ana sayfadan devam edebilirsiniz.'}
         </p>
         {/* One filled button: the step most likely to help. A failed page is
             usually a stale chunk after a new release, which a reload fixes; a
