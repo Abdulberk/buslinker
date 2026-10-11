@@ -55,18 +55,16 @@ export function Hero() {
       // boxes already use, not a colour invented for the hero. A ground rather
       // than a red header, so the brand colour stays the thing you press.
       //
+      // On a phone the section itself is the header's chrome, and that ground
+      // lives on the sheet below instead (see the sheet's comment).
+      //
       // From sm the hero has its own heading, artwork and single card, and
       // keeps the page ground. It also slides up under the header by exactly
       // the header's height and pads the same amount back, so the wash and
       // the map run on behind the header while the content stays where it
-      // was. A phone does not: there the mode rail is the band under the
-      // header, and nothing should show through above it.
-      //
-      // Light only: dark elevates by lightness, so there the sunken tone sits
-      // ABOVE the card surface and the step would run the wrong way, leaving
-      // the cards darker than the ground they stand on.
+      // was.
       className={cn(
-        'relative isolate border-b border-border bg-surface-sunken sm:bg-bg dark:bg-bg',
+        'relative isolate border-b border-border bg-chrome sm:bg-bg',
         'sm:-mt-16 sm:pt-16 lg:-mt-18 lg:pt-18',
       )}
     >
@@ -76,9 +74,11 @@ export function Hero() {
       >
         {/* A whisper of cool wash so the hero still separates from the page
             below it. The heavy red gradient that used to sit here competed
-            with the CTA and tinted the coach. */}
+            with the CTA and tinted the coach. Not on a phone: there the strip
+            above the sheet has to be exactly the header's chrome, and a tint
+            would show as a seam under the bar. */}
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 hidden sm:block"
           style={{
             background:
               'linear-gradient(180deg, color-mix(in oklab, var(--color-info) 7%, transparent) 0%, transparent 62%)',
@@ -114,7 +114,7 @@ export function Hero() {
         />
       </div>
 
-      <div className="app-container pb-12 sm:pt-14 sm:pb-16 lg:pt-14 lg:pb-18">
+      <div className="app-container pt-1.5 sm:pt-14 sm:pb-16 lg:pt-14 lg:pb-18">
         {/* From lg the heading block stops where the coach begins: it is
             bounded by the coach's width rather than by a grid column, so the
             coach can sit on the card instead of in a column of its own. */}
@@ -133,25 +133,38 @@ export function Hero() {
           </p>
         </div>
 
-        {/* The mode strip sits ON the search card rather than floating above
-            it as chips: the active tab shares the card's surface and loses its
-            bottom corner radius, so the two read as one control. */}
-        <div className="sm:mt-10">
+        {/* On a phone this block is a sheet: full-bleed, on the hero's own
+            ground, with large rounded top corners rising out of the header's
+            chrome. The first version stacked three bands under the bar — the
+            header, a bordered mode rail, then the ground — and drew a hairline
+            between each; the curve now does the separating, with no line at
+            all, and the header is left as nothing but the logo and its three
+            tiles. Dark keeps the page ground here, since sunken would sit
+            above the card surface there and the cards would sink into it.
+
+            From sm the block is unstyled again, and the mode strip sits ON
+            the search card rather than floating above it as chips: the active
+            tab shares the card's surface and loses its bottom corner radius,
+            so the two read as one control. */}
+        <div
+          className={cn(
+            'sm:mt-10',
+            'max-sm:-mx-(--app-pad) max-sm:rounded-t-[1.75rem] max-sm:bg-surface-sunken',
+            'max-sm:px-(--app-pad) max-sm:pt-4 max-sm:pb-12 max-sm:dark:bg-bg',
+          )}
+        >
           <div className="relative">
             <div
               role="group"
               aria-label="Seyahat türü"
               className={cn(
-                // On a phone this is the bar under the header, on the
-                // header's own chrome surface, so the two read as one band
-                // with a single hairline under it. It bleeds to the viewport
-                // edges and the four modes share the width — nothing scrolls
-                // and nothing has to be faded off at the edge. From sm it is
-                // a row of folder tabs on the search card again, and scrolls
-                // if it must.
-                'scrollbar-none flex gap-1',
-                '-mx-(--app-pad) border-b border-border bg-chrome px-(--app-pad)',
-                'sm:mx-0 sm:overflow-x-auto sm:border-b-0 sm:bg-transparent sm:px-0',
+                // On a phone a segmented control at the top of the sheet: one
+                // white pill track with the four modes sharing its width, so
+                // nothing scrolls. From sm a row of folder tabs on the search
+                // card again, which scrolls if it must.
+                'scrollbar-none flex gap-1 sm:overflow-x-auto',
+                'max-sm:rounded-full max-sm:bg-surface max-sm:p-1 max-sm:shadow-xs',
+                'max-sm:ring-1 max-sm:ring-border',
               )}
             >
               {TRAVEL_MODES.map(({ id, label, icon, available }) => (
@@ -163,29 +176,28 @@ export function Hero() {
                   aria-pressed={available}
                   title={available ? undefined : `${label} aramaları yakında açılıyor`}
                   className={cn(
-                    'group relative flex flex-col items-center',
-                    // A tab was 94px on a phone: desktop padding, a desktop
-                    // glyph and desktop gaps around a caption, on a 390-wide
-                    // screen. 58 now — this bar is the first thing under the
-                    // header and should not eat a tenth of the screen before
-                    // the form starts.
-                    'gap-0.5 pt-2 pb-2',
-                    'sm:gap-1 sm:pt-3 sm:pb-3.5',
-                    // A phone gets four equal columns; from sm the tabs take
-                    // their own width back and the folder shape returns.
-                    'flex-1 basis-0 px-1',
-                    'sm:min-w-28 sm:flex-none sm:shrink-0 sm:basis-auto sm:rounded-t-xl sm:px-5',
+                    'group relative flex items-center',
+                    // A phone gets four equal segments, icon beside label; from
+                    // sm the tabs take their own width back, stack icon over
+                    // label, and the folder shape returns.
+                    'max-sm:h-10 max-sm:flex-1 max-sm:basis-0 max-sm:justify-center',
+                    'max-sm:gap-1.5 max-sm:rounded-full max-sm:px-1',
+                    'sm:min-w-28 sm:shrink-0 sm:flex-col sm:gap-1 sm:rounded-t-xl sm:px-5 sm:pt-3 sm:pb-3.5',
                     'transition-colors duration-(--duration-fast) ease-standard',
-                    // The modes that do not exist yet take the faintest text
-                    // tone and no hover at all: a hover tint is a promise
-                    // that pressing does something. From sm the "Yakında"
-                    // caption explains them, so the label can come up a step.
+                    // The selected segment is a tinted pill, not a solid one:
+                    // the red fill on this screen belongs to "Bilet Bul". The
+                    // modes that do not exist yet take the faintest text tone
+                    // and no hover at all: a hover tint is a promise that
+                    // pressing does something. From sm the "Yakında" caption
+                    // explains them, so the label can come up a step.
                     available
-                      ? 'text-brand-fg sm:bg-surface sm:shadow-[0_-2px_12px_oklch(0.36_0.045_245/0.06)]'
+                      ? 'text-brand-fg max-sm:bg-brand/10 sm:bg-surface sm:shadow-[0_-2px_12px_oklch(0.36_0.045_245/0.06)]'
                       : 'cursor-not-allowed text-fg-subtle sm:text-fg-muted',
                   )}
                 >
-                  <AssetIcon src={icon} className="size-5 sm:size-7" />
+                  {/* Below 360 four icon-and-label segments no longer fit the
+                      track, and the words are what say which mode is which. */}
+                  <AssetIcon src={icon} className="size-4.5 max-[360px]:hidden sm:size-7" />
                   <span className="text-sm font-semibold">{label}</span>
                   {/* Plain caption, not a badge: a pill inside a tab made the
                       row lumpy and fought the tab's own shape.
@@ -205,9 +217,9 @@ export function Hero() {
                   {available ? (
                     <span
                       aria-hidden="true"
-                      // Underneath the label on a phone, which is where a tab
-                      // bar puts it; back on top of the folder tab from sm.
-                      className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-brand sm:top-0 sm:bottom-auto"
+                      // The folder tab's top edge, from sm. A phone's pill is
+                      // its own marker and needs no bar.
+                      className="absolute inset-x-4 top-0 hidden h-0.5 rounded-full bg-brand sm:block"
                     />
                   ) : null}
                 </button>

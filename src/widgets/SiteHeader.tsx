@@ -10,6 +10,7 @@ import {
   Route as RouteIcon,
   Ticket,
   TicketX,
+  UserRound,
   type LucideIcon,
 } from 'lucide-react'
 import { LocaleDialog, useLocaleSummary } from '@/features/locale/LocaleDialog'
@@ -99,14 +100,28 @@ const SHEET_ITEM_ACTIVE = [
 ].join(' ')
 
 /**
- * The two controls on the phone bar. Each is a full 44px box with a real edge:
- * the hairline hamburger this replaces was three 1px strokes, the faintest
- * thing in the header and the one a first-time visitor needed most.
+ * The icon buttons on the phone bar: three equal tiles, no words.
+ *
+ * The first version put "Bilet Sorgula" in a labelled box with a control-grade
+ * edge next to an equally hard-edged menu box. Two outlined blocks of
+ * different widths outweighed the wordmark they sat beside, and the bar read
+ * as a toolbar rather than as a header. Equal tiles on a soft fill keep the
+ * logo the loudest thing on the bar, which is how the cleaner Turkish travel
+ * sites (gidiyorum.com among them) lay it out.
+ *
+ * The icon identifies each control, so the tile needs no 3:1 edge of its own —
+ * a hairline and a light fill only say "this is pressable". The box is 40px
+ * and tap-44 widens the hit area to the project's 44, and the 8px gap keeps
+ * neighbouring hit areas from overlapping. The fill is the hover layer at
+ * reduced strength, which rises off the chrome in dark mode where a sunken
+ * fill read as a hole.
  */
 const PHONE_CONTROL = [
-  'inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg',
-  'border border-border-strong text-sm font-semibold text-fg',
-  'transition-colors duration-(--duration-fast) ease-standard hover:bg-hover',
+  'tap-44 inline-flex size-10 shrink-0 items-center justify-center rounded-xl',
+  'border border-border bg-hover/60 text-fg-secondary',
+  'transition-colors duration-(--duration-fast) ease-standard',
+  'hover:bg-hover hover:text-fg',
+  'aria-[current=page]:text-brand-fg',
 ].join(' ')
 
 /**
@@ -183,11 +198,12 @@ export function SiteHeader() {
           scrolled
             ? 'border-border bg-chrome shadow-sm'
             : isHome
-              ? // Home, at rest. On a phone the hero's mode rail — chrome as
-                // well — sits directly under the bar and draws the one hairline
-                // itself; a border here as well made two lines. From sm up the
-                // hero is pulled up underneath, so the bar is transparent and
-                // the hero's ground runs to the top of the window.
+              ? // Home, at rest. On a phone the hero continues the chrome under
+                // the bar and its search sheet rises out of it on rounded
+                // corners, so the curve separates the two and a line here would
+                // only cut the band in half. From sm up the hero is pulled up
+                // underneath, so the bar is transparent and the hero's ground
+                // runs to the top of the window.
                 'border-transparent bg-chrome sm:bg-transparent'
               : 'border-border bg-chrome',
         )}
@@ -243,25 +259,29 @@ export function SiteHeader() {
             ) : (
               <>
                 {/* The one task people come back to the site for, one tap away
-                    instead of behind the menu. Below 360px the label goes to
-                    the screen reader only, and the icon carries the box. */}
+                    instead of behind the menu. */}
                 <Link
                   to={LOOKUP.to}
                   aria-current={lookupActive ? 'page' : undefined}
-                  className={cn(PHONE_CONTROL, 'px-3 max-[360px]:w-11 max-[360px]:px-0')}
+                  aria-label={t(LOOKUP.labelKey)}
+                  className={PHONE_CONTROL}
                 >
                   <Ticket className="size-5" aria-hidden="true" />
-                  <span className="max-[360px]:sr-only">{t(LOOKUP.labelKey)}</span>
+                </Link>
+
+                <Link
+                  to="/giris"
+                  aria-current={pathname === '/giris' ? 'page' : undefined}
+                  aria-label={t('common.signIn')}
+                  className={PHONE_CONTROL}
+                >
+                  <UserRound className="size-5" aria-hidden="true" />
                 </Link>
 
                 <Dialog open={menuOpen} onOpenChange={setMenuOpen}>
                   <DialogTrigger asChild>
-                    <button
-                      type="button"
-                      className={cn(PHONE_CONTROL, 'w-11')}
-                      aria-label={t('common.menu')}
-                    >
-                      <Menu className="size-6" aria-hidden="true" />
+                    <button type="button" className={PHONE_CONTROL} aria-label={t('common.menu')}>
+                      <Menu className="size-5" aria-hidden="true" />
                     </button>
                   </DialogTrigger>
                   <DialogContent
