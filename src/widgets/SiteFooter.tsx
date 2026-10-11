@@ -6,7 +6,7 @@ import { cn } from '@/shared/lib/cn'
 import { toISODate } from '@/shared/lib/tr'
 import { resultsPath } from '@/shared/lib/search-params'
 import { OPERATORS } from '@/shared/api/catalog'
-import { BRAND, ICON, PAYMENT, SOCIAL } from '@/shared/config/assets'
+import { BRAND, PAYMENT, SOCIAL } from '@/shared/config/assets'
 import { AssetIcon, Illustration } from '@/shared/ui/asset-icon'
 import {
   Accordion,
@@ -174,11 +174,9 @@ export function SiteFooter() {
           className="flex flex-col gap-5 border-b border-border pb-8 lg:flex-row lg:items-center lg:justify-between lg:gap-12 lg:pb-10"
         >
           <div>
-            <h2
-              id="footer-newsletter-title"
-              className="flex items-center gap-2 font-display text-lg font-bold text-fg"
-            >
-              <AssetIcon src={ICON.subscribe} className="size-4 shrink-0 text-brand" />
+            {/* No glyph in front: the only icon to hand was a chevron, which
+                promised a link or a disclosure the heading does not have. */}
+            <h2 id="footer-newsletter-title" className="font-display text-lg font-bold text-fg">
               {t('footer.newsletterTitle')}
             </h2>
             <p className="mt-1 text-sm text-fg-muted">{t('footer.newsletterBody')}</p>
@@ -197,13 +195,15 @@ export function SiteFooter() {
                 autoComplete="email"
                 placeholder="ornek@eposta.com"
                 aria-describedby={`${emailId}-consent`}
-                className="h-11 min-w-0 flex-1 rounded-lg border border-border-strong bg-surface px-3.5 text-base text-fg transition-colors duration-(--duration-fast) placeholder:text-fg-subtle hover:border-fg-muted"
+                className="h-11 min-w-0 flex-1 rounded-lg border border-border-strong bg-surface px-3.5 text-base text-fg transition-colors duration-(--duration-fast) hover:border-fg-muted"
               />
               <Button type="submit" variant="brand-outline" size="md" className="shrink-0">
                 {t('footer.subscribe')}
               </Button>
             </div>
-            <p id={`${emailId}-consent`} className="mt-2 text-xs text-fg-subtle">
+            {/* fg-muted, not subtle: this is the terms of the sign-up, and it
+                has to clear 4.5:1 like any other sentence someone must read. */}
+            <p id={`${emailId}-consent`} className="mt-2 text-xs text-fg-muted">
               {t('footer.consent')}
             </p>
           </form>
@@ -211,7 +211,7 @@ export function SiteFooter() {
 
         <div className="mt-10 grid gap-8 sm:mt-12 sm:grid-cols-2 sm:gap-10 lg:mt-16 lg:grid-cols-5 lg:gap-8">
           <div className="sm:col-span-2 lg:col-span-1">
-            <Logo className="text-brand" />
+            <Logo className="text-logo" />
             <p className="mt-4 max-w-xs text-sm text-fg-secondary">{t('footer.tagline')}</p>
 
             {/* Six icons in a narrow column wrapped four-and-two, which reads as
@@ -302,10 +302,22 @@ export function SiteFooter() {
       <div className="border-t border-border">
         {/* Enough room for the text to clear the drawing's busy lower band and
             no more: this padding is the whole of the footer's extra height,
-            since the art itself is positioned out of the flow. */}
-        <div className="app-container flex flex-col gap-6 pt-6 pb-28 sm:pb-32 lg:flex-row lg:items-center lg:justify-between lg:gap-10 lg:pb-36">
+            since the art itself is positioned out of the flow.
+
+            The drawing spans the full width, so it is 25.6vw tall (1920 × 491)
+            and a fixed padding falls further inside it the wider the window
+            gets — at 1280 the copyright, the legal links and the card marks
+            all sat on the tower, the skyline and the bridge. From 1100px the
+            padding is a share of that height instead: 20.5vw puts the text in
+            the top fifth of the drawing, which the mask has already faded to a
+            third of its ink. The breakpoint is written in rem on purpose: a px
+            breakpoint is emitted before the theme's rem ones, and `lg:pb-36`
+            silently won. */}
+        <div className="app-container flex flex-col gap-6 pt-6 pb-28 sm:pb-32 lg:flex-row lg:items-center lg:justify-between lg:gap-10 lg:pb-36 min-[68.75rem]:pb-[20.5vw]">
           <div className="flex flex-col gap-x-6 gap-y-1 sm:flex-row sm:items-center">
-            <p className="text-xs text-fg-muted">
+            {/* One line: squeezed by the legal links it broke after "Tüm",
+                which split the sentence rather than the list. */}
+            <p className="text-xs text-fg-muted sm:shrink-0 sm:whitespace-nowrap">
               {t('footer.rights', { year: new Date().getFullYear() })}
             </p>
             <nav aria-label={t('footer.legal')}>

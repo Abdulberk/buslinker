@@ -1,24 +1,81 @@
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, NavLink, useLocation } from 'react-router'
-import { ChevronRight, Globe, LifeBuoy, Route as RouteIcon } from 'lucide-react'
+import { Link, useLocation } from 'react-router'
+import {
+  Bus,
+  ChevronRight,
+  Globe,
+  LifeBuoy,
+  Menu,
+  Route as RouteIcon,
+  Ticket,
+  TicketX,
+  type LucideIcon,
+} from 'lucide-react'
 import { LocaleDialog, useLocaleSummary } from '@/features/locale/LocaleDialog'
 import { Flag } from '@/shared/ui/flag'
-import { ICON } from '@/shared/config/assets'
 import { cn } from '@/shared/lib/cn'
 import { useIsDesktop } from '@/shared/lib/use-media-query'
-import { AssetIcon } from '@/shared/ui/asset-icon'
 import { Button } from '@/shared/ui/button'
 import { Logo } from '@/shared/ui/logo'
-import { ThemeToggle } from '@/shared/ui/theme-toggle'
+import { ThemePreferenceControl, ThemeToggle } from '@/shared/ui/theme-toggle'
 import { Dialog, DialogContent, DialogTrigger } from '@/shared/ui/primitives'
+
+interface NavItem {
+  to: string
+  labelKey: string
+  Icon: LucideIcon
+  /** Whether this item is "where you are" — wider than an exact path match. */
+  isActive: (pathname: string) => boolean
+}
+
+/** `/bilet` matches `/bilet` and `/bilet/BK7J2M`, never `/bilet-iptal`. */
+const under = (pathname: string, ...roots: string[]) =>
+  roots.some((root) => pathname === root || pathname.startsWith(`${root}/`))
+
+// The booking flow — results, a trip, its seats, checkout — all counts as
+// "Otobüs Bileti". It is the tab the visitor set out from, and with no item
+// lit across four steps of a purchase the header stopped saying where they were.
+const TICKETS: NavItem = {
+  to: '/',
+  labelKey: 'nav.tickets',
+  Icon: Bus,
+  isActive: (p) => p === '/' || under(p, '/otobus-bileti', '/sefer', '/koltuk', '/odeme'),
+}
+const LOOKUP: NavItem = {
+  to: '/bilet-sorgula',
+  labelKey: 'nav.ticketLookup',
+  Icon: Ticket,
+  isActive: (p) => under(p, '/bilet-sorgula', '/bilet'),
+}
+const CANCEL: NavItem = {
+  to: '/bilet-iptal',
+  labelKey: 'nav.ticketCancel',
+  Icon: TicketX,
+  isActive: (p) => under(p, '/bilet-iptal'),
+}
+const MY_TRIPS: NavItem = {
+  to: '/hesabim/seferlerim',
+  labelKey: 'nav.myTrips',
+  Icon: RouteIcon,
+  isActive: (p) => under(p, '/hesabim/seferlerim'),
+}
+const HELP: NavItem = {
+  to: '/yardim',
+  labelKey: 'nav.help',
+  Icon: LifeBuoy,
+  isActive: (p) => under(p, '/yardim', '/sss'),
+}
+
+const DESKTOP_NAV = [TICKETS, LOOKUP, HELP]
+const SHEET_NAV = [TICKETS, LOOKUP, CANCEL, MY_TRIPS, HELP]
 
 const NAV_BASE = [
   'relative inline-flex h-10 items-center rounded-lg px-3',
   'text-sm font-medium transition-colors duration-(--duration-fast)',
 ].join(' ')
 
-const NAV_IDLE = 'text-fg-secondary hover:bg-surface-sunken hover:text-fg'
+const NAV_IDLE = 'text-fg-secondary hover:bg-hover hover:text-fg'
 
 // The active state is carried by weight and an underline bar as well as
 // colour, so it survives a monochrome or high-contrast rendering.
@@ -28,27 +85,41 @@ const NAV_ACTIVE = [
 ].join(' ')
 
 const SHEET_ITEM = [
-  'flex min-h-11 items-center gap-3 rounded-lg px-3',
-  'text-base font-medium text-fg-secondary transition-colors',
-  'hover:bg-surface-sunken hover:text-fg',
+  'relative flex min-h-12 items-center gap-3 rounded-lg px-3',
+  'text-base font-medium text-fg-secondary transition-colors duration-(--duration-fast)',
+  'hover:bg-hover hover:text-fg',
 ].join(' ')
 
-const SHEET_ITEM_ACTIVE = 'bg-brand/8 font-semibold text-brand-fg'
-
-function navClass({ isActive }: { isActive: boolean }) {
-  return cn(NAV_BASE, isActive ? NAV_ACTIVE : NAV_IDLE)
-}
+// A solid bar at the start plus weight and the brand text colour. The red
+// wash this replaces was so faint it read as a smudge on the row rather than
+// as "you are here", and on its own it was colour alone.
+const SHEET_ITEM_ACTIVE = [
+  'font-semibold text-brand-fg hover:text-brand-fg',
+  'before:absolute before:inset-y-2.5 before:start-0 before:w-[3px] before:rounded-full before:bg-brand',
+].join(' ')
 
 /**
- * The locale trigger. Filled rather than outlined: a hard ring around a small
- * chip sitting between the theme toggle and the sign-in link read as the
- * heaviest thing in the header, which it is not.
+ * The two controls on the phone bar. Each is a full 44px box with a real edge:
+ * the hairline hamburger this replaces was three 1px strokes, the faintest
+ * thing in the header and the one a first-time visitor needed most.
+ */
+const PHONE_CONTROL = [
+  'inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-lg',
+  'border border-border-strong text-sm font-semibold text-fg',
+  'transition-colors duration-(--duration-fast) ease-standard hover:bg-hover',
+].join(' ')
+
+/**
+ * The locale trigger. A hairline, not a fill: a sunken fill read as a hole in
+ * the dark chrome, and a hard control edge around a small chip sitting between
+ * the theme toggle and the sign-in link made it the heaviest thing in the
+ * header, which it is not.
  */
 const LOCALE_CHIP = [
-  'inline-flex h-9 items-center gap-2 rounded-full bg-surface-sunken py-1 pr-3.5 pl-1.5',
+  'inline-flex h-9 items-center gap-2 rounded-full border border-border py-1 pr-3.5 pl-1.5',
   'text-xs font-semibold text-fg-secondary',
   'transition-colors duration-(--duration-fast) ease-standard',
-  'hover:bg-border hover:text-fg',
+  'hover:bg-hover hover:text-fg',
 ].join(' ')
 
 export function SiteHeader() {
@@ -62,6 +133,7 @@ export function SiteHeader() {
   const sentinelRef = useRef<HTMLDivElement>(null)
   const isDesktop = useIsDesktop()
   const { pathname } = useLocation()
+  const isHome = pathname === '/'
 
   // An 8px sentinel pinned to the document origin, watched by an observer:
   // the callback fires twice per session instead of on every scroll frame.
@@ -91,6 +163,7 @@ export function SiteHeader() {
   }
 
   const closeMenu = () => setMenuOpen(false)
+  const lookupActive = LOOKUP.isActive(pathname)
 
   return (
     <>
@@ -102,28 +175,45 @@ export function SiteHeader() {
       <header
         role="banner"
         className={cn(
-          'sticky top-0 z-30 border-b',
+          'sticky top-0 z-30 border-b pt-[env(safe-area-inset-top)]',
           'transition-[background-color,border-color,box-shadow] duration-(--duration-base) ease-standard',
+          // One opaque surface, `chrome`, which the browser bar is painted
+          // with too — never a 90% glass: content sliding under a translucent
+          // header turned its text into a smear over whatever passed beneath.
           scrolled
-            ? 'border-border bg-surface/90 shadow-sm backdrop-blur-md'
-            : 'border-transparent bg-bg',
+            ? 'border-border bg-chrome shadow-sm'
+            : isHome
+              ? // Home, at rest. On a phone the hero's mode rail — chrome as
+                // well — sits directly under the bar and draws the one hairline
+                // itself; a border here as well made two lines. From sm up the
+                // hero is pulled up underneath, so the bar is transparent and
+                // the hero's ground runs to the top of the window.
+                'border-transparent bg-chrome sm:bg-transparent'
+              : 'border-border bg-chrome',
         )}
       >
-        <div className="app-container flex h-16 items-center gap-2 lg:h-18">
-          <Link to="/" className="flex shrink-0 items-center rounded-lg text-brand-fg">
-            <Logo />
+        {/* The gutter takes the larger of the page gutter and the safe-area
+            inset, so in landscape on a notched phone the logo and the menu
+            clear the cut-out instead of sliding under it. */}
+        <div className="mx-auto flex h-16 w-full max-w-app items-center gap-2 pr-[max(var(--app-pad),env(safe-area-inset-right))] pl-[max(var(--app-pad),env(safe-area-inset-left))] lg:h-18">
+          <Link to="/" className="flex shrink-0 items-center rounded-lg text-logo">
+            <Logo className="h-7 sm:h-8" />
           </Link>
 
           <nav aria-label={t('nav.main')} className="ml-6 hidden items-center gap-1 lg:flex">
-            <NavLink to="/" end className={navClass}>
-              {t('nav.tickets')}
-            </NavLink>
-            <NavLink to="/hesabim/seferlerim" className={navClass}>
-              {t('nav.myTrips')}
-            </NavLink>
-            <NavLink to="/sss" className={navClass}>
-              {t('nav.help')}
-            </NavLink>
+            {DESKTOP_NAV.map((item) => {
+              const active = item.isActive(pathname)
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(NAV_BASE, active ? NAV_ACTIVE : NAV_IDLE)}
+                >
+                  {t(item.labelKey)}
+                </Link>
+              )
+            })}
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
@@ -133,7 +223,7 @@ export function SiteHeader() {
                 <LocaleDialog>
                   <button
                     type="button"
-                    className={cn(LOCALE_CHIP, 'hidden xl:inline-flex')}
+                    className={LOCALE_CHIP}
                     aria-label={`${t('locale.trigger')}: ${locale.aria}`}
                   >
                     <Flag code={locale.language} />
@@ -144,115 +234,110 @@ export function SiteHeader() {
                 <Button asChild variant="ghost" size="sm">
                   <Link to="/giris">{t('common.signIn')}</Link>
                 </Button>
-                <Button asChild variant="brand-outline" size="sm">
+                {/* Secondary, not brand: the header is not a decision context,
+                    and a red outline here outshouted the search button below. */}
+                <Button asChild variant="secondary" size="sm">
                   <Link to="/kayit">{t('common.signUp')}</Link>
                 </Button>
               </>
             ) : (
-              <Dialog open={menuOpen} onOpenChange={setMenuOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    className="tap-44"
-                    aria-label={t('common.menu')}
-                  >
-                    <AssetIcon src={ICON.hamburger} className="size-5" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent
-                  side="bottom"
-                  title={t('common.menu')}
-                  description={t('nav.sheetDescription')}
+              <>
+                {/* The one task people come back to the site for, one tap away
+                    instead of behind the menu. Below 360px the label goes to
+                    the screen reader only, and the icon carries the box. */}
+                <Link
+                  to={LOOKUP.to}
+                  aria-current={lookupActive ? 'page' : undefined}
+                  className={cn(PHONE_CONTROL, 'px-3 max-[360px]:w-11 max-[360px]:px-0')}
                 >
-                  <nav aria-label={t('nav.mobile')} className="overflow-y-auto p-3">
-                    <ul className="flex flex-col gap-1">
-                      <li>
-                        <NavLink
-                          to="/"
-                          end
-                          onClick={closeMenu}
-                          className={({ isActive }) =>
-                            cn(SHEET_ITEM, isActive && SHEET_ITEM_ACTIVE)
-                          }
-                        >
-                          <AssetIcon src={ICON.bus} className="size-5" />
-                          {t('nav.tickets')}
-                        </NavLink>
-                      </li>
-                      <li>
-                        <NavLink
-                          to="/hesabim/seferlerim"
-                          onClick={closeMenu}
-                          className={({ isActive }) =>
-                            cn(SHEET_ITEM, isActive && SHEET_ITEM_ACTIVE)
-                          }
-                        >
-                          <RouteIcon className="size-5" aria-hidden="true" />
-                          {t('nav.myTrips')}
-                        </NavLink>
-                      </li>
-                      <li>
-                        <NavLink
-                          to="/sss"
-                          onClick={closeMenu}
-                          className={({ isActive }) =>
-                            cn(SHEET_ITEM, isActive && SHEET_ITEM_ACTIVE)
-                          }
-                        >
-                          <LifeBuoy className="size-5" aria-hidden="true" />
-                          {t('nav.help')}
-                        </NavLink>
-                      </li>
-                    </ul>
-                  </nav>
+                  <Ticket className="size-5" aria-hidden="true" />
+                  <span className="max-[360px]:sr-only">{t(LOOKUP.labelKey)}</span>
+                </Link>
 
-                  <div className="mt-1 flex flex-col gap-3 border-t border-border p-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-sm font-medium text-fg-secondary">
-                        {t('common.appearance')}
-                      </span>
-                      <ThemeToggle />
-                    </div>
-
-                    {/* The same dialog the desktop chip opens. */}
+                <Dialog open={menuOpen} onOpenChange={setMenuOpen}>
+                  <DialogTrigger asChild>
                     <button
                       type="button"
-                      onClick={() => {
-                        setMenuOpen(false)
-                        setLocaleOpen(true)
-                      }}
-                      className={cn(
-                        '-mx-3 flex min-h-11 items-center justify-between gap-4 rounded-lg px-3',
-                        'text-sm transition-colors duration-(--duration-fast)',
-                        'hover:bg-surface-sunken',
-                      )}
+                      className={cn(PHONE_CONTROL, 'w-11')}
+                      aria-label={t('common.menu')}
                     >
-                      <span className="flex items-center gap-2 font-medium text-fg-secondary">
-                        <Globe className="size-4" aria-hidden="true" />
-                        {t('locale.trigger')}
-                      </span>
-                      <span className="flex items-center gap-2 font-semibold text-fg">
-                        <Flag code={locale.language} />
-                        {locale.currencyLabel}
-                        <ChevronRight className="size-4 text-fg-muted" aria-hidden="true" />
-                      </span>
+                      <Menu className="size-6" aria-hidden="true" />
                     </button>
-                    <div className="flex gap-3">
-                      <Button asChild variant="secondary" size="md" full>
-                        <Link to="/giris" onClick={closeMenu}>
-                          {t('common.signIn')}
-                        </Link>
-                      </Button>
-                      <Button asChild variant="brand-outline" size="md" full>
-                        <Link to="/kayit" onClick={closeMenu}>
-                          {t('common.signUp')}
-                        </Link>
-                      </Button>
+                  </DialogTrigger>
+                  <DialogContent
+                    side="bottom"
+                    title={t('common.menu')}
+                    description={t('nav.sheetDescription')}
+                  >
+                    {/* One scroll region for the whole body, not just the list:
+                        on a short phone a list that scrolled on its own hid
+                        its last link behind the settings with nothing to say
+                        there was more. Now the page simply runs on. */}
+                    <div className="min-h-0 overflow-y-auto overscroll-contain">
+                      <nav aria-label={t('nav.mobile')} className="p-3">
+                        <ul className="flex flex-col gap-0.5">
+                          {SHEET_NAV.map((item) => {
+                            const active = item.isActive(pathname)
+                            return (
+                              <li key={item.to}>
+                                <Link
+                                  to={item.to}
+                                  onClick={closeMenu}
+                                  aria-current={active ? 'page' : undefined}
+                                  className={cn(SHEET_ITEM, active && SHEET_ITEM_ACTIVE)}
+                                >
+                                  <item.Icon className="size-5 shrink-0" aria-hidden="true" />
+                                  {t(item.labelKey)}
+                                </Link>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      </nav>
+
+                      <div className="flex flex-col gap-4 border-t border-border p-4">
+                        <ThemePreferenceControl />
+
+                        {/* The same dialog the desktop chip opens. */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMenuOpen(false)
+                            setLocaleOpen(true)
+                          }}
+                          className={cn(
+                            '-mx-3 flex min-h-11 items-center justify-between gap-4 rounded-lg px-3',
+                            'text-sm transition-colors duration-(--duration-fast)',
+                            'hover:bg-hover',
+                          )}
+                        >
+                          <span className="flex items-center gap-2 font-medium text-fg-secondary">
+                            <Globe className="size-4" aria-hidden="true" />
+                            {t('locale.trigger')}
+                          </span>
+                          <span className="flex items-center gap-2 font-semibold text-fg">
+                            <Flag code={locale.language} />
+                            {locale.currencyLabel}
+                            <ChevronRight className="size-4 text-fg-muted" aria-hidden="true" />
+                          </span>
+                        </button>
+                        <div className="flex gap-3">
+                          <Button asChild variant="secondary" size="md" full>
+                            <Link to="/giris" onClick={closeMenu}>
+                              {t('common.signIn')}
+                            </Link>
+                          </Button>
+                          <Button asChild variant="secondary" size="md" full>
+                            <Link to="/kayit" onClick={closeMenu}>
+                              {t('common.signUp')}
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                  </DialogContent>
+                </Dialog>
+              </>
             )}
           </div>
         </div>

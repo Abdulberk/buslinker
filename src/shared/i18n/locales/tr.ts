@@ -10,6 +10,13 @@ export const tr = {
     skipToContent: 'İçeriğe geç',
     menu: 'Menü',
     appearance: 'Görünüm',
+    /** The three segments of the appearance control in the phone menu. */
+    themeLight: 'Açık',
+    themeDark: 'Koyu',
+    themeSystem: 'Sistem',
+    /** The header switch is named for what pressing it does, not for the state. */
+    switchToLight: 'Açık temaya geç',
+    switchToDark: 'Koyu temaya geç',
     signIn: 'Giriş Yap',
     signUp: 'Üye Ol',
     show: 'Göster',
@@ -21,6 +28,8 @@ export const tr = {
     main: 'Ana menü',
     mobile: 'Mobil menü',
     tickets: 'Otobüs Bileti',
+    ticketLookup: 'Bilet Sorgula',
+    ticketCancel: 'Bilet İptali',
     myTrips: 'Seferlerim',
     help: 'Yardım',
     sheetDescription: 'Sayfalar ve hesap işlemleri',
@@ -79,6 +88,10 @@ export const tr = {
     tomorrow: 'Yarın',
     thisWeekend: 'Bu hafta sonu',
     pickDate: '{{label}} seç',
+    quickDates: 'Hızlı tarih seçimi',
+    recentCities: 'Son aramalar',
+    popularCities: 'Popüler şehirler',
+    allCities: 'Tüm şehirler',
   },
 
   results: {
@@ -103,6 +116,7 @@ export const tr = {
       layouts: 'Koltuk Düzeni',
       amenities: 'Araç Özellikleri',
       fromTerminals: 'Kalkış Terminali',
+      toTerminals: 'Varış Terminali',
     },
     band: {
       morning: 'Sabah',
@@ -113,6 +127,7 @@ export const tr = {
     priceRange: 'Bilet fiyatı aralığı',
     clearFilters: 'Filtreleri temizle',
     loading: 'Seferler yükleniyor',
+    searching: 'Seferler aranıyor…',
     newSearch: 'Yeni arama yap',
     sortOption: {
       depAsc: 'Kalkış: erken → geç',
@@ -121,10 +136,37 @@ export const tr = {
       priceDesc: 'Fiyat: yüksek → düşük',
       durationAsc: 'Süre: en kısa',
       arrAsc: 'Varış: en erken',
-      ratingDesc: 'Puan: en yüksek',
     },
+    // The sort button's own label on a phone, where the full one does not fit
+    // beside the count and the filters button.
+    sortShort: {
+      depAsc: 'Erken kalkış',
+      depDesc: 'Geç kalkış',
+      priceAsc: 'En ucuz',
+      priceDesc: 'En pahalı',
+      durationAsc: 'En kısa süre',
+      arrAsc: 'Erken varış',
+    },
+    foundShort_one: '<b>{{count}}</b> sefer',
+    foundShort_other: '<b>{{count}}</b> sefer',
     showAll_one: '{{count}} seferi göster',
     showAll_other: '{{count}} seferi göster',
+    showResults: 'Sonuçları göster',
+    change: 'Değiştir',
+    changeSearch: 'Aramayı değiştir',
+    dates: {
+      label: 'Tarihe göre en ucuz fiyatlar',
+      today: 'Bugün',
+      tomorrow: 'Yarın',
+      cheapest: 'en ucuz',
+      noTrips: 'sefer yok',
+      selected: 'seçili gün',
+    },
+    // Turkish names the night with the weekday cases, which `nightOfLabel`
+    // builds; the other languages compose it from the two weekday names.
+    nightOf: '{{night}}',
+    freeCancel: 'Ücretsiz iptal',
+    amenitiesList: 'Araç özellikleri: {{list}}',
     operatorFallback: 'Otobüs firması',
     sort: 'Sıralama',
     filter: 'Filtrele',
@@ -143,9 +185,10 @@ export const tr = {
     newsletterTitle: 'Fırsatları kaçırmayın',
     newsletterBody: 'Kampanyalardan ve indirimli biletlerden ilk siz haberdar olun.',
     email: 'E-posta adresiniz',
-    subscribe: 'Kaydol',
-    consent: 'Dilediğiniz an çıkabilirsiniz.',
-    subscribed: 'Bültenimize kaydoldunuz.',
+    /** "Kaydol" read as creating an account; this only joins a mailing list. */
+    subscribe: 'Abone ol',
+    consent: 'Aboneliğinizi dilediğiniz an iptal edebilirsiniz.',
+    subscribed: 'Bültenimize abone oldunuz.',
     subscribedBody: 'Kampanyalardan ve yeni hatlardan ilk siz haberdar olacaksınız.',
     tagline:
       'Türkiye’nin dört bir yanındaki otobüs firmalarını tek ekranda karşılaştırın, koltuğunuzu saniyeler içinde seçin.',
