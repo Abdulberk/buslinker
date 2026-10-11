@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { IMAGE, VALUE_ICON } from '@/shared/config/assets'
-import { Illustration } from '@/shared/ui/asset-icon'
+import { ArtTile, Illustration } from '@/shared/ui/asset-icon'
 
 /**
  * The shell both auth screens share.
@@ -63,7 +63,7 @@ export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProp
           <ul className="mt-8 flex flex-col gap-4">
             {PANEL_POINTS.map((point) => (
               <li key={point.text} className="flex items-center gap-3">
-                <Illustration src={point.art} alt="" width={80} height={80} className="size-9" />
+                <ArtTile src={point.art} size="sm" />
                 <span className="text-sm text-fg-secondary">{point.text}</span>
               </li>
             ))}

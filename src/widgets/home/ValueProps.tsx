@@ -1,5 +1,5 @@
 import { VALUE_ICON } from '@/shared/config/assets'
-import { Illustration } from '@/shared/ui/asset-icon'
+import { ArtTile } from '@/shared/ui/asset-icon'
 import { cn } from '@/shared/lib/cn'
 import { SectionHeading } from './SectionHeading'
 
@@ -65,17 +65,7 @@ export function ValueProps() {
               'sm:flex-col sm:items-stretch sm:p-5',
             )}
           >
-            {/* These illustrations carry their own two-tone palette, so they
-                are images rather than masked icons, and in light mode they
-                need no tile behind them. Their palette was drawn for a light
-                page, though, and on the dark card its darker half all but
-                vanished. In dark mode they sit on a small light plate: the
-                artwork stays exactly as drawn, it simply gets the ground it
-                was drawn for. The plate is the same size in both themes, so
-                the text beside it does not move when the theme changes. */}
-            <span className="shrink-0 self-start rounded-lg p-1 dark:bg-neutral-100">
-              <Illustration src={art} alt="" width={80} height={80} className="size-9 sm:size-12" />
-            </span>
+            <ArtTile src={art} className="self-start" />
             <div>
               <h3 className="text-base">{title}</h3>
               <p className="mt-1.5 text-sm text-fg-secondary">{body}</p>

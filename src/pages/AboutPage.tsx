@@ -4,7 +4,7 @@ import { Search } from 'lucide-react'
 import { PageHeader } from '@/shared/ui/page-header'
 import { Button } from '@/shared/ui/button'
 import { Badge } from '@/shared/ui/badge'
-import { Illustration } from '@/shared/ui/asset-icon'
+import { ArtTile, Illustration } from '@/shared/ui/asset-icon'
 import { IMAGE, VALUE_ICON } from '@/shared/config/assets'
 import { CITIES, OPERATORS } from '@/shared/api/catalog'
 import { pluralTr } from '@/shared/lib/tr'
@@ -147,13 +147,7 @@ export default function AboutPage() {
                   key={item.title}
                   className="flex h-full gap-4 rounded-xl border border-border bg-surface p-5"
                 >
-                  <Illustration
-                    src={item.art}
-                    alt=""
-                    width={80}
-                    height={80}
-                    className="size-12 shrink-0"
-                  />
+                  <ArtTile src={item.art} />
                   <div className="min-w-0">
                     <h3 className="text-base">{item.title}</h3>
                     <p className="mt-1.5 text-sm text-fg-secondary">{item.body}</p>

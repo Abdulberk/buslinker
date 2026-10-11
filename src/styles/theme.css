@@ -378,6 +378,10 @@
   --app-sheet-top: color-mix(in oklab, var(--app-info) 14%, var(--app-bg));
   --app-sheet-bottom: color-mix(in oklab, var(--app-info) 5%, var(--app-bg));
 
+  /* The tile the two-tone illustrations stand on (ArtTile). The same sky as
+     the sheet: at 10% it vanished into the white card it sits on. */
+  --app-art-tile: color-mix(in oklab, var(--app-info) 16%, var(--app-surface));
+
   /* Two border tokens with disjoint jobs. `border` is a hairline divider and
      is exempt from 3:1. `border-strong` is the sole edge of a control and
      MUST clear 3:1 — on EVERY ground it can sit on, not just white.
@@ -479,6 +483,12 @@
        14% mix would sit above the cards standing on it. */
     --app-sheet-top: color-mix(in oklab, var(--app-info) 5%, var(--app-bg));
     --app-sheet-bottom: var(--app-bg);
+    /* Light in dark too. The illustrations are drawn in slate and brick for a
+       light ground, and their slate half measured 1.3–1.8:1 on a dark card;
+       the art stays as drawn and the tile gives it the ground it was drawn
+       for. neutral-300, not 200: the lighter plate glared like a sticker
+       on the dark card, and 300 still holds the slate at 5:1. */
+    --app-art-tile: var(--color-neutral-300);
 
     --app-border: oklch(27.8% 0.018 240);
     --app-border-strong: var(--color-neutral-600); /* inverts: 500 is only 2.96:1 here */
@@ -562,6 +572,7 @@
   --color-chrome: var(--app-chrome);
   --color-logo: var(--app-logo);
   --color-hover: var(--app-hover);
+  --color-art-tile: var(--app-art-tile);
 
   --color-border: var(--app-border);
   --color-border-strong: var(--app-border-strong);

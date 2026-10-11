@@ -83,3 +83,47 @@ export function Illustration({
     />
   )
 }
+
+/**
+ * One of the project's two-tone illustrations (VALUE_ICON) on its tile.
+ *
+ * The art is slate and brick, drawn for a light ground. Standing bare on a
+ * card it read as clip-art dropped into a corner, and in dark mode its slate
+ * half all but vanished, so each page had started to improvise its own fix.
+ * This is the one recipe: a soft rounded tile in the sky of the hero sheet
+ * (`bg-art-tile`, light in both themes), with the drawing filling about three
+ * quarters of it, the way the illustrated feature lists of the cleaner travel sites
+ * sit their icons on a base. The pixels of the art are untouched.
+ *
+ * Decorative: the heading beside it carries the meaning, so the tile is
+ * hidden from assistive tech and the image has an empty alt.
+ */
+export function ArtTile({
+  src,
+  size = 'md',
+  className,
+}: {
+  src: string
+  /** `md` for feature cards (48, 56 from sm), `sm` for inline lists (40). */
+  size?: 'sm' | 'md'
+  className?: string
+}) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        'grid shrink-0 place-items-center rounded-2xl bg-art-tile',
+        size === 'md' ? 'size-12 sm:size-14' : 'size-10 rounded-xl',
+        className,
+      )}
+    >
+      <Illustration
+        src={src}
+        alt=""
+        width={80}
+        height={80}
+        className={size === 'md' ? 'size-9 sm:size-10' : 'size-7'}
+      />
+    </span>
+  )
+}
