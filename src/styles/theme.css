@@ -369,6 +369,15 @@
      the row darker and effectively invisible. */
   --app-hover: var(--color-neutral-100);
 
+  /* The phone hero's search sheet: a cool sky wash, deeper under the header
+     and fading toward the page. It replaced neutral-100, whose 0.009 chroma
+     sat between grey and blue and read as dirty grey under white cards.
+     Mixed from info and the page ground rather than picked as a new colour —
+     the same wash the desktop hero lays behind its heading — so it follows
+     the theme by itself. Light: about oklch(93% 0.024 250) to 97% 0.009. */
+  --app-sheet-top: color-mix(in oklab, var(--app-info) 14%, var(--app-bg));
+  --app-sheet-bottom: color-mix(in oklab, var(--app-info) 5%, var(--app-bg));
+
   /* Two border tokens with disjoint jobs. `border` is a hairline divider and
      is exempt from 3:1. `border-strong` is the sole edge of a control and
      MUST clear 3:1 — on EVERY ground it can sit on, not just white.
@@ -466,6 +475,10 @@
      family and still measures 4.3:1 on the chrome. */
     --app-logo: var(--color-brand-500);
     --app-hover: oklch(27.5% 0.018 240);
+    /* A trace only: dark elevates by lightness, and a sheet as light as the
+       14% mix would sit above the cards standing on it. */
+    --app-sheet-top: color-mix(in oklab, var(--app-info) 5%, var(--app-bg));
+    --app-sheet-bottom: var(--app-bg);
 
     --app-border: oklch(27.8% 0.018 240);
     --app-border-strong: var(--color-neutral-600); /* inverts: 500 is only 2.96:1 here */
@@ -835,6 +848,11 @@
   width: 100%;
   max-width: var(--container-app);
   padding-inline: var(--app-pad);
+}
+
+/* The ground of the phone hero's search sheet (see --app-sheet-top). */
+@utility bg-hero-sheet {
+  background-image: linear-gradient(180deg, var(--app-sheet-top) 0%, var(--app-sheet-bottom) 100%);
 }
 
 /* Vertical section rhythm: 32px on mobile opening to 80px on desktop. */

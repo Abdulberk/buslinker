@@ -139,8 +139,9 @@ export function Hero() {
             header, a bordered mode rail, then the ground — and drew a hairline
             between each; the curve now does the separating, with no line at
             all, and the header is left as nothing but the logo and its three
-            tiles. Dark keeps the page ground here, since sunken would sit
-            above the card surface there and the cards would sink into it.
+            tiles. The sheet's ground is a cool sky wash (bg-hero-sheet) — the
+            flat grey it started on read as dirty under white cards — and in
+            dark it is only a trace, so the cards still stand above it.
 
             From sm the block is unstyled again, and the mode strip sits ON
             the search card rather than floating above it as chips: the active
@@ -149,8 +150,8 @@ export function Hero() {
         <div
           className={cn(
             'sm:mt-10',
-            'max-sm:-mx-(--app-pad) max-sm:rounded-t-[1.75rem] max-sm:bg-surface-sunken',
-            'max-sm:px-(--app-pad) max-sm:pt-4 max-sm:pb-12 max-sm:dark:bg-bg',
+            'max-sm:-mx-(--app-pad) max-sm:rounded-t-[1.75rem] max-sm:bg-hero-sheet',
+            'max-sm:px-(--app-pad) max-sm:pt-4 max-sm:pb-12',
           )}
         >
           <div className="relative">
