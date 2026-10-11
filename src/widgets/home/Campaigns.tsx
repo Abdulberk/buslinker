@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router'
+import { CalendarClock, ChevronLeft, ChevronRight } from 'lucide-react'
 import { CAMPAIGNS, type Campaign } from '@/shared/config/campaigns'
-import { ICON } from '@/shared/config/assets'
-import { AssetIcon } from '@/shared/ui/asset-icon'
-import { cn } from '@/shared/lib/cn'
-
 import { campaignPath } from '@/shared/lib/search-params'
+import { toISODate } from '@/shared/lib/tr'
+import { cn } from '@/shared/lib/cn'
+import { CLOSING_SOON_DAYS, activeCampaigns, daysLeft, deadlineLabel } from './campaign-window'
+import { mediaCard } from './card-recipes'
+import { SectionHeading } from './SectionHeading'
 
-/** Ink for each tone's motif — low contrast, because it is texture not content. */
 /**
  * The campaigns rail.
  *
@@ -21,6 +22,9 @@ import { campaignPath } from '@/shared/lib/search-params'
  * slide away mid-sentence.
  */
 export function Campaigns() {
+  const today = toISODate(new Date())
+  const campaigns = useMemo(() => activeCampaigns(CAMPAIGNS, today), [today])
+
   const scrollerRef = useRef<HTMLUListElement>(null)
   const [atStart, setAtStart] = useState(true)
   const [atEnd, setAtEnd] = useState(false)
@@ -51,25 +55,25 @@ export function Campaigns() {
     el.scrollBy({ left: step * direction, behavior: 'smooth' })
   }
 
+  if (campaigns.length === 0) return null
+
   return (
     <>
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h2 id="kampanyalar" className="flex items-center gap-2.5 text-2xl sm:text-3xl">
-            <AssetIcon src={ICON.linker} className="size-5 shrink-0 text-brand" />
-            Kampanyalar
-          </h2>
-          <p className="mt-2 max-w-prose text-base text-fg-secondary">
-            Süresi dolmadan yararlanabileceğiniz güncel indirimler.
-          </p>
-        </div>
-
-        {/* Hidden below lg, where the list is scrolled by touch instead. */}
-        <div className="hidden shrink-0 gap-2 lg:flex">
-          <ArrowButton direction="prev" disabled={atStart} onClick={() => scrollByCard(-1)} />
-          <ArrowButton direction="next" disabled={atEnd} onClick={() => scrollByCard(1)} />
-        </div>
-      </div>
+      <SectionHeading
+        id="kampanyalar"
+        title="Kampanyalar"
+        lead="Süresi dolmadan yararlanabileceğiniz güncel indirimler."
+        aside={
+          // For a fine pointer at any width from sm, not just from lg: a mouse
+          // in a 900px window has no swipe, and the scrollbar is hidden, so
+          // without these the rail could not be moved at all. A touch screen
+          // scrolls the list itself and does not need them.
+          <div className="hidden gap-2 sm:pointer-fine:flex">
+            <ArrowButton direction="prev" disabled={atStart} onClick={() => scrollByCard(-1)} />
+            <ArrowButton direction="next" disabled={atEnd} onClick={() => scrollByCard(1)} />
+          </div>
+        }
+      />
 
       <ul
         ref={scrollerRef}
@@ -79,15 +83,23 @@ export function Campaigns() {
         tabIndex={0}
         aria-label="Kampanyalar listesi"
         className={cn(
-          'mt-6 scrollbar-none flex snap-x snap-mandatory gap-4 overflow-x-auto sm:mt-8',
-          // Bleed to the viewport edge on mobile so a card can sit flush while
-          // the section keeps its gutter.
-          '-mx-4 scroll-px-4 px-4 sm:mx-0 sm:scroll-px-0 sm:px-0',
+          'scrollbar-none flex snap-x snap-mandatory gap-4 overflow-x-auto',
+          // A scroller clips on both axes, so the 4px focus ring of a card at
+          // its edge was cut off. One spacing step of padding all round gives
+          // the ring room; the negative margin below keeps the cards where
+          // they were. The top margin is one step short for the same reason.
+          'mt-5 -mb-1 py-1 sm:mt-7',
+          // Bleeds to the viewport edge on a phone so a card can sit flush
+          // while the section keeps its gutter. Cancels the container's own
+          // padding variable, which a hand-copied -mx-4 only matched at the
+          // narrowest widths.
+          '-mx-(--app-pad) scroll-px-(--app-pad) px-(--app-pad)',
+          'sm:-mx-1 sm:scroll-px-1 sm:px-1',
         )}
       >
-        {CAMPAIGNS.map((campaign) => (
+        {campaigns.map((campaign) => (
           <li key={campaign.id} className="w-76 shrink-0 snap-start sm:w-88">
-            <CampaignCard campaign={campaign} />
+            <CampaignCard campaign={campaign} today={today} />
           </li>
         ))}
       </ul>
@@ -104,6 +116,7 @@ function ArrowButton({
   disabled: boolean
   onClick: () => void
 }) {
+  const Icon = direction === 'prev' ? ChevronLeft : ChevronRight
   return (
     <button
       type="button"
@@ -113,33 +126,29 @@ function ArrowButton({
       className={cn(
         'grid size-11 place-items-center rounded-full border border-border-strong bg-surface',
         'text-fg-secondary transition-colors duration-(--duration-fast)',
-        'hover:bg-surface-sunken hover:text-fg',
+        'hover:bg-hover hover:text-fg',
         'disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-surface',
       )}
     >
-      <AssetIcon src={direction === 'prev' ? ICON.leftArrow : ICON.rightArrow} className="size-4" />
+      {/* The same chevron as every "Tümünü gör" beside the other headings —
+          one glyph family in the one slot all six headings share. */}
+      <Icon className="size-5" aria-hidden="true" />
     </button>
   )
 }
 
-function CampaignCard({ campaign }: { campaign: Campaign }) {
+function CampaignCard({ campaign, today }: { campaign: Campaign; today: string }) {
   // The artwork carries the whole offer — audience, headline, amount, code —
-  // so the card is the image and nothing else. That puts every one of those
+  // so the image carries no caption of its own. That puts every one of those
   // words out of reach of a screen reader, which is why alt repeats them: on
-  // an image-only link it is also what gives the link its accessible name.
+  // an image link it is also what opens the link's accessible name.
   const alt = campaign.code
     ? `${campaign.badge}: ${campaign.title}. İndirim kodu ${campaign.code}.`
     : `${campaign.badge}: ${campaign.title}.`
+  const closingSoon = daysLeft(campaign.validUntil, today) <= CLOSING_SOON_DAYS
 
   return (
-    <Link
-      to={campaignPath(campaign.id)}
-      className={cn(
-        'block overflow-hidden rounded-xl border border-border',
-        'transition-[border-color,box-shadow] duration-(--duration-base) ease-standard',
-        'hover:border-brand/30 hover:shadow-md',
-      )}
-    >
+    <Link to={campaignPath(campaign.id)} className={cn(mediaCard, 'group')}>
       <img
         src={campaign.image}
         alt={alt}
@@ -149,6 +158,29 @@ function CampaignCard({ campaign }: { campaign: Campaign }) {
         decoding="async"
         className="aspect-6/5 w-full object-cover"
       />
+      {/* The one fact the art does not carry. Stated plainly on every card,
+          and only raised to the warning colour in the last week, so the
+          urgency is real when it appears instead of a permanent alarm. */}
+      <span className="flex items-center justify-between gap-3 border-t border-border bg-surface px-3.5 py-2.5 text-xs">
+        <span
+          className={cn(
+            'flex items-center gap-1.5',
+            closingSoon ? 'font-medium text-warning-fg' : 'text-fg-muted',
+          )}
+        >
+          <CalendarClock className="size-4 shrink-0" aria-hidden="true" />
+          <span>
+            Son gün{' '}
+            <time dateTime={campaign.validUntil} data-numeric>
+              {deadlineLabel(campaign.validUntil, today)}
+            </time>
+          </span>
+        </span>
+        <ChevronRight
+          className="size-4 shrink-0 text-fg-subtle transition-[color,translate] duration-(--duration-fast) group-hover:translate-x-0.5 group-hover:text-brand-fg"
+          aria-hidden="true"
+        />
+      </span>
     </Link>
   )
 }

@@ -1,6 +1,7 @@
-import { ICON, VALUE_ICON } from '@/shared/config/assets'
-import { AssetIcon, Illustration } from '@/shared/ui/asset-icon'
+import { VALUE_ICON } from '@/shared/config/assets'
+import { Illustration } from '@/shared/ui/asset-icon'
 import { cn } from '@/shared/lib/cn'
+import { SectionHeading } from './SectionHeading'
 
 interface ValueProp {
   /** One of the project's own two-tone 80x80 illustrations. */
@@ -45,13 +46,11 @@ const PROPS: readonly ValueProp[] = [
 export function ValueProps() {
   return (
     <>
-      <h2 id="neden-buslinker" className="flex items-center gap-2.5 text-2xl sm:text-3xl">
-        <AssetIcon src={ICON.linker} className="size-5 shrink-0 text-brand" />
-        Neden BusLinker?
-      </h2>
-      <p className="mt-2 max-w-prose text-base text-fg-secondary">
-        Bileti almak, yolculuğun en kolay kısmı olmalı. Bunun için altı sözümüz var.
-      </p>
+      <SectionHeading
+        id="neden-buslinker"
+        title="Neden BusLinker?"
+        lead="Bileti almak, yolculuğun en kolay kısmı olmalı. Bunun için altı sözümüz var."
+      />
 
       <ul className="mt-6 grid gap-4 sm:mt-8 sm:grid-cols-2 lg:grid-cols-3">
         {PROPS.map(({ art, title, body }) => (
@@ -67,15 +66,16 @@ export function ValueProps() {
             )}
           >
             {/* These illustrations carry their own two-tone palette, so they
-                are images rather than masked icons — and they need no tinted
-                tile behind them. */}
-            <Illustration
-              src={art}
-              alt=""
-              width={80}
-              height={80}
-              className="size-10 shrink-0 sm:size-14"
-            />
+                are images rather than masked icons, and in light mode they
+                need no tile behind them. Their palette was drawn for a light
+                page, though, and on the dark card its darker half all but
+                vanished. In dark mode they sit on a small light plate: the
+                artwork stays exactly as drawn, it simply gets the ground it
+                was drawn for. The plate is the same size in both themes, so
+                the text beside it does not move when the theme changes. */}
+            <span className="shrink-0 self-start rounded-lg p-1 dark:bg-neutral-100">
+              <Illustration src={art} alt="" width={80} height={80} className="size-9 sm:size-12" />
+            </span>
             <div>
               <h3 className="text-base">{title}</h3>
               <p className="mt-1.5 text-sm text-fg-secondary">{body}</p>
