@@ -6,7 +6,9 @@ import { CITIES, cityById, type City } from '@/shared/api/catalog'
 import { compareTr, foldTr } from '@/shared/lib/tr'
 import { cn } from '@/shared/lib/cn'
 import { ICON } from '@/shared/config/assets'
+import { useMediaQuery } from '@/shared/lib/use-media-query'
 import { AssetIcon } from '@/shared/ui/asset-icon'
+import { Dialog, DialogContent } from '@/shared/ui/primitives'
 import { VisuallyHidden } from '@/shared/ui/visually-hidden'
 
 export interface CityComboboxProps {
@@ -129,6 +131,18 @@ export function CityCombobox({
   const rootRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLUListElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const sheetRef = useRef<HTMLDivElement>(null)
+
+  /**
+   * Below sm the list is not a dropdown under the field but a sheet that
+   * takes the screen, the way the travel apps people already know do it. A
+   * 288px dropdown under a field in the middle of a phone left the keyboard,
+   * the list and the form fighting over the same half screen; the sheet gives
+   * the list the whole of it, with the search box at its top. The field itself
+   * becomes the sheet's trigger and no longer takes text.
+   */
+  const isPhone = !useMediaQuery('(min-width: 640px)')
+  const [sheetOpen, setSheetOpen] = useState(false)
 
   const [open, setOpen] = useState(false)
   /** Drives the floating label. `open` is not a proxy for it: Escape closes
@@ -184,7 +198,8 @@ export function CityCombobox({
   // Pointerdown rather than click: a drag that starts on an option and ends
   // outside must still count as a selection, not a dismissal.
   useEffect(() => {
-    if (!open) return
+    // The sheet is a dialog with its own dismissal; this is the dropdown's.
+    if (!open || isPhone) return
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target
       if (target instanceof Node && rootRef.current?.contains(target)) return
@@ -192,7 +207,7 @@ export function CityCombobox({
     }
     document.addEventListener('pointerdown', onPointerDown)
     return () => document.removeEventListener('pointerdown', onPointerDown)
-  }, [open, reset])
+  }, [open, isPhone, reset])
 
   useEffect(() => {
     if (!open || activeIndex < 0) return
@@ -209,6 +224,13 @@ export function CityCombobox({
     if (!option) return
     onChange(option.city)
     reset()
+    setSheetOpen(false)
+  }
+
+  const openSheet = () => {
+    setSheetOpen(true)
+    setOpen(true)
+    setActiveIndex(-1)
   }
 
   const move = (delta: number) => {
@@ -274,7 +296,7 @@ export function CityCombobox({
   const activeId = activeOption ? optionId(activeOption) : undefined
   const describedBy = error ? `${errorId} ${statusId}` : statusId
 
-  const renderOption = (option: Option, index: number) => {
+  const renderOption = (option: Option, index: number, inSheet: boolean) => {
     const { city } = option
     const active = index === activeIndex
     const chosen = city.id === value?.id
@@ -290,6 +312,9 @@ export function CityCombobox({
         onClick={() => commit(option)}
         className={cn(
           'flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2',
+          // A thumb's row, not a pointer's: 52px tall, as the sheet's rows
+          // are tapped rather than hovered.
+          inSheet && 'min-h-13 rounded-xl py-2.5',
           'transition-colors duration-(--duration-fast)',
           active ? 'bg-brand/8' : 'bg-transparent',
         )}
@@ -311,7 +336,12 @@ export function CityCombobox({
         </span>
 
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-base font-medium text-fg">
+          <span
+            className={cn(
+              'block truncate text-base text-fg',
+              inSheet ? 'font-semibold' : 'font-medium',
+            )}
+          >
             {option.end > option.start ? (
               <>
                 {city.name.slice(0, option.start)}
@@ -323,6 +353,7 @@ export function CityCombobox({
             ) : (
               city.name
             )}
+            {inSheet ? <span className="font-normal text-fg-muted">, {city.region}</span> : null}
           </span>
         </span>
 
@@ -342,6 +373,58 @@ export function CityCombobox({
   // Running index into `options`, so each row knows its place in the walk
   // the arrow keys take across all the lists.
   let flatIndex = 0
+
+  const renderListbox = (inSheet: boolean) => {
+    flatIndex = 0
+    return (
+      <ul
+        ref={listRef}
+        id={listboxId}
+        role="listbox"
+        aria-label={label}
+        hidden={inSheet ? false : !open}
+        className={cn(
+          inSheet
+            ? 'min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-[max(1rem,env(safe-area-inset-bottom))]'
+            : [
+                'absolute z-40 mt-2 max-h-72 w-full min-w-56 overflow-y-auto overscroll-contain',
+                'rounded-xl border border-border bg-surface-raised p-1 shadow-xl',
+                'animate-in duration-(--duration-fast) fade-in-0 slide-in-from-top-1',
+              ],
+        )}
+      >
+        {options.length === 0 ? (
+          <li role="presentation" className="px-3 py-6 text-center">
+            <p className="text-sm font-medium text-fg">{t('search.noResults')}</p>
+            <p className="mt-1 text-xs text-fg-muted">{t('search.noResultsHint')}</p>
+          </li>
+        ) : (
+          sections.map((section) => {
+            const heading = sectionLabel[section.key]
+            const rows = section.options.map((option) => renderOption(option, flatIndex++, inSheet))
+            if (!heading) return rows
+            // A listbox may only own options and groups, so the heading lives
+            // inside its group: named for assistive tech by `aria-label`, and
+            // the visible line hidden from it so the name is not read twice.
+            return (
+              <li key={section.key} role="none">
+                <ul role="group" aria-label={heading}>
+                  <li
+                    role="none"
+                    aria-hidden="true"
+                    className="px-3 pt-2.5 pb-1 text-2xs font-semibold tracking-wide text-fg-muted uppercase"
+                  >
+                    {heading}
+                  </li>
+                  {rows}
+                </ul>
+              </li>
+            )
+          })
+        )}
+      </ul>
+    )
+  }
 
   return (
     <div className={cn('relative', className)} ref={rootRef}>
@@ -401,15 +484,24 @@ export function CityCombobox({
           autoComplete="off"
           autoCorrect="off"
           spellCheck={false}
-          aria-expanded={open}
-          aria-controls={listboxId}
-          aria-autocomplete="list"
-          aria-haspopup="listbox"
+          // On a phone the field opens a dialog rather than a listbox, and
+          // takes no text: typing happens in the sheet's own search box, so
+          // the keyboard never rises over a list it would hide.
+          readOnly={isPhone}
+          {...(isPhone
+            ? { 'aria-haspopup': 'dialog' as const, 'aria-expanded': sheetOpen }
+            : {
+                'aria-expanded': open,
+                'aria-controls': listboxId,
+                'aria-autocomplete': 'list' as const,
+                'aria-haspopup': 'listbox' as const,
+                ...(activeId ? { 'aria-activedescendant': activeId } : {}),
+              })}
           aria-describedby={describedBy}
           aria-invalid={error ? true : undefined}
-          {...(activeId ? { 'aria-activedescendant': activeId } : {})}
           value={text}
           placeholder={placeholder ?? t('search.cityPlaceholder')}
+          onClick={isPhone ? openSheet : undefined}
           onChange={(event) => {
             const next = event.target.value
             setQuery(next)
@@ -417,15 +509,32 @@ export function CityCombobox({
             setOpen(true)
             setActiveIndex(next.trim().length > 0 ? 0 : -1)
           }}
-          onKeyDown={onKeyDown}
+          onKeyDown={(event) => {
+            if (!isPhone) {
+              onKeyDown(event)
+              return
+            }
+            if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown') {
+              event.preventDefault()
+              openSheet()
+            }
+          }}
           // No clear button any more: focusing selects the current city, so
           // one tap and typing replaces it — the same gesture, one control less.
+          // On a phone focus alone opens nothing: the form moves focus here
+          // to show a validation error, and a sheet springing up uninvited
+          // would cover the very message it was moved for.
           onFocus={(event) => {
-            setOpen(true)
             setFocused(true)
+            if (isPhone) return
+            setOpen(true)
             event.currentTarget.select()
           }}
           onBlur={(event) => {
+            if (isPhone) {
+              setFocused(false)
+              return
+            }
             const next = event.relatedTarget
             if (next instanceof Node && rootRef.current?.contains(next)) return
             setFocused(false)
@@ -486,48 +595,77 @@ export function CityCombobox({
         </p>
       ) : null}
 
-      <ul
-        ref={listRef}
-        id={listboxId}
-        role="listbox"
-        aria-label={label}
-        hidden={!open}
-        className={cn(
-          'absolute z-40 mt-2 max-h-72 w-full min-w-56 overflow-y-auto overscroll-contain',
-          'rounded-xl border border-border bg-surface-raised p-1 shadow-xl',
-          'animate-in duration-(--duration-fast) fade-in-0 slide-in-from-top-1',
-        )}
-      >
-        {options.length === 0 ? (
-          <li role="presentation" className="px-3 py-6 text-center">
-            <p className="text-sm font-medium text-fg">{t('search.noResults')}</p>
-            <p className="mt-1 text-xs text-fg-muted">{t('search.noResultsHint')}</p>
-          </li>
-        ) : (
-          sections.map((section) => {
-            const heading = sectionLabel[section.key]
-            const rows = section.options.map((option) => renderOption(option, flatIndex++))
-            if (!heading) return rows
-            // A listbox may only own options and groups, so the heading lives
-            // inside its group: named for assistive tech by `aria-label`, and
-            // the visible line hidden from it so the name is not read twice.
-            return (
-              <li key={section.key} role="none">
-                <ul role="group" aria-label={heading}>
-                  <li
-                    role="none"
-                    aria-hidden="true"
-                    className="px-3 pt-2.5 pb-1 text-2xs font-semibold tracking-wide text-fg-muted uppercase"
-                  >
-                    {heading}
-                  </li>
-                  {rows}
-                </ul>
-              </li>
-            )
-          })
-        )}
-      </ul>
+      {isPhone ? (
+        <Dialog
+          open={sheetOpen}
+          onOpenChange={(next) => {
+            if (next) return
+            setSheetOpen(false)
+            reset()
+          }}
+        >
+          <DialogContent
+            ref={sheetRef}
+            side="bottom"
+            title={label}
+            // Nearly the whole screen, leaving a strip of the dimmed page at
+            // the top so it still reads as a layer over the form.
+            className="h-[calc(100dvh-2.5rem)] max-h-none"
+            onOpenAutoFocus={(event) => {
+              // On a touch screen focusing the search box raises the keyboard
+              // over the very list the person opened the sheet to see; most
+              // trips start in a handful of cities, and the list is where they
+              // are. Focus goes to the sheet instead, and a tap on the box
+              // brings the keyboard. A keyboard user lands in the box.
+              if (!window.matchMedia('(pointer: coarse)').matches) return
+              event.preventDefault()
+              sheetRef.current?.focus({ preventScroll: true })
+            }}
+          >
+            <div className="relative shrink-0 px-4 pt-3 pb-2">
+              <AssetIcon
+                src={ICON.magnify}
+                className="pointer-events-none absolute top-1/2 left-7 size-5 -translate-y-1/2 text-fg-muted"
+              />
+              <input
+                id={`${id}-search`}
+                type="text"
+                role="combobox"
+                enterKeyHint="search"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+                aria-label={t('search.cityPlaceholder')}
+                aria-expanded
+                aria-controls={listboxId}
+                aria-autocomplete="list"
+                {...(activeId ? { 'aria-activedescendant': activeId } : {})}
+                value={dirty ? query : ''}
+                placeholder={t('search.cityPlaceholder')}
+                onChange={(event) => {
+                  const next = event.target.value
+                  setQuery(next)
+                  setDirty(true)
+                  setActiveIndex(next.trim().length > 0 ? 0 : -1)
+                }}
+                onKeyDown={(event) => {
+                  // Escape belongs to the dialog, and Tab moves on to the
+                  // list without throwing the query away.
+                  if (event.key === 'Escape' || event.key === 'Tab') return
+                  onKeyDown(event)
+                }}
+                className={cn(
+                  'h-12 w-full rounded-xl border border-border-strong bg-surface pr-3 pl-10',
+                  'text-base text-fg placeholder:font-normal',
+                )}
+              />
+            </div>
+            {renderListbox(true)}
+          </DialogContent>
+        </Dialog>
+      ) : (
+        renderListbox(false)
+      )}
     </div>
   )
 }

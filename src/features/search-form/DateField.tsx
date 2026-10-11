@@ -6,8 +6,16 @@ import { useTranslation } from 'react-i18next'
 import { DayPicker, getDefaultClassNames } from 'react-day-picker'
 import { tr } from 'date-fns/locale'
 import { ChevronDown } from 'lucide-react'
-import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/primitives'
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/shared/ui/primitives'
 import { cn } from '@/shared/lib/cn'
+import { useMediaQuery } from '@/shared/lib/use-media-query'
 import { ICON } from '@/shared/config/assets'
 import { AssetIcon } from '@/shared/ui/asset-icon'
 import {
@@ -162,12 +170,6 @@ function DatePanel({ value, min, onPick }: PanelProps) {
     onPick(iso)
   }
 
-  const chips: { label: string; iso: string }[] = [
-    { label: t('search.today'), iso: min },
-    { label: t('search.tomorrow'), iso: addDays(min, 1) },
-    { label: t('search.thisWeekend'), iso: upcomingWeekend(min) },
-  ]
-
   return (
     <div className="flex flex-col gap-3">
       <div>
@@ -262,35 +264,150 @@ function DatePanel({ value, min, onPick }: PanelProps) {
         />
       </div>
 
-      <div className="flex flex-wrap gap-2 border-t border-border pt-3">
-        {chips.map((chip) => {
-          const disabled = chip.iso < min
-          return (
-            <button
-              key={chip.label}
-              type="button"
-              disabled={disabled}
-              aria-pressed={chip.iso === value}
-              onClick={() => {
-                setError(null)
-                onPick(chip.iso)
-              }}
-              className={cn(
-                'rounded-full border px-3 py-1.5 text-sm',
-                'transition-colors duration-(--duration-fast) disabled:opacity-40',
-                // The pressed chip changes weight and edge as well as colour,
-                // so it still reads as chosen without telling the hues apart.
-                chip.iso === value
-                  ? 'border-brand bg-brand/10 font-semibold text-brand-fg'
-                  : 'border-border bg-surface font-medium text-fg-secondary hover:bg-hover hover:text-fg',
-              )}
-            >
-              {chip.label}
-            </button>
-          )
-        })}
+      <div className="border-t border-border pt-3">
+        <QuickDates
+          value={value}
+          min={min}
+          onPick={(iso) => {
+            setError(null)
+            onPick(iso)
+          }}
+        />
       </div>
     </div>
+  )
+}
+
+/** Today, tomorrow and this weekend: most of what a coach search asks for. */
+function QuickDates({ value, min, onPick }: PanelProps) {
+  const { t } = useTranslation()
+  const chips: { label: string; iso: string }[] = [
+    { label: t('search.today'), iso: min },
+    { label: t('search.tomorrow'), iso: addDays(min, 1) },
+    { label: t('search.thisWeekend'), iso: upcomingWeekend(min) },
+  ]
+  return (
+    <div className="flex flex-wrap gap-2">
+      {chips.map((chip) => {
+        const disabled = chip.iso < min
+        return (
+          <button
+            key={chip.label}
+            type="button"
+            disabled={disabled}
+            aria-pressed={chip.iso === value}
+            onClick={() => onPick(chip.iso)}
+            className={cn(
+              'rounded-full border px-3 py-1.5 text-sm',
+              'transition-colors duration-(--duration-fast) disabled:opacity-40',
+              // The pressed chip changes weight and edge as well as colour,
+              // so it still reads as chosen without telling the hues apart.
+              chip.iso === value
+                ? 'border-brand bg-brand/10 font-semibold text-brand-fg'
+                : 'border-border bg-surface font-medium text-fg-secondary hover:bg-hover hover:text-fg',
+            )}
+          >
+            {chip.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+/** Monday first, in the interface language: 1 January 2024 was a Monday. */
+const WEEKDAYS = Array.from({ length: 7 }, (_, i) => new Date(2024, 0, 1 + i))
+
+/**
+ * The phone's date sheet: the months one under another, scrolled with the
+ * thumb, instead of a 300px calendar paged with arrows.
+ *
+ * The weekday row is drawn once, pinned above the scroll, so the months drop
+ * their own; each month's name sticks to the top while its days pass under
+ * it. The weekend columns carry the sky of the hero sheet, so the days most
+ * trips are planned around can be found at a glance, and the chosen day is
+ * the one solid fill, in the brand red, as on the desktop picker. The typed
+ * date box stays a desktop affordance: on a phone it was a keyboard between
+ * the person and the calendar.
+ */
+function DateSheet({ value, min, onPick }: PanelProps) {
+  const defaults = getDefaultClassNames()
+  const selected = isValidISODate(value) ? fromISODate(value) : fromISODate(min)
+  const minDate = fromISODate(min)
+  const lastDate = fromISODate(min)
+  lastDate.setFullYear(lastDate.getFullYear() + 1)
+  const months =
+    (lastDate.getFullYear() - minDate.getFullYear()) * 12 +
+    lastDate.getMonth() -
+    minDate.getMonth() +
+    1
+
+  return (
+    <>
+      <div className="shrink-0 px-4 pt-3 pb-2">
+        <QuickDates value={value} min={min} onPick={onPick} />
+      </div>
+
+      <div
+        aria-hidden="true"
+        className="grid shrink-0 grid-cols-7 border-b border-border px-4 text-center text-2xs font-semibold text-fg-muted"
+      >
+        {WEEKDAYS.map((day, index) => (
+          <span key={index} className={cn('py-2', index >= 5 && 'bg-info/8 text-fg-secondary')}>
+            {formatWeekdayShort(day)}
+          </span>
+        ))}
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        <DayPicker
+          mode="single"
+          locale={tr}
+          labels={TR_LABELS}
+          weekStartsOn={1}
+          hideNavigation
+          hideWeekdays
+          numberOfMonths={months}
+          selected={selected}
+          defaultMonth={minDate}
+          startMonth={minDate}
+          endMonth={lastDate}
+          disabled={{ before: minDate }}
+          modifiers={{ weekend: { dayOfWeek: [0, 6] } }}
+          modifiersClassNames={{ weekend: 'bg-info/8' }}
+          onSelect={(day) => {
+            if (day) onPick(toISODateLocal(day))
+          }}
+          style={PICKER_VARS}
+          classNames={{
+            root: cn(defaults.root, 'w-full text-base'),
+            months: 'flex flex-col',
+            month: 'w-full',
+            // Sticks while its days scroll under it, on the sheet's own
+            // surface so the rows do not show through.
+            month_caption:
+              'sticky top-0 z-10 -mx-4 flex justify-center bg-surface-raised px-4 pt-4 pb-2',
+            caption_label: 'font-display text-base font-semibold text-fg',
+            month_grid: 'w-full table-fixed border-collapse',
+            day: 'p-0.5 text-center align-middle',
+            day_button: cn(
+              'mx-auto flex size-11 items-center justify-center rounded-xl text-base text-fg',
+              'transition-colors duration-(--duration-fast) hover:bg-hover',
+            ),
+            today:
+              '[&_button]:font-semibold [&_button]:ring-1 [&_button]:ring-border-strong [&_button]:ring-inset',
+            selected: cn(
+              '[&_button]:bg-brand [&_button]:font-semibold [&_button]:text-on-brand',
+              '[&_button]:hover:bg-brand-hover',
+            ),
+            disabled:
+              '[&_button]:cursor-default [&_button]:text-fg-subtle [&_button]:hover:bg-transparent',
+            outside: 'invisible',
+            hidden: 'invisible',
+          }}
+        />
+      </div>
+    </>
   )
 }
 
@@ -309,9 +426,50 @@ export function DateField({
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const contentRef = useRef<HTMLDivElement>(null)
+  /** Below sm the calendar is a sheet that takes the screen; see DateSheet. */
+  const isPhone = !useMediaQuery('(min-width: 640px)')
   const labelId = `${id}-label`
   const min = minDate && isValidISODate(minDate) ? minDate : toISODate(new Date())
   const shown = isValidISODate(value) ? value : min
+
+  const trigger = (
+    <button
+      type="button"
+      id={id}
+      aria-labelledby={`${labelId} ${id}`}
+      className={cn(
+        'relative flex w-full items-center gap-2 rounded-xl border border-border bg-surface',
+        'text-left font-medium text-fg',
+        'transition-colors duration-(--duration-fast) ease-standard',
+        'hover:border-border-strong data-[state=open]:border-brand',
+        size === 'lg' ? 'h-11 px-3.5 text-base sm:h-14 sm:text-lg' : 'h-11 px-3 text-base',
+        flush && 'border-0 px-0 sm:border sm:px-3.5',
+        // Tall enough for the caption to sit above the date, matching the
+        // city fields beside it.
+        bare &&
+          'h-14 rounded-none border-0 bg-transparent px-0 hover:border-transparent data-[state=open]:border-transparent',
+      )}
+    >
+      <AssetIcon
+        src={ICON.date}
+        className={cn('shrink-0 text-fg-muted', size === 'lg' ? 'size-5' : 'size-4')}
+      />
+      {bare ? (
+        <span className="min-w-0 flex-1">
+          {/* A date is always set, so the caption is always lifted. It is
+            the sr-only label's twin for sighted users; aria-labelledby
+            already names the button, so this one is hidden from AT. */}
+          <span aria-hidden="true" className="block text-xs font-medium text-fg-muted">
+            {label}
+          </span>
+          <span className="block truncate">{formatDateMedium(shown)}</span>
+        </span>
+      ) : (
+        <span className="min-w-0 flex-1 truncate">{formatDateMedium(shown)}</span>
+      )}
+      <ChevronDown className="size-4 shrink-0 text-fg-muted" aria-hidden="true" />
+    </button>
+  )
 
   const caption = (
     <label
@@ -345,74 +503,69 @@ export function DateField({
         caption
       )}
 
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            id={id}
-            aria-labelledby={`${labelId} ${id}`}
-            className={cn(
-              'relative flex w-full items-center gap-2 rounded-xl border border-border bg-surface',
-              'text-left font-medium text-fg',
-              'transition-colors duration-(--duration-fast) ease-standard',
-              'hover:border-border-strong data-[state=open]:border-brand',
-              size === 'lg' ? 'h-11 px-3.5 text-base sm:h-14 sm:text-lg' : 'h-11 px-3 text-base',
-              flush && 'border-0 px-0 sm:border sm:px-3.5',
-              // Tall enough for the caption to sit above the date, matching the
-              // city fields beside it.
-              bare &&
-                'h-14 rounded-none border-0 bg-transparent px-0 hover:border-transparent data-[state=open]:border-transparent',
-            )}
-          >
-            <AssetIcon
-              src={ICON.date}
-              className={cn('shrink-0 text-fg-muted', size === 'lg' ? 'size-5' : 'size-4')}
-            />
-            {bare ? (
-              <span className="min-w-0 flex-1">
-                {/* A date is always set, so the caption is always lifted. It is
-                    the sr-only label's twin for sighted users; aria-labelledby
-                    already names the button, so this one is hidden from AT. */}
-                <span aria-hidden="true" className="block text-xs font-medium text-fg-muted">
-                  {label}
-                </span>
-                <span className="block truncate">{formatDateMedium(shown)}</span>
-              </span>
-            ) : (
-              <span className="min-w-0 flex-1 truncate">{formatDateMedium(shown)}</span>
-            )}
-            <ChevronDown className="size-4 shrink-0 text-fg-muted" aria-hidden="true" />
-          </button>
-        </PopoverTrigger>
-
-        <PopoverContent
-          ref={contentRef}
-          align="start"
-          className="w-auto max-w-[calc(100vw-2rem)] p-3"
-          aria-label={t('search.pickDate', { label })}
-          onOpenAutoFocus={(event) => {
-            // The first focusable thing in the panel is the typed-date input.
-            // On a touch screen focusing it raises the keyboard over the very
-            // calendar the person tapped to see, so there focus goes to the
-            // chosen day instead. A keyboard keeps the input first: typing a
-            // date is the quick way there.
-            if (!window.matchMedia('(pointer: coarse)').matches) return
-            event.preventDefault()
-            const panel = contentRef.current
-            const day = panel?.querySelector<HTMLElement>('[data-selected] button')
-            ;(day ?? panel)?.focus({ preventScroll: true })
-          }}
-        >
-          <DatePanel
-            value={shown}
-            min={min}
-            onPick={(iso) => {
-              onChange(iso)
-              setOpen(false)
+      {isPhone ? (
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>{trigger}</DialogTrigger>
+          <DialogContent
+            ref={contentRef}
+            side="bottom"
+            title={label}
+            className="h-[calc(100dvh-2.5rem)] max-h-none"
+            onOpenAutoFocus={(event) => {
+              // The chosen day takes focus, which also brings its month into
+              // view: a date picked for next month opens on next month.
+              event.preventDefault()
+              const day = contentRef.current?.querySelector<HTMLElement>('[data-selected] button')
+              if (!day) {
+                contentRef.current?.focus({ preventScroll: true })
+                return
+              }
+              day.focus({ preventScroll: true })
+              day.scrollIntoView({ block: 'center' })
             }}
-          />
-        </PopoverContent>
-      </Popover>
+          >
+            <DateSheet
+              value={shown}
+              min={min}
+              onPick={(iso) => {
+                onChange(iso)
+                setOpen(false)
+              }}
+            />
+          </DialogContent>
+        </Dialog>
+      ) : (
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+          <PopoverContent
+            ref={contentRef}
+            align="start"
+            className="w-auto max-w-[calc(100vw-2rem)] p-3"
+            aria-label={t('search.pickDate', { label })}
+            onOpenAutoFocus={(event) => {
+              // The first focusable thing in the panel is the typed-date input.
+              // On a touch screen focusing it raises the keyboard over the very
+              // calendar the person tapped to see, so there focus goes to the
+              // chosen day instead. A keyboard keeps the input first: typing a
+              // date is the quick way there.
+              if (!window.matchMedia('(pointer: coarse)').matches) return
+              event.preventDefault()
+              const panel = contentRef.current
+              const day = panel?.querySelector<HTMLElement>('[data-selected] button')
+              ;(day ?? panel)?.focus({ preventScroll: true })
+            }}
+          >
+            <DatePanel
+              value={shown}
+              min={min}
+              onPick={(iso) => {
+                onChange(iso)
+                setOpen(false)
+              }}
+            />
+          </PopoverContent>
+        </Popover>
+      )}
     </div>
   )
 }
