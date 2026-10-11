@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
+import { ArrowLeftRight, ArrowUpDown } from 'lucide-react'
 import { ICON } from '@/shared/config/assets'
 import { AssetIcon } from '@/shared/ui/asset-icon'
 import type { City } from '@/shared/api/catalog'
@@ -11,6 +12,7 @@ import { cn } from '@/shared/lib/cn'
 import { Button } from '@/shared/ui/button'
 import { CityCombobox } from './CityCombobox'
 import { DateField } from './DateField'
+import { lastSearch, recentCities, rememberSearch } from './recent-searches'
 
 export interface SearchFormProps {
   variant?: 'hero' | 'compact'
@@ -47,11 +49,15 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
   const hero = variant === 'hero'
   const fieldSize = hero ? 'lg' : 'md'
 
-  const [from, setFrom] = useState<City | null>(initial?.from ?? null)
-  const [to, setTo] = useState<City | null>(initial?.to ?? null)
-  const [date, setDate] = useState<string>(initial?.date ?? toISODate(new Date()))
+  // Read once, on mount. A hero form with no trip of its own opens holding the
+  // last one searched in this browser; the results page always passes its own.
+  const [start] = useState(() => initial ?? (hero ? lastSearch() : null))
+  const [from, setFrom] = useState<City | null>(start?.from ?? null)
+  const [to, setTo] = useState<City | null>(start?.to ?? null)
+  const [date, setDate] = useState<string>(start?.date ?? toISODate(new Date()))
   const [invalid, setInvalid] = useState<'from' | 'to' | null>(null)
   const [swapped, setSwapped] = useState(false)
+  const [recent] = useState(() => ({ from: recentCities('from'), to: recentCities('to') }))
 
   const fromRef = useRef<HTMLInputElement>(null)
   const toRef = useRef<HTMLInputElement>(null)
@@ -76,6 +82,7 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
       return
     }
     setInvalid(null)
+    rememberSearch({ from: from.id, to: to.id, date })
     void navigate(resultsPath(from.slug, to.slug, date))
   }
 
@@ -83,7 +90,12 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
   const heroCard = (children: ReactNode) => (
     // `sm:contents` dissolves this box from sm up, so anything that has to
     // survive into the desktop grid — a width, for one — goes on the child.
-    <div className="rounded-xl bg-surface p-3 shadow-sm sm:contents">{children}</div>
+    //
+    // Dark mode separates by lightness, and the card stands only one step
+    // above the ground there; the ring is what keeps it a card.
+    <div className="rounded-xl bg-surface p-3 shadow-sm sm:contents dark:ring-1 dark:ring-border">
+      {children}
+    </div>
   )
 
   /** The ISO day this many days from today, in Istanbul time. */
@@ -116,10 +128,63 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
           swapped && 'rotate-180',
         )}
       >
-        <AssetIcon src={ICON.mobileSwap} className="size-5 lg:hidden" />
-        <AssetIcon src={ICON.swap} className="hidden size-5 lg:block" />
+        {/* The arrows follow the fields: up and down while they stack, left
+            and right once they share a row — from sm on the strip, from lg
+            in the hero card. Stroked icons rather than the old raster-ish
+            glyphs, which blurred at this size. */}
+        <ArrowUpDown
+          aria-hidden="true"
+          className={cn('size-5', bare ? 'sm:hidden' : 'lg:hidden')}
+        />
+        <ArrowLeftRight
+          aria-hidden="true"
+          className={cn('hidden size-5', bare ? 'sm:block' : 'lg:block')}
+        />
       </span>
     </button>
+  )
+
+  /**
+   * Today and tomorrow are most of what a coach site is asked for; a chip
+   * saves opening a calendar to say so. On a phone they stack beside the date
+   * value; from sm they share the date label's line, so the row of fields
+   * does not grow a line for them.
+   */
+  const dateChips = (layout: 'stack' | 'inline') => (
+    <div
+      role="group"
+      aria-label={t('search.quickDates')}
+      className={cn(
+        'shrink-0 gap-1',
+        layout === 'stack' ? 'flex flex-col sm:hidden' : '-mt-1 hidden sm:flex',
+      )}
+    >
+      {[
+        { label: t('search.today'), iso: relativeISO(0) },
+        { label: t('search.tomorrow'), iso: relativeISO(1) },
+      ].map((chip) => {
+        const pressed = date === chip.iso
+        return (
+          <button
+            key={chip.label}
+            type="button"
+            aria-pressed={pressed}
+            onClick={() => setDate(chip.iso)}
+            className={cn(
+              'border text-xs transition-colors duration-(--duration-fast)',
+              layout === 'stack' ? 'rounded-lg px-2.5 py-1' : 'h-6 rounded-full px-2.5',
+              // Weight and edge change with the colour, so the pressed chip
+              // reads as chosen without telling two hues apart.
+              pressed
+                ? 'border-brand bg-brand/10 font-semibold text-brand-fg'
+                : 'border-border bg-surface font-medium text-fg-secondary hover:bg-hover hover:text-fg',
+            )}
+          >
+            {chip.label}
+          </button>
+        )
+      })}
+    </div>
   )
 
   const fromField = (
@@ -133,6 +198,7 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
         if (invalid === 'from') setInvalid(null)
       }}
       excludeCityId={to?.id}
+      recent={recent.from}
       error={invalid === 'from' ? t('search.fromError') : undefined}
       size={fieldSize}
       flush={hero}
@@ -152,6 +218,7 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
         if (invalid === 'to') setInvalid(null)
       }}
       excludeCityId={from?.id}
+      recent={recent.to}
       error={invalid === 'to' ? t('search.toError') : undefined}
       size={fieldSize}
       flush={hero}
@@ -169,6 +236,7 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
       size={fieldSize}
       flush={hero}
       bare={!hero}
+      labelAside={hero ? dateChips('inline') : undefined}
     />
   )
 
@@ -271,36 +339,10 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
           {heroCard(toField)}
         </div>
 
-        {/* Today and tomorrow are most of what a coach site is asked for, and
-            on a phone they save opening a calendar to say so. */}
         {heroCard(
           <div className="flex items-center gap-2 lg:w-56">
             <div className="min-w-0 flex-1">{dateField}</div>
-            <div className="flex shrink-0 flex-col gap-1 sm:hidden">
-              {[
-                { label: t('search.today'), offset: 0 },
-                { label: t('search.tomorrow'), offset: 1 },
-              ].map((chip) => {
-                const iso = relativeISO(chip.offset)
-                return (
-                  <button
-                    key={chip.label}
-                    type="button"
-                    aria-pressed={date === iso}
-                    onClick={() => setDate(iso)}
-                    className={cn(
-                      'rounded-lg border px-2.5 py-1 text-xs font-medium',
-                      'transition-colors duration-(--duration-fast)',
-                      date === iso
-                        ? 'border-brand/40 bg-brand/10 text-brand-fg'
-                        : 'border-border bg-surface text-fg-secondary',
-                    )}
-                  >
-                    {chip.label}
-                  </button>
-                )
-              })}
-            </div>
+            {dateChips('stack')}
           </div>,
         )}
 

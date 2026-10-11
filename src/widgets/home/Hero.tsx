@@ -1,7 +1,8 @@
+import type { CSSProperties } from 'react'
 import { SearchForm } from '@/features/search-form/SearchForm'
 import { ICON, IMAGE } from '@/shared/config/assets'
 import { cn } from '@/shared/lib/cn'
-import { AssetIcon, Illustration } from '@/shared/ui/asset-icon'
+import { AssetIcon } from '@/shared/ui/asset-icon'
 
 /**
  * Only the bus search exists, so the other three modes render as genuinely
@@ -18,6 +19,25 @@ const TRAVEL_MODES = [
 ] as const
 
 /**
+ * The smallest transparent GIF. It is what a phone's <img> loads instead of
+ * the coach: the coach is only ever shown from lg, and an <img> fetches its
+ * file even inside a `display: none` box, so without a <picture> source gated
+ * by media every phone paid for a picture it never displayed.
+ */
+const BLANK_PIXEL = 'data:image/gif;base64,R0lGODlhAQABAAAAACw='
+
+/**
+ * The coach's width, and how far its front is held in from the card's right
+ * edge. Both are variables because the heading's measure is derived from
+ * them: the heading block ends where the coach begins, so the two can never
+ * overlap at any width from lg up.
+ */
+const COACH_VARS = {
+  '--coach-w': 'clamp(16rem, 26vw, 25rem)',
+  '--coach-inset': '1.5rem',
+} as CSSProperties
+
+/**
  * The hero height comes from padding alone: a fixed height would either clip
  * the search form when it grows on mobile or strand it in dead space.
  */
@@ -27,6 +47,7 @@ export function Hero() {
     // section it also clipped the city dropdown, which opens downward and has
     // to escape the hero.
     <section
+      style={COACH_VARS}
       // A phone stacks white cards on this, and on --color-bg they were one
       // pale mass: ground and card sat about a point and a half apart in
       // lightness. --color-surface-sunken is seven apart, which is what makes
@@ -35,12 +56,19 @@ export function Hero() {
       // than a red header, so the brand colour stays the thing you press.
       //
       // From sm the hero has its own heading, artwork and single card, and
-      // keeps the page ground.
+      // keeps the page ground. It also slides up under the header by exactly
+      // the header's height and pads the same amount back, so the wash and
+      // the map run on behind the header while the content stays where it
+      // was. A phone does not: there the mode rail is the band under the
+      // header, and nothing should show through above it.
       //
       // Light only: dark elevates by lightness, so there the sunken tone sits
       // ABOVE the card surface and the step would run the wrong way, leaving
       // the cards darker than the ground they stand on.
-      className="relative isolate border-b border-border bg-surface-sunken sm:bg-bg dark:bg-bg"
+      className={cn(
+        'relative isolate border-b border-border bg-surface-sunken sm:bg-bg dark:bg-bg',
+        'sm:-mt-16 sm:pt-16 lg:-mt-18 lg:pt-18',
+      )}
     >
       <div
         aria-hidden="true"
@@ -63,132 +91,154 @@ export function Hero() {
         <div
           // Desktop only. On a phone the map has no room to be a backdrop —
           // it lands directly behind the search card and reads as a red haze.
-          className="absolute inset-0 hidden text-brand/45 sm:block dark:text-brand/55"
+          className="absolute inset-0 hidden text-brand/40 sm:block dark:text-brand/50"
           style={{
             backgroundColor: 'currentColor',
-            // Two masks intersected: the map itself, and a vertical fade that
-            // dissolves it before it reaches the search card. Without the
-            // second one the dots run under the card and read as dirt.
-            maskImage: `url("${IMAGE.worldMap.src}"), linear-gradient(180deg, #000 0%, #000 48%, transparent 82%)`,
-            WebkitMaskImage: `url("${IMAGE.worldMap.src}"), linear-gradient(180deg, #000 0%, #000 48%, transparent 82%)`,
-            maskRepeat: 'no-repeat, no-repeat',
-            WebkitMaskRepeat: 'no-repeat, no-repeat',
-            maskPosition: 'center 14%, center',
-            WebkitMaskPosition: 'center 14%, center',
-            maskSize: 'min(100rem, 150%) auto, 100% 100%',
-            WebkitMaskSize: 'min(100rem, 150%) auto, 100% 100%',
+            // Three masks intersected: the map itself; a vertical fade that
+            // dissolves it before it reaches the search card, without which
+            // the dots run under the card and read as dirt; and a sideways
+            // ramp that holds it at a third of its strength on the left,
+            // where the heading is, so the dots stay texture behind the words
+            // rather than speckle through them.
+            maskImage: `url("${IMAGE.worldMap.src}"), linear-gradient(180deg, #000 0%, #000 48%, transparent 82%), linear-gradient(90deg, rgb(0 0 0 / 0.35) 0%, rgb(0 0 0 / 0.35) 40%, #000 66%)`,
+            WebkitMaskImage: `url("${IMAGE.worldMap.src}"), linear-gradient(180deg, #000 0%, #000 48%, transparent 82%), linear-gradient(90deg, rgb(0 0 0 / 0.35) 0%, rgb(0 0 0 / 0.35) 40%, #000 66%)`,
+            maskRepeat: 'no-repeat',
+            WebkitMaskRepeat: 'no-repeat',
+            maskPosition: 'center 14%, center, center',
+            WebkitMaskPosition: 'center 14%, center, center',
+            maskSize: 'min(100rem, 150%) auto, 100% 100%, 100% 100%',
+            WebkitMaskSize: 'min(100rem, 150%) auto, 100% 100%, 100% 100%',
             maskComposite: 'intersect',
             WebkitMaskComposite: 'source-in',
           }}
         />
       </div>
 
-      <div className="app-container pb-12 sm:pt-14 sm:pb-16 lg:pt-20 lg:pb-24">
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-center lg:gap-16">
-          <div className="max-w-2xl">
-            {/* Kept in the document but not on screen below sm: on a phone the
-                search form has to be the first thing, the way every travel app
-                does it. sr-only rather than hidden so the page keeps its h1 for
-                assistive tech and for crawlers. */}
-            <h1 className="sr-only text-4xl text-balance-tr sm:not-sr-only sm:text-5xl">
-              Türkiye'nin her yerine otobüs bileti
-            </h1>
+      <div className="app-container pb-12 sm:pt-14 sm:pb-16 lg:pt-14 lg:pb-18">
+        {/* From lg the heading block stops where the coach begins: it is
+            bounded by the coach's width rather than by a grid column, so the
+            coach can sit on the card instead of in a column of its own. */}
+        <div className="max-w-2xl lg:max-w-[min(42rem,calc(100%-var(--coach-w)-var(--coach-inset)-2rem))]">
+          {/* Kept in the document but not on screen below sm: on a phone the
+              search form has to be the first thing, the way every travel app
+              does it. sr-only rather than hidden so the page keeps its h1 for
+              assistive tech and for crawlers. */}
+          <h1 className="sr-only text-4xl text-balance-tr sm:not-sr-only sm:text-5xl">
+            Türkiye’nin her yerine otobüs bileti
+          </h1>
 
-            <p className="mt-4 hidden max-w-prose text-lg text-fg-secondary sm:block">
-              Yüzlerce firmanın seferini tek ekranda karşılaştırın, koltuğunuzu kendiniz seçin,
-              biletiniz saniyeler içinde telefonunuza gelsin.
-            </p>
-          </div>
-
-          <div className="hidden lg:block">
-            {/* The coach is the brand's own artwork on a transparent ground, so
-                it sits straight on the gradient — a card frame around it would
-                box in a cut-out. Above the fold on desktop and therefore the
-                LCP element: `loading="lazy"` would defer the very image the
-                metric is measured against. */}
-            <Illustration
-              src={IMAGE.coach.src}
-              alt="BusLinker otobüsü"
-              width={IMAGE.coach.width}
-              height={IMAGE.coach.height}
-              priority
-              sizes="(min-width: 1024px) 24rem, 0px"
-              className="h-auto w-full drop-shadow-[0_24px_32px_oklch(0.30_0.03_35/0.22)]"
-            />
-          </div>
+          <p className="mt-4 hidden max-w-prose text-lg text-fg-secondary sm:block">
+            Yüzlerce firmanın seferini tek ekranda karşılaştırın, koltuğunuzu kendiniz seçin,
+            biletiniz saniyeler içinde telefonunuza gelsin.
+          </p>
         </div>
 
         {/* The mode strip sits ON the search card rather than floating above
             it as chips: the active tab shares the card's surface and loses its
             bottom corner radius, so the two read as one control. */}
         <div className="sm:mt-10">
-          <div
-            role="group"
-            aria-label="Seyahat türü"
-            className={cn(
-              // On a phone this is the bar under the header: bled to the
-              // viewport edges, sitting on its own surface, with the four
-              // modes sharing the width — so nothing scrolls and nothing has
-              // to be faded off at the edge. From sm it is a row of folder
-              // tabs on the search card again, and scrolls if it must.
-              'scrollbar-none flex gap-1',
-              '-mx-(--app-pad) border-b border-border bg-surface px-(--app-pad)',
-              'sm:mx-0 sm:overflow-x-auto sm:border-b-0 sm:bg-transparent sm:px-0',
-            )}
-          >
-            {TRAVEL_MODES.map(({ id, label, icon, available }) => (
-              <button
-                key={id}
-                type="button"
-                disabled={!available}
-                aria-disabled={!available}
-                aria-pressed={available}
-                title={available ? undefined : `${label} aramaları yakında açılıyor`}
-                className={cn(
-                  'group relative flex flex-col items-center',
-                  // A tab was 94px on a phone: desktop padding, a desktop glyph
-                  // and desktop gaps around a caption, on a 390-wide screen.
-                  // 58 now — this bar is the first thing under the header and
-                  // should not eat a tenth of the screen before the form starts.
-                  'gap-0.5 pt-2 pb-2',
-                  'sm:gap-1 sm:pt-3 sm:pb-3.5',
-                  // A phone gets four equal columns; from sm the tabs take
-                  // their own width back and the folder shape returns.
-                  'flex-1 basis-0 px-1',
-                  'sm:min-w-28 sm:flex-none sm:shrink-0 sm:basis-auto sm:rounded-t-xl sm:px-5',
-                  'transition-colors duration-(--duration-fast) ease-standard',
-                  available
-                    ? 'text-brand-fg sm:bg-surface sm:shadow-[0_-2px_12px_oklch(0.36_0.045_245/0.06)]'
-                    : 'cursor-not-allowed text-fg-muted sm:hover:bg-surface/50',
-                )}
-              >
-                <AssetIcon src={icon} className="size-5 sm:size-7" />
-                <span className="text-sm font-semibold">{label}</span>
-                {/* Plain caption, not a badge: a pill inside a tab made the row
-                    lumpy and fought the tab's own shape.
-
-                    Not on a phone. It is a whole line under every tab, and the
-                    line is what made the bar tall; the disabled modes are
-                    already dimmed, inert and announced as such. The desktop
-                    tabs have the room, so they keep the words. */}
-                <span
+          <div className="relative">
+            <div
+              role="group"
+              aria-label="Seyahat türü"
+              className={cn(
+                // On a phone this is the bar under the header, on the
+                // header's own chrome surface, so the two read as one band
+                // with a single hairline under it. It bleeds to the viewport
+                // edges and the four modes share the width — nothing scrolls
+                // and nothing has to be faded off at the edge. From sm it is
+                // a row of folder tabs on the search card again, and scrolls
+                // if it must.
+                'scrollbar-none flex gap-1',
+                '-mx-(--app-pad) border-b border-border bg-chrome px-(--app-pad)',
+                'sm:mx-0 sm:overflow-x-auto sm:border-b-0 sm:bg-transparent sm:px-0',
+              )}
+            >
+              {TRAVEL_MODES.map(({ id, label, icon, available }) => (
+                <button
+                  key={id}
+                  type="button"
+                  disabled={!available}
+                  aria-disabled={!available}
+                  aria-pressed={available}
+                  title={available ? undefined : `${label} aramaları yakında açılıyor`}
                   className={cn(
-                    'hidden text-2xs leading-none font-medium sm:block',
-                    available ? 'text-transparent' : 'text-fg-subtle',
+                    'group relative flex flex-col items-center',
+                    // A tab was 94px on a phone: desktop padding, a desktop
+                    // glyph and desktop gaps around a caption, on a 390-wide
+                    // screen. 58 now — this bar is the first thing under the
+                    // header and should not eat a tenth of the screen before
+                    // the form starts.
+                    'gap-0.5 pt-2 pb-2',
+                    'sm:gap-1 sm:pt-3 sm:pb-3.5',
+                    // A phone gets four equal columns; from sm the tabs take
+                    // their own width back and the folder shape returns.
+                    'flex-1 basis-0 px-1',
+                    'sm:min-w-28 sm:flex-none sm:shrink-0 sm:basis-auto sm:rounded-t-xl sm:px-5',
+                    'transition-colors duration-(--duration-fast) ease-standard',
+                    // The modes that do not exist yet take the faintest text
+                    // tone and no hover at all: a hover tint is a promise
+                    // that pressing does something. From sm the "Yakında"
+                    // caption explains them, so the label can come up a step.
+                    available
+                      ? 'text-brand-fg sm:bg-surface sm:shadow-[0_-2px_12px_oklch(0.36_0.045_245/0.06)]'
+                      : 'cursor-not-allowed text-fg-subtle sm:text-fg-muted',
                   )}
                 >
-                  {available ? '·' : 'Yakında'}
-                </span>
-                {available ? (
+                  <AssetIcon src={icon} className="size-5 sm:size-7" />
+                  <span className="text-sm font-semibold">{label}</span>
+                  {/* Plain caption, not a badge: a pill inside a tab made the
+                      row lumpy and fought the tab's own shape.
+
+                      Not on a phone. It is a whole line under every tab, and
+                      the line is what made the bar tall; the disabled modes
+                      are already dimmed, inert and announced as such. The
+                      desktop tabs have the room, so they keep the words. */}
                   <span
-                    aria-hidden="true"
-                    // Underneath the label on a phone, which is where a tab
-                    // bar puts it; back on top of the folder tab from sm.
-                    className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-brand sm:top-0 sm:bottom-auto"
-                  />
-                ) : null}
-              </button>
-            ))}
+                    className={cn(
+                      'hidden text-2xs leading-none font-medium sm:block',
+                      available ? 'text-transparent' : 'text-fg-subtle',
+                    )}
+                  >
+                    {available ? '·' : 'Yakında'}
+                  </span>
+                  {available ? (
+                    <span
+                      aria-hidden="true"
+                      // Underneath the label on a phone, which is where a tab
+                      // bar puts it; back on top of the folder tab from sm.
+                      className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-brand sm:top-0 sm:bottom-auto"
+                    />
+                  ) : null}
+                </button>
+              ))}
+            </div>
+
+            {/* From lg the coach is parked on the search card: its front
+                wheels stand on the card's top edge, right of the tabs, where
+                there used to be nothing. That retires the separate column it
+                had beside the heading, and the hero is shorter for it.
+
+                Phones never download it (see BLANK_PIXEL). On desktop it is
+                above the fold and a candidate for LCP, so it loads eagerly at
+                high priority. The image has a band of transparent ground
+                under the wheels — 8.8% of its height — and the translate
+                lowers it by exactly that, so the paint, not the box, meets
+                the edge. The shadow is a cool slate, the hue of the rest of
+                the UI's shadows, not the warm brown it had. */}
+            <picture className="pointer-events-none absolute right-(--coach-inset) bottom-0 hidden lg:block">
+              <source media="(min-width: 64rem)" srcSet={IMAGE.coach.src} />
+              <img
+                src={BLANK_PIXEL}
+                alt="BusLinker otobüsü"
+                width={IMAGE.coach.width}
+                height={IMAGE.coach.height}
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
+                className="block h-auto w-(--coach-w) translate-y-[8.8%] drop-shadow-[0_10px_14px_oklch(0.32_0.035_245/0.2)]"
+              />
+            </picture>
           </div>
 
           <SearchForm variant="hero" className="mt-3 rounded-tl-none sm:mt-0" />

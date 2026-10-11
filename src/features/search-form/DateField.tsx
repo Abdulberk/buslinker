@@ -1,6 +1,7 @@
 import 'react-day-picker/style.css'
 
-import { useId, useState } from 'react'
+import { useId, useRef, useState } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DayPicker, getDefaultClassNames } from 'react-day-picker'
 import { tr } from 'date-fns/locale'
@@ -37,8 +38,31 @@ export interface DateFieldProps {
    * between cells, and nothing boxed inside it.
    */
   bare?: boolean | undefined
+  /**
+   * Sits at the end of the label's line, for the hero's quick-date chips. It
+   * shares the line rather than adding one, so the date box stays level with
+   * the city boxes beside it.
+   */
+  labelAside?: ReactNode
   className?: string | undefined
 }
+
+/**
+ * The picker's own stylesheet sets these on `.rdp-root` outside any cascade
+ * layer, and an unlayered rule beats every Tailwind utility whatever its
+ * specificity — which is how the stock blue kept painting the month arrows
+ * and the today marker through the token classes. Inline custom properties
+ * outrank the stylesheet, so the tokens are set here instead.
+ */
+const PICKER_VARS = {
+  '--rdp-accent-color': 'var(--color-brand)',
+  '--rdp-accent-background-color': 'color-mix(in oklab, var(--color-brand) 10%, transparent)',
+  '--rdp-today-color': 'var(--color-fg)',
+  '--rdp-selected-border': '0',
+  '--rdp-weekday-opacity': '1',
+  '--rdp-outside-opacity': '1',
+  '--rdp-nav_button-disabled-opacity': '0.4',
+} as CSSProperties
 
 const TYPED = /^(\d{1,2})[.\-/](\d{1,2})[.\-/](\d{4})$/
 
@@ -172,7 +196,7 @@ function DatePanel({ value, min, onPick }: PanelProps) {
           }}
           className={cn(
             'h-10 w-full rounded-lg border bg-surface px-3 text-base font-medium text-fg',
-            'placeholder:font-normal placeholder:text-fg-subtle',
+            'placeholder:font-normal',
             'transition-colors duration-(--duration-fast) focus-within:border-brand',
             error ? 'border-danger' : 'border-border',
           )}
@@ -206,21 +230,22 @@ function DatePanel({ value, min, onPick }: PanelProps) {
             setError(null)
             onPick(toISODateLocal(day))
           }}
+          style={PICKER_VARS}
           classNames={{
-            root: cn(
-              defaults.root,
-              '[--rdp-accent-color:var(--color-fg-secondary)] [--rdp-weekday-opacity:1]',
-              'text-sm',
-            ),
+            root: cn(defaults.root, 'text-sm'),
             month: `${defaults.month} w-full`,
             caption_label: `${defaults.caption_label} font-display text-base font-semibold text-fg`,
-            button_previous: `${defaults.button_previous} rounded-lg text-fg-secondary hover:bg-surface-sunken`,
-            button_next: `${defaults.button_next} rounded-lg text-fg-secondary hover:bg-surface-sunken`,
+            button_previous: `${defaults.button_previous} rounded-lg text-fg-secondary hover:bg-hover`,
+            button_next: `${defaults.button_next} rounded-lg text-fg-secondary hover:bg-hover`,
+            // Not the library's class: its fill is the accent, which is the
+            // brand red now. The arrows take the button's own text colour, a
+            // neutral that clears 3:1 against the panel in both themes.
+            chevron: 'inline-block fill-current',
             weekday: `${defaults.weekday} pb-1 text-2xs font-semibold text-fg-muted`,
             day: 'p-0.5 text-center align-middle',
             day_button: cn(
               'flex size-9 items-center justify-center rounded-lg text-sm text-fg',
-              'transition-colors duration-(--duration-fast) hover:bg-surface-sunken',
+              'transition-colors duration-(--duration-fast) hover:bg-hover',
             ),
             // Today is outlined rather than tinted: colour alone would clash
             // with the selected fill on the day that is both.
@@ -251,11 +276,13 @@ function DatePanel({ value, min, onPick }: PanelProps) {
                 onPick(chip.iso)
               }}
               className={cn(
-                'rounded-full border px-3 py-1.5 text-sm font-medium',
+                'rounded-full border px-3 py-1.5 text-sm',
                 'transition-colors duration-(--duration-fast) disabled:opacity-40',
+                // The pressed chip changes weight and edge as well as colour,
+                // so it still reads as chosen without telling the hues apart.
                 chip.iso === value
-                  ? 'border-brand/40 bg-brand/10 text-brand-fg'
-                  : 'border-border bg-surface text-fg-secondary hover:bg-surface-sunken hover:text-fg',
+                  ? 'border-brand bg-brand/10 font-semibold text-brand-fg'
+                  : 'border-border bg-surface font-medium text-fg-secondary hover:bg-hover hover:text-fg',
               )}
             >
               {chip.label}
@@ -276,34 +303,47 @@ export function DateField({
   size = 'lg',
   flush,
   bare,
+  labelAside,
   className,
 }: DateFieldProps) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
+  const contentRef = useRef<HTMLDivElement>(null)
   const labelId = `${id}-label`
   const min = minDate && isValidISODate(minDate) ? minDate : toISODate(new Date())
   const shown = isValidISODate(value) ? value : min
 
+  const caption = (
+    <label
+      htmlFor={id}
+      id={labelId}
+      className={cn(
+        'mb-1.5 block text-xs font-semibold text-fg-secondary uppercase',
+        // On a phone the caption sits tight above its value rather than
+        // hiding: naming the field is what lets the three rows read as a
+        // form instead of three anonymous boxes. It returns to its full
+        // size from sm, where the layout has room for it.
+        flush && 'mb-0 text-2xs sm:mb-1.5 sm:text-xs',
+        // On the strip the value is the label: a city name, a date. The
+        // caption stays in the document as the field's accessible name and
+        // leaves the screen.
+        bare && 'sr-only',
+      )}
+    >
+      {label}
+    </label>
+  )
+
   return (
     <div className={cn('flex flex-col', className)}>
-      <label
-        htmlFor={id}
-        id={labelId}
-        className={cn(
-          'mb-1.5 block text-xs font-semibold text-fg-secondary uppercase',
-          // On a phone the caption sits tight above its value rather than
-          // hiding: naming the field is what lets the three rows read as a
-          // form instead of three anonymous boxes. It returns to its full
-          // size from sm, where the layout has room for it.
-          flush && 'mb-0 text-2xs sm:mb-1.5 sm:text-xs',
-          // On the strip the value is the label: a city name, a date. The
-          // caption stays in the document as the field's accessible name and
-          // leaves the screen.
-          bare && 'sr-only',
-        )}
-      >
-        {label}
-      </label>
+      {labelAside ? (
+        <div className="flex items-start justify-between gap-2">
+          {caption}
+          {labelAside}
+        </div>
+      ) : (
+        caption
+      )}
 
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
@@ -346,9 +386,22 @@ export function DateField({
         </PopoverTrigger>
 
         <PopoverContent
+          ref={contentRef}
           align="start"
           className="w-auto max-w-[calc(100vw-2rem)] p-3"
           aria-label={t('search.pickDate', { label })}
+          onOpenAutoFocus={(event) => {
+            // The first focusable thing in the panel is the typed-date input.
+            // On a touch screen focusing it raises the keyboard over the very
+            // calendar the person tapped to see, so there focus goes to the
+            // chosen day instead. A keyboard keeps the input first: typing a
+            // date is the quick way there.
+            if (!window.matchMedia('(pointer: coarse)').matches) return
+            event.preventDefault()
+            const panel = contentRef.current
+            const day = panel?.querySelector<HTMLElement>('[data-selected] button')
+            ;(day ?? panel)?.focus({ preventScroll: true })
+          }}
         >
           <DatePanel
             value={shown}

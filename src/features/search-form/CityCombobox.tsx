@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent, Ref } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Check } from 'lucide-react'
-import { CITIES, type City } from '@/shared/api/catalog'
+import { Check, History } from 'lucide-react'
+import { CITIES, cityById, type City } from '@/shared/api/catalog'
 import { compareTr, foldTr } from '@/shared/lib/tr'
 import { cn } from '@/shared/lib/cn'
 import { ICON } from '@/shared/config/assets'
@@ -37,9 +37,21 @@ export interface CityComboboxProps {
    * focus or a city, so the strip carries no captions of its own.
    */
   bare?: boolean | undefined
+  /**
+   * Cities this browser recently searched from (or to), newest first. Listed
+   * above the popular ones while nothing has been typed, because the trip a
+   * person searched last week is the likeliest one they want again.
+   */
+  recent?: readonly City[] | undefined
   className?: string | undefined
   ref?: Ref<HTMLInputElement>
 }
+
+/**
+ * `hits` is the filtered list once something is typed; the other three are
+ * the lists an untouched field opens with.
+ */
+type SectionKey = 'recent' | 'popular' | 'all' | 'hits'
 
 interface Option {
   city: City
@@ -48,11 +60,29 @@ interface Option {
   end: number
   /** 0 = name prefix, 1 = name substring, 2 = plate. Lower sorts first. */
   rank: number
+  /** A city can sit in two lists at once, so element ids carry the list too. */
+  section: SectionKey
 }
 
-const ALL_OPTIONS: readonly Option[] = [...CITIES]
-  .sort((a, b) => compareTr(a.name, b.name))
-  .map((city) => ({ city, start: 0, end: 0, rank: 0 }))
+interface Section {
+  key: SectionKey
+  options: readonly Option[]
+}
+
+const SORTED_CITIES: readonly City[] = [...CITIES].sort((a, b) => compareTr(a.name, b.name))
+
+/**
+ * Where most coach trips start and end, in that order rather than A to Z:
+ * opening the list on Adana, Afyon and Aksaray made everyone scroll past
+ * cities they were not looking for to reach the ones nearly everyone is.
+ */
+const POPULAR: readonly City[] = ['34', '6', '35', '7', '16', '1']
+  .map((id) => cityById(id))
+  .filter((city): city is City => city !== undefined)
+
+function plainOptions(cities: readonly City[], section: SectionKey): Option[] {
+  return cities.map((city) => ({ city, start: 0, end: 0, rank: 0, section }))
+}
 
 /**
  * `foldTr` strips diacritics through NFD, which is length-preserving for every
@@ -64,12 +94,14 @@ function match(city: City, folded: string): Option | null {
   const name = foldTr(city.name)
   if (name.length === city.name.length) {
     const at = name.indexOf(folded)
-    if (at === 0) return { city, start: 0, end: folded.length, rank: 0 }
-    if (at > 0) return { city, start: at, end: at + folded.length, rank: 1 }
+    if (at === 0) return { city, start: 0, end: folded.length, rank: 0, section: 'hits' }
+    if (at > 0) return { city, start: at, end: at + folded.length, rank: 1, section: 'hits' }
   } else if (name.includes(folded)) {
-    return { city, start: 0, end: 0, rank: 1 }
+    return { city, start: 0, end: 0, rank: 1, section: 'hits' }
   }
-  if (String(city.plate).startsWith(folded)) return { city, start: 0, end: 0, rank: 2 }
+  if (String(city.plate).startsWith(folded)) {
+    return { city, start: 0, end: 0, rank: 2, section: 'hits' }
+  }
   return null
 }
 
@@ -84,6 +116,7 @@ export function CityCombobox({
   size = 'lg',
   flush,
   bare,
+  recent,
   className,
   ref,
 }: CityComboboxProps) {
@@ -108,19 +141,38 @@ export function CityCombobox({
 
   const text = dirty ? query : (value?.name ?? '')
 
-  const options = useMemo<readonly Option[]>(() => {
-    const pool = excludeCityId
-      ? ALL_OPTIONS.filter((o) => o.city.id !== excludeCityId)
-      : ALL_OPTIONS
+  const sections = useMemo<readonly Section[]>(() => {
+    const allowed = (cities: readonly City[]) =>
+      excludeCityId ? cities.filter((city) => city.id !== excludeCityId) : cities
     const folded = dirty ? foldTr(query) : ''
-    if (folded.length === 0) return pool
+    if (folded.length === 0) {
+      const untouched: Section[] = [
+        { key: 'recent', options: plainOptions(allowed(recent ?? []), 'recent') },
+        { key: 'popular', options: plainOptions(allowed(POPULAR), 'popular') },
+        { key: 'all', options: plainOptions(allowed(SORTED_CITIES), 'all') },
+      ]
+      return untouched.filter((section) => section.options.length > 0)
+    }
     const hits: Option[] = []
-    for (const option of pool) {
-      const hit = match(option.city, folded)
+    for (const city of allowed(SORTED_CITIES)) {
+      const hit = match(city, folded)
       if (hit) hits.push(hit)
     }
-    return hits.sort((a, b) => a.rank - b.rank || compareTr(a.city.name, b.city.name))
-  }, [dirty, query, excludeCityId])
+    hits.sort((a, b) => a.rank - b.rank || compareTr(a.city.name, b.city.name))
+    return [{ key: 'hits', options: hits }]
+  }, [dirty, query, excludeCityId, recent])
+
+  /** Every option in display order, which is the order the arrow keys walk. */
+  const options = useMemo(() => sections.flatMap((section) => section.options), [sections])
+  /** The cities on offer, counted once each even when a city is in two lists. */
+  const listedCount = sections.at(-1)?.options.length ?? 0
+
+  const sectionLabel: Record<SectionKey, string | null> = {
+    recent: t('search.recentCities'),
+    popular: t('search.popularCities'),
+    all: t('search.allCities'),
+    hits: null,
+  }
 
   const reset = useCallback(() => {
     setOpen(false)
@@ -217,9 +269,79 @@ export function CityCombobox({
     }
   }
 
+  const optionId = (option: Option) => `${reactId}-${option.section}-${option.city.id}`
   const activeOption = activeIndex >= 0 ? options[activeIndex] : undefined
-  const activeId = activeOption ? `${reactId}-${activeOption.city.id}` : undefined
+  const activeId = activeOption ? optionId(activeOption) : undefined
   const describedBy = error ? `${errorId} ${statusId}` : statusId
+
+  const renderOption = (option: Option, index: number) => {
+    const { city } = option
+    const active = index === activeIndex
+    const chosen = city.id === value?.id
+    return (
+      <li
+        key={`${option.section}-${city.id}`}
+        id={optionId(option)}
+        role="option"
+        aria-selected={active}
+        data-active={active}
+        onMouseDown={(event) => event.preventDefault()}
+        onMouseMove={() => setActiveIndex(index)}
+        onClick={() => commit(option)}
+        className={cn(
+          'flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2',
+          'transition-colors duration-(--duration-fast)',
+          active ? 'bg-brand/8' : 'bg-transparent',
+        )}
+      >
+        <span
+          className={cn(
+            'grid size-8 shrink-0 place-items-center rounded-lg',
+            active ? 'bg-brand/15 text-brand-fg' : 'bg-surface-sunken text-fg-muted',
+          )}
+          aria-hidden="true"
+        >
+          {/* A clock on the cities this browser searched before, so the
+              short list at the top reads as "yours" without a word of copy. */}
+          {option.section === 'recent' ? (
+            <History className="size-4" />
+          ) : (
+            <AssetIcon src={ICON.point} className="size-4" />
+          )}
+        </span>
+
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-base font-medium text-fg">
+            {option.end > option.start ? (
+              <>
+                {city.name.slice(0, option.start)}
+                <mark className="rounded-xs bg-brand/15 text-inherit">
+                  {city.name.slice(option.start, option.end)}
+                </mark>
+                {city.name.slice(option.end)}
+              </>
+            ) : (
+              city.name
+            )}
+          </span>
+        </span>
+
+        <span
+          className="shrink-0 text-2xs font-semibold text-fg-subtle"
+          data-numeric
+          aria-hidden="true"
+        >
+          {city.plate}
+        </span>
+
+        {chosen ? <Check className="size-4 shrink-0 text-brand-fg" aria-hidden="true" /> : null}
+      </li>
+    )
+  }
+
+  // Running index into `options`, so each row knows its place in the walk
+  // the arrow keys take across all the lists.
+  let flatIndex = 0
 
   return (
     <div className={cn('relative', className)} ref={rootRef}>
@@ -315,7 +437,7 @@ export function CityCombobox({
           }}
           className={cn(
             'w-full min-w-0 bg-transparent font-medium text-fg',
-            'placeholder:font-normal placeholder:text-fg-subtle',
+            'placeholder:font-normal',
             size === 'lg' ? 'h-11 pl-10 text-base sm:h-14 sm:text-lg' : 'h-11 pl-8 text-base',
             'pr-3',
             // Under a floating label the value sits low, leaving the caption
@@ -346,7 +468,7 @@ export function CityCombobox({
               // reads as the field's own prompt.
               'translate-y-6 scale-100',
               // Lifted, leaving the value its line underneath.
-              'group-data-float:translate-y-[3px] group-data-float:scale-75',
+              'group-data-float:translate-y-0.75 group-data-float:scale-75',
             )}
           >
             {label}
@@ -355,7 +477,7 @@ export function CityCombobox({
       </div>
 
       <VisuallyHidden id={statusId} aria-live="polite">
-        {open ? t('search.listing', { count: options.length }) : ''}
+        {open ? t('search.listing', { count: listedCount }) : ''}
       </VisuallyHidden>
 
       {error ? (
@@ -382,63 +504,25 @@ export function CityCombobox({
             <p className="mt-1 text-xs text-fg-muted">{t('search.noResultsHint')}</p>
           </li>
         ) : (
-          options.map((option, index) => {
-            const { city } = option
-            const active = index === activeIndex
-            const chosen = city.id === value?.id
+          sections.map((section) => {
+            const heading = sectionLabel[section.key]
+            const rows = section.options.map((option) => renderOption(option, flatIndex++))
+            if (!heading) return rows
+            // A listbox may only own options and groups, so the heading lives
+            // inside its group: named for assistive tech by `aria-label`, and
+            // the visible line hidden from it so the name is not read twice.
             return (
-              <li
-                key={city.id}
-                id={`${reactId}-${city.id}`}
-                role="option"
-                aria-selected={active}
-                data-active={active}
-                onMouseDown={(event) => event.preventDefault()}
-                onMouseMove={() => setActiveIndex(index)}
-                onClick={() => commit(option)}
-                className={cn(
-                  'flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2',
-                  'transition-colors duration-(--duration-fast)',
-                  active ? 'bg-brand/8' : 'bg-transparent',
-                )}
-              >
-                <span
-                  className={cn(
-                    'grid size-8 shrink-0 place-items-center rounded-lg',
-                    active ? 'bg-brand/15 text-brand-fg' : 'bg-surface-sunken text-fg-muted',
-                  )}
-                  aria-hidden="true"
-                >
-                  <AssetIcon src={ICON.point} className="size-4" />
-                </span>
-
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-base font-medium text-fg">
-                    {option.end > option.start ? (
-                      <>
-                        {city.name.slice(0, option.start)}
-                        <mark className="rounded-xs bg-brand/15 text-inherit">
-                          {city.name.slice(option.start, option.end)}
-                        </mark>
-                        {city.name.slice(option.end)}
-                      </>
-                    ) : (
-                      city.name
-                    )}
-                  </span>
-                </span>
-
-                <span
-                  className="shrink-0 text-2xs font-semibold text-fg-subtle"
-                  data-numeric
-                  aria-hidden="true"
-                >
-                  {city.plate}
-                </span>
-
-                {chosen ? (
-                  <Check className="size-4 shrink-0 text-brand-fg" aria-hidden="true" />
-                ) : null}
+              <li key={section.key} role="none">
+                <ul role="group" aria-label={heading}>
+                  <li
+                    role="none"
+                    aria-hidden="true"
+                    className="px-3 pt-2.5 pb-1 text-2xs font-semibold tracking-wide text-fg-muted uppercase"
+                  >
+                    {heading}
+                  </li>
+                  {rows}
+                </ul>
               </li>
             )
           })
