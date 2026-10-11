@@ -1,17 +1,28 @@
 import { useEffect, useMemo } from 'react'
 import { Link, useParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
-import { Armchair, ArrowRight, BedDouble, Bus, Coffee, Snowflake, Sparkles } from 'lucide-react'
-import type { ComponentType, ReactNode, SVGProps } from 'react'
+import {
+  Armchair,
+  ArrowRight,
+  BedDouble,
+  Bus,
+  CircleCheck,
+  Coffee,
+  ShieldCheck,
+  Snowflake,
+  Sparkles,
+  Tv,
+  Usb,
+  Wifi,
+  type LucideIcon,
+} from 'lucide-react'
 import { PageHeader, Prose } from '@/shared/ui/page-header'
 import { Badge } from '@/shared/ui/badge'
 import { Button } from '@/shared/ui/button'
 import { Card, CardBody } from '@/shared/ui/card'
 import { Skeleton } from '@/shared/ui/skeleton'
 import { OperatorLogo } from '@/shared/ui/operator-logo'
-import { AssetIcon } from '@/shared/ui/asset-icon'
 import { VisuallyHidden } from '@/shared/ui/visually-hidden'
-import { ICON } from '@/shared/config/assets'
 import {
   amenityById,
   cityById,
@@ -19,7 +30,7 @@ import {
   type AmenityId,
   type City,
 } from '@/shared/api/catalog'
-import { searchTrips, type Trip } from '@/shared/api/mock-server'
+import { searchTrips, type SearchResult, type Trip } from '@/shared/api/mock-server'
 import { seatMapQuery, tripQuery } from '@/shared/api/queries'
 import { getDeck } from '@/entities/deck/layouts'
 import type { SeatMap } from '@/entities/seat/model'
@@ -36,25 +47,32 @@ import {
 /** How many alternatives are offered at the foot of the page. */
 const SIMILAR_COUNT = 3
 
-type IconComponent = ComponentType<SVGProps<SVGSVGElement>>
-type AmenityArt = { asset: string; Icon?: never } | { asset?: never; Icon: IconComponent }
-
-/** Same split as the results card: house artwork where it exists, lucide otherwise. */
-const AMENITY_ICONS: Record<AmenityId, AmenityArt> = {
-  wifi: { asset: ICON.wireless },
-  usb: { asset: ICON.charge },
-  tv: { asset: ICON.tv },
-  refreshment: { Icon: Coffee },
-  ac: { Icon: Snowflake },
-  blanket: { Icon: BedDouble },
-  hygiene: { asset: ICON.hygiene },
-  'free-cancel': { asset: ICON.cancel },
+/**
+ * The same lucide set as the results card, so an amenity keeps its picture
+ * from the list to this page. The house artwork covered only five of eight.
+ */
+const AMENITY_ICONS: Record<AmenityId, LucideIcon> = {
+  wifi: Wifi,
+  usb: Usb,
+  tv: Tv,
+  refreshment: Coffee,
+  ac: Snowflake,
+  blanket: BedDouble,
+  hygiene: ShieldCheck,
+  'free-cancel': CircleCheck,
 }
 
-function amenityArt(art: AmenityArt): ReactNode {
-  if (art.asset !== undefined) return <AssetIcon src={art.asset} className="size-5" />
-  const Icon = art.Icon
+function AmenityIcon({ id }: { id: AmenityId }) {
+  const Icon = AMENITY_ICONS[id]
   return <Icon className="size-5 shrink-0" aria-hidden="true" />
+}
+
+/**
+ * The day's other departures, cheapest first, that are still on sale. A coach
+ * that has already left is no alternative to the one on this page.
+ */
+function similarTrips(fromId: string, toId: string, date: string): SearchResult['trips'] {
+  return searchTrips({ from: fromId, to: toId, date, sort: 'price_asc', now: Date.now() }).trips
 }
 
 function terminalName(city: City | undefined, terminalId: string): string {
@@ -111,8 +129,8 @@ function TripDetail({
 
   const similar = useMemo(
     () =>
-      searchTrips({ from: from.id, to: to.id, date, sort: 'price_asc' })
-        .trips.filter((candidate) => candidate.id !== trip.id)
+      similarTrips(from.id, to.id, date)
+        .filter((candidate) => candidate.id !== trip.id)
         .slice(0, SIMILAR_COUNT),
     [from.id, to.id, date, trip.id],
   )
@@ -135,7 +153,7 @@ function TripDetail({
         <Card>
           <CardBody className="flex flex-col gap-6">
             <div className="flex flex-wrap items-center gap-4">
-              <OperatorLogo operatorId={trip.operatorId} className="size-16 shrink-0" />
+              <OperatorLogo operatorId={trip.operatorId} variant="plate" className="h-12 w-32" />
               <div className="min-w-0 flex-1">
                 <h2 className="font-display text-lg font-semibold text-fg">{operatorName}</h2>
                 <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-fg-muted">
@@ -243,7 +261,9 @@ function TripDetail({
                     key={id}
                     className="flex items-center gap-3 rounded-lg border border-border bg-surface p-4"
                   >
-                    <span className="text-brand-fg">{amenityArt(AMENITY_ICONS[id])}</span>
+                    <span className="text-brand-fg">
+                      <AmenityIcon id={id} />
+                    </span>
                     <span className="text-sm font-medium text-fg">{amenity.label}</span>
                   </li>
                 )
@@ -481,7 +501,7 @@ function SimilarRow({ trip }: { trip: Trip }) {
       aria-label={`${formatTime(trip.departsAt)} kalkışlı ${operatorName} seferini inceleyin`}
       className="group flex flex-wrap items-center gap-x-5 gap-y-3 rounded-xl border border-border bg-surface p-4 transition-[border-color,box-shadow] duration-(--duration-base) ease-standard hover:border-brand/40 hover:shadow-md"
     >
-      <OperatorLogo operatorId={trip.operatorId} className="size-12 shrink-0" />
+      <OperatorLogo operatorId={trip.operatorId} variant="plate" />
 
       <span className="min-w-0 flex-1 basis-32">
         <span className="block truncate font-display text-sm font-semibold text-fg">

@@ -1,9 +1,10 @@
-import { queryOptions } from '@tanstack/react-query'
+import { keepPreviousData, queryOptions } from '@tanstack/react-query'
 import {
   datePrices,
   getSeatMap,
   getTrip,
   searchTrips,
+  type DayPrice,
   type SearchResult,
   type SortKey,
   type Trip,
@@ -57,8 +58,8 @@ export const queryKeys = {
       'search',
       { from, to, date, filters: canonicalFilters(filters), sort },
     ] as const,
-  datePrices: (from: string, to: string, date: string) =>
-    [...queryKeys.trips(), 'date-prices', { from, to, date }] as const,
+  datePrices: (from: string, to: string, start: string) =>
+    [...queryKeys.trips(), 'date-prices', { from, to, start }] as const,
   trip: (id: string) => [...queryKeys.trips(), 'detail', id] as const,
   seatMap: (id: string) => [...queryKeys.all, 'seat-map', id] as const,
 }
@@ -78,19 +79,28 @@ export function tripSearchQuery(params: {
       params.filters,
       params.sort,
     ),
-    queryFn: () => delay(searchTrips(params)),
+    // The clock is read when the request runs, not when the key is built: it
+    // is not part of the key (it changes every millisecond), and a refetch
+    // after `staleTime` is what drops a coach that has left since.
+    queryFn: () => delay(searchTrips({ ...params, now: Date.now() })),
     // Results are stable for a given query, so keep the previous page visible
-    // while a filter change refetches — that is what keeps CLS at zero.
+    // while a filter change — or another day in the strip — refetches. That is
+    // what keeps CLS at zero and stops the list flashing to skeletons.
     staleTime: 60_000,
     placeholderData: (prev) => prev,
   })
 }
 
-export function datePricesQuery(from: string, to: string, date: string) {
-  return queryOptions({
-    queryKey: queryKeys.datePrices(from, to, date),
-    queryFn: () => delay(datePrices(from, to, date)),
+/** Seven days of cheapest fares from `start`; see `datePrices` for the window. */
+export function datePricesQuery(from: string, to: string, start: string) {
+  return queryOptions<DayPrice[]>({
+    queryKey: queryKeys.datePrices(from, to, start),
+    queryFn: () => delay(datePrices(from, to, start, 7, Date.now())),
     staleTime: 5 * 60_000,
+    // Tapping another day moves the window. The old strip stays on screen
+    // until the new one lands, so the tapped cell never unmounts under the
+    // finger and keeps its focus.
+    placeholderData: keepPreviousData,
   })
 }
 

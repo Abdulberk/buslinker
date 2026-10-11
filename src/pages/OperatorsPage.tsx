@@ -40,7 +40,7 @@ function buildProfiles(date: string): Map<string, OperatorProfile> {
     const origin = cityBySlug(from)
     const destination = cityBySlug(to)
     if (!origin || !destination) return []
-    return [[...searchTrips({ from: origin.id, to: destination.id, date }).trips]]
+    return [[...searchTrips({ from: origin.id, to: destination.id, date, now: Date.now() }).trips]]
   })
 
   const profiles = new Map<string, OperatorProfile>()

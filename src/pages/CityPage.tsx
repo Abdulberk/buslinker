@@ -66,7 +66,13 @@ function buildConnections(
   return pickCities(city, direction).map((other) => {
     const from = direction === 'from' ? city : other
     const to = direction === 'from' ? other : city
-    const result = searchTrips({ from: from.id, to: to.id, date, sort: 'price_asc' })
+    const result = searchTrips({
+      from: from.id,
+      to: to.id,
+      date,
+      sort: 'price_asc',
+      now: Date.now(),
+    })
     const cheapest = result.trips[0]
 
     return {

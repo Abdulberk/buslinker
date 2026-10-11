@@ -16,6 +16,11 @@ import { tokenToLayout, type SeatLayout } from '@/entities/deck/layouts'
  * or stale URL degrades to a sane search instead of throwing a route error.
  */
 
+/**
+ * There is no rating order. The cards no longer show a rating, so a list
+ * sorted by one could not be checked against what is on screen; an old
+ * `?sort=rating_desc` link now parses to the default instead.
+ */
 export const SORT_KEYS = [
   'dep_asc',
   'dep_desc',
@@ -23,8 +28,7 @@ export const SORT_KEYS = [
   'price_desc',
   'duration_asc',
   'arr_asc',
-  'rating_desc',
-] as const
+] as const satisfies readonly SortKey[]
 
 /**
  * Sort orders, by translation key rather than by label: this module is imported
@@ -38,7 +42,6 @@ export const SORT_OPTIONS: { value: SortKey; key: string }[] = [
   { value: 'price_desc', key: 'priceDesc' },
   { value: 'duration_asc', key: 'durationAsc' },
   { value: 'arr_asc', key: 'arrAsc' },
-  { value: 'rating_desc', key: 'ratingDesc' },
 ]
 
 export const DEFAULT_SORT: SortKey = 'dep_asc'

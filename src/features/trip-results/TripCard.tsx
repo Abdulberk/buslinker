@@ -1,17 +1,36 @@
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router'
-import { Armchair, BedDouble, Bus, Coffee, Snowflake } from 'lucide-react'
-import type { CSSProperties, ComponentType, ReactNode, SVGProps } from 'react'
+import {
+  Armchair,
+  BedDouble,
+  Bus,
+  ChevronDown,
+  CircleCheck,
+  Coffee,
+  Moon,
+  ShieldCheck,
+  Snowflake,
+  Tv,
+  Usb,
+  Wifi,
+  type LucideIcon,
+} from 'lucide-react'
+import type { CSSProperties } from 'react'
 import { Button } from '@/shared/ui/button'
 import { Card } from '@/shared/ui/card'
 import { Skeleton } from '@/shared/ui/skeleton'
 import { VisuallyHidden } from '@/shared/ui/visually-hidden'
-import { IconWithLabel } from '@/shared/ui/primitives'
-import { AssetIcon } from '@/shared/ui/asset-icon'
+import { Popover, PopoverContent, PopoverTrigger } from '@/shared/ui/primitives'
 import { OperatorLogo } from '@/shared/ui/operator-logo'
-import { ICON } from '@/shared/config/assets'
 import { cn } from '@/shared/lib/cn'
-import { formatDuration, formatPrice, formatTime } from '@/shared/lib/tr'
+import {
+  formatDuration,
+  formatPrice,
+  formatTime,
+  formatWeekdayShort,
+  isNightDeparture,
+  nightOfLabel,
+} from '@/shared/lib/tr'
 import { amenityById, cityById, operatorById } from '@/shared/api/catalog'
 import type { AmenityId } from '@/shared/api/catalog'
 import { seatPath } from '@/shared/lib/search-params'
@@ -24,7 +43,7 @@ import type { Trip } from '@/shared/api/mock-server'
  * `content-visibility: auto` cause the scroll jumping it is meant to avoid.
  */
 const CARD_BOX = cn(
-  '[--card-min-h:13.25rem] lg:[--card-min-h:11rem]',
+  '[--card-min-h:14rem] lg:[--card-min-h:11rem]',
   'flex min-h-[var(--card-min-h)]',
   // The shadow is on this box, not on the card inside it. `content-visibility:
   // auto` brings paint containment, which clips whatever a descendant paints
@@ -53,39 +72,33 @@ const GRID = cn(
   'lg:grid-cols-[9.5rem_minmax(0,1fr)_auto] lg:items-center lg:gap-6',
 )
 
-type IconComponent = ComponentType<SVGProps<SVGSVGElement>>
+/** The plate is wider on the desktop card, where the carrier has a column. */
+const LOGO_PLATE = 'lg:h-14 lg:w-36'
 
 /**
- * Amenity art, per amenity.
- *
- * The project ships its own 25x24 line icons for five of the eight amenities;
- * those go through `AssetIcon` so they keep the house drawing while still
- * inheriting `text-fg-secondary` from the chip. The remaining three have no
- * artwork of our own, so they stay on lucide rather than being mapped to a
- * near-miss icon that would tell the user the wrong thing.
+ * One icon family for every amenity. The house set drew five of the eight
+ * and lucide the other three, at different stroke weights side by side.
+ * Free cancellation has no icon in the row: it is written out as words, since
+ * it decides a purchase in a way a blanket does not.
  */
-type AmenityArt = { asset: string; Icon?: never } | { asset?: never; Icon: IconComponent }
-
-const AMENITY_ICONS: Record<AmenityId, AmenityArt> = {
-  wifi: { asset: ICON.wireless },
-  usb: { asset: ICON.charge },
-  tv: { asset: ICON.tv },
-  refreshment: { Icon: Coffee },
-  ac: { Icon: Snowflake },
-  blanket: { Icon: BedDouble },
-  hygiene: { asset: ICON.hygiene },
-  'free-cancel': { asset: ICON.cancel },
+const AMENITY_ICONS: Record<Exclude<AmenityId, 'free-cancel'>, LucideIcon> = {
+  wifi: Wifi,
+  usb: Usb,
+  tv: Tv,
+  refreshment: Coffee,
+  ac: Snowflake,
+  blanket: BedDouble,
+  hygiene: ShieldCheck,
 }
 
-function amenityArt(art: AmenityArt): ReactNode {
-  if (art.asset !== undefined) return <AssetIcon src={art.asset} className="size-4" />
-  const Icon = art.Icon
-  return <Icon className="size-4" aria-hidden="true" />
+type IconAmenity = keyof typeof AMENITY_ICONS
+
+function isIconAmenity(id: AmenityId): id is IconAmenity {
+  return id !== 'free-cancel'
 }
 
 const MAX_AMENITY_ICONS = 4
 
-/** Ratings are the one decimal number on this page with no formatter of its own. */
 function terminalName(cityId: string, terminalId: string): string {
   const city = cityById(cityId)
   return city?.terminals.find((t) => t.id === terminalId)?.name ?? city?.name ?? ''
@@ -108,8 +121,22 @@ export function TripCard({ trip, className }: TripCardProps) {
   const fromTerminal = terminalName(trip.fromCityId, trip.fromTerminalId)
   const toTerminal = terminalName(trip.toCityId, trip.toTerminalId)
 
-  const shownAmenities = trip.amenities.slice(0, MAX_AMENITY_ICONS)
-  const hiddenAmenityCount = trip.amenities.length - shownAmenities.length
+  // "Çarşamba 01:30" is read as Wednesday night by most travellers, who then
+  // arrive a day late; the card names the night instead. Turkish takes the
+  // inflected form from `nightOfLabel`, other languages the two weekday names.
+  const night = isNightDeparture(trip.departsAt)
+    ? t('results.nightOf', {
+        night: nightOfLabel(trip.departsAt),
+        eve: formatWeekdayShort(new Date(Date.parse(trip.departsAt) - 86_400_000)),
+        morning: formatWeekdayShort(trip.departsAt),
+      })
+    : null
+
+  const freeCancel = trip.amenities.includes('free-cancel')
+  const iconAmenities = trip.amenities.filter(isIconAmenity)
+  const shownAmenities = iconAmenities.slice(0, MAX_AMENITY_ICONS)
+  const hiddenAmenityCount = iconAmenities.length - shownAmenities.length
+  const amenityLabels = iconAmenities.map((id) => amenityById(id)?.label ?? id)
   const scarce = trip.seatsLeft <= 5
 
   return (
@@ -119,11 +146,18 @@ export function TripCard({ trip, className }: TripCardProps) {
         <div className={GRID}>
           {/* 1 — carrier, and on a phone the fare beside it */}
           <div className="flex items-center gap-3 lg:flex-col lg:items-start lg:gap-2.5">
-            {/* A 64px mark made this row 73px tall to hold a single line of
-                text. 44 is still the largest the logos are legible at. */}
-            <OperatorLogo operatorId={trip.operatorId} className="size-11 lg:size-20" />
+            <OperatorLogo operatorId={trip.operatorId} variant="plate" className={LOGO_PLATE} />
+            {/* On a phone the plate's wordmark is the name, legible at last, so
+                the text is left to screen readers there; the column on a
+                desktop card has room for both. A monogram is not a name, so
+                without a logo file the text always shows. */}
             <div className="min-w-0 flex-1 lg:flex-none">
-              <h3 className="truncate font-display text-sm font-semibold text-fg">
+              <h3
+                className={cn(
+                  'truncate font-display text-sm font-semibold text-fg',
+                  operator?.logo && 'max-lg:sr-only',
+                )}
+              >
                 {operatorName}
               </h3>
             </div>
@@ -144,8 +178,11 @@ export function TripCard({ trip, className }: TripCardProps) {
           <div className="min-w-0">
             <div className="flex items-start gap-2 sm:gap-4">
               <div className="min-w-14 flex-1">
-                <p className="font-display text-xl font-semibold text-fg" data-numeric>
-                  {departure}
+                <p className="flex items-center gap-1 font-display text-xl font-semibold text-fg">
+                  {night ? (
+                    <Moon className="size-4 shrink-0 text-info-fg" aria-hidden="true" />
+                  ) : null}
+                  <span data-numeric>{departure}</span>
                 </p>
                 <p className="mt-0.5 truncate text-sm text-fg-muted">{fromTerminal}</p>
               </div>
@@ -180,33 +217,32 @@ export function TripCard({ trip, className }: TripCardProps) {
               </div>
             </div>
 
-            <div className="mt-2 flex flex-wrap items-center gap-2 sm:mt-3">
+            {night ? <p className="mt-1.5 text-xs text-fg-secondary">{night}</p> : null}
+
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5 sm:mt-3">
               {/* The layout is a fact about the coach, not a status: text, not
                   a badge. */}
-              <span className="inline-flex items-center gap-1 pe-1 text-xs font-medium text-fg-secondary">
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-fg-secondary">
                 <Armchair className="size-3.5" aria-hidden="true" />
                 {trip.seatLayout}
                 <VisuallyHidden> {t('results.seatLayout')}</VisuallyHidden>
               </span>
-              {shownAmenities.map((id) => {
-                const amenity = amenityById(id)
-                if (!amenity) return null
-                return (
-                  <IconWithLabel
-                    key={id}
-                    label={amenity.label}
-                    icon={amenityArt(AMENITY_ICONS[id])}
-                  />
-                )
-              })}
-              {hiddenAmenityCount > 0 ? (
-                <span className="text-xs font-medium text-fg-muted" data-numeric>
-                  +{hiddenAmenityCount}
-                  <VisuallyHidden>
-                    {' '}
-                    {t('results.moreAmenities', { count: hiddenAmenityCount })}
-                  </VisuallyHidden>
+
+              {freeCancel ? (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-success-fg">
+                  <CircleCheck className="size-3.5" aria-hidden="true" />
+                  {t('results.freeCancel')}
                 </span>
+              ) : null}
+
+              {iconAmenities.length > 0 ? (
+                <AmenityList
+                  ids={iconAmenities}
+                  shown={shownAmenities}
+                  hiddenCount={hiddenAmenityCount}
+                  label={t('results.amenitiesList', { list: amenityLabels.join(', ') })}
+                  title={t('results.group.amenities')}
+                />
               ) : null}
             </div>
           </div>
@@ -240,6 +276,7 @@ export function TripCard({ trip, className }: TripCardProps) {
                 {t('results.select')}
                 <VisuallyHidden>
                   {` — ${departure} ${fromCity?.name ?? ''} ${toCity?.name ?? ''} seferi, ${formatPrice(trip.price)}`}
+                  {night ? `, ${night}` : ''}
                 </VisuallyHidden>
               </Link>
             </Button>
@@ -250,16 +287,80 @@ export function TripCard({ trip, className }: TripCardProps) {
   )
 }
 
+/**
+ * The amenity icons, as one button that lists them by name.
+ *
+ * A tooltip per icon only ever opened on hover or keyboard focus, so on a
+ * phone the icons were unexplained. Tapping the row now opens the whole list
+ * with labels, and the button's own name reads every amenity out at once.
+ */
+function AmenityList({
+  ids,
+  shown,
+  hiddenCount,
+  label,
+  title,
+}: {
+  ids: readonly IconAmenity[]
+  shown: readonly IconAmenity[]
+  hiddenCount: number
+  label: string
+  title: string
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            'group -mx-1.5 inline-flex h-8 items-center gap-1.5 rounded-lg px-1.5 text-fg-muted',
+            'transition-colors duration-(--duration-fast) hover:bg-hover hover:text-fg',
+            'data-[state=open]:bg-hover data-[state=open]:text-fg',
+          )}
+        >
+          {shown.map((id) => {
+            const Icon = AMENITY_ICONS[id]
+            return <Icon key={id} className="size-4 shrink-0" aria-hidden="true" />
+          })}
+          {hiddenCount > 0 ? (
+            <span className="text-xs font-medium" aria-hidden="true" data-numeric>
+              +{hiddenCount}
+            </span>
+          ) : null}
+          <ChevronDown
+            className="size-3.5 shrink-0 transition-transform duration-(--duration-fast) group-data-[state=open]:rotate-180"
+            aria-hidden="true"
+          />
+          <VisuallyHidden>{label}</VisuallyHidden>
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-60 p-3">
+        <p className="mb-2 text-xs font-semibold text-fg-muted">{title}</p>
+        <ul className="space-y-2">
+          {ids.map((id) => {
+            const Icon = AMENITY_ICONS[id]
+            return (
+              <li key={id} className="flex items-center gap-2 text-sm text-fg">
+                <Icon className="size-4 shrink-0 text-fg-muted" aria-hidden="true" />
+                {amenityById(id)?.label ?? id}
+              </li>
+            )
+          })}
+        </ul>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
 export function TripCardSkeleton({ className }: { className?: string }) {
   return (
     <div className={cn(CARD_BOX, className)} style={CARD_BOX_STYLE} aria-hidden="true">
       <Card className="flex w-full flex-col overflow-hidden border-0 shadow-none">
         <div className={GRID}>
           <div className="flex items-center gap-3 lg:flex-col lg:items-start lg:gap-2.5">
-            <Skeleton className="size-11 shrink-0 rounded-lg" />
-            <div className="flex-1 space-y-1.5 lg:w-full lg:flex-none">
-              <Skeleton className="h-4 w-28" />
-              <Skeleton className="h-3 w-12" />
+            <Skeleton className={cn('h-10 w-28 shrink-0 rounded-lg', LOGO_PLATE)} />
+            <div className="flex-1 lg:w-full lg:flex-none">
+              <Skeleton className="hidden h-4 w-28 lg:block" />
             </div>
             {/* Stands in for the fare that sits here below lg. */}
             <Skeleton className="h-6 w-20 shrink-0 lg:hidden" />
@@ -282,7 +383,7 @@ export function TripCardSkeleton({ className }: { className?: string }) {
             </div>
             <div className="mt-3 flex items-center gap-2">
               <Skeleton className="h-4 w-10" />
-              <Skeleton className="size-5 rounded" />
+              <Skeleton className="h-4 w-24" />
               <Skeleton className="size-5 rounded" />
               <Skeleton className="size-5 rounded" />
               <Skeleton className="size-5 rounded" />
@@ -291,8 +392,6 @@ export function TripCardSkeleton({ className }: { className?: string }) {
 
           <div
             className={cn(
-              // No rule between the journey and the fare: the price is set
-              // large enough to be its own column.
               'flex items-end justify-between gap-3 pt-1',
               'lg:flex-col lg:items-end lg:justify-center lg:gap-3 lg:pt-0',
             )}

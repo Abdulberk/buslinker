@@ -40,6 +40,12 @@ describe('parseSearchState', () => {
     expect(parse('sort=price_asc').sort).toBe('price_asc')
   })
 
+  // The rating order was withdrawn when the cards stopped showing a rating.
+  // A bookmarked link must still open, in an order the list can be read by.
+  it('maps the withdrawn rating order to the default', () => {
+    expect(parse('sort=rating_desc').sort).toBe(DEFAULT_SORT)
+  })
+
   it('ignores a non-numeric or negative price bound', () => {
     expect(parse('pmin=abc').filters.priceMin).toBeUndefined()
     expect(parse('pmin=-5').filters.priceMin).toBeUndefined()

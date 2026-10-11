@@ -66,6 +66,7 @@ function buildDepartures(match: TerminalMatch, date: string): readonly Departure
       // Prices must come from the filtered list: `priceBounds` is computed
       // before the terminal filter is applied and would undercut the rows.
       filters: { fromTerminals: [terminal.id] },
+      now: Date.now(),
       sort: 'price_asc',
     })
 

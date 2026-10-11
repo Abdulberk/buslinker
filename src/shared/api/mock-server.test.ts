@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { datePrices, getSeatMap, getTrip, searchTrips } from './mock-server'
+import { datePrices, getSeatMap, getTrip, SALES_CUTOFF_MS, searchTrips } from './mock-server'
 import { formatTime, toISODate } from '@/shared/lib/tr'
 
 const QUERY = { from: '34', to: '6', date: '2026-09-04' } as const
@@ -247,16 +247,68 @@ describe('getSeatMap', () => {
 })
 
 describe('datePrices', () => {
-  it('returns a symmetric window around the requested day', () => {
-    const strip = datePrices('34', '6', '2026-09-04')
+  it('returns the requested number of days, starting on the given one', () => {
+    const strip = datePrices('34', '6', '2026-09-01')
     expect(strip).toHaveLength(7)
+    expect(strip[0]?.date).toBe('2026-09-01')
     expect(strip[3]?.date).toBe('2026-09-04')
+    expect(datePrices('34', '6', '2026-09-01', 3)).toHaveLength(3)
   })
 
   it('reports the cheapest fare that day', () => {
-    const strip = datePrices('34', '6', '2026-09-04')
-    const middle = strip[3]!
+    const strip = datePrices('34', '6', '2026-09-01')
+    const day = strip[3]!
     const search = searchTrips(QUERY)
-    expect(middle.minPrice).toBe(Math.min(...search.trips.map((t) => t.price)))
+    expect(day.minPrice).toBe(Math.min(...search.trips.map((t) => t.price)))
+    expect(day.count).toBe(search.total)
+  })
+
+  it('counts only the trips still on sale when given the time', () => {
+    const { trips } = searchTrips(QUERY)
+    const now = Date.parse(trips[Math.floor(trips.length / 2)]!.departsAt)
+    const [day] = datePrices('34', '6', '2026-09-04', 1, now)
+    const onSale = searchTrips({ ...QUERY, now })
+    expect(day?.count).toBe(onSale.total)
+    expect(day?.count).toBeLessThan(trips.length)
+    // Once the last coach has gone the day has no fare at all, not a stale one.
+    const late = Date.parse(trips.at(-1)!.departsAt)
+    expect(datePrices('34', '6', '2026-09-04', 1, late)[0]).toMatchObject({
+      count: 0,
+      minPrice: null,
+    })
+  })
+})
+
+describe('searchTrips — departed coaches', () => {
+  // A coach that has already left was listed with a live "Koltuk Seç" on
+  // today's results and on the route landing page.
+  const { trips: timetable } = searchTrips(QUERY)
+  const middle = timetable[Math.floor(timetable.length / 2)]!
+
+  it('lists only trips leaving more than the sales cutoff after now', () => {
+    const now = Date.parse(middle.departsAt) - SALES_CUTOFF_MS + 60_000
+    const { trips, total, totalUnfiltered } = searchTrips({ ...QUERY, now })
+    expect(trips.length).toBeGreaterThan(0)
+    expect(trips.length).toBeLessThan(timetable.length)
+    for (const trip of trips) {
+      expect(Date.parse(trip.departsAt) - now).toBeGreaterThan(SALES_CUTOFF_MS)
+    }
+    // The coach inside the cutoff is gone too, not only the ones that left.
+    expect(trips.map((t) => t.id)).not.toContain(middle.id)
+    // Counts and bounds describe what can be bought, not the whole timetable.
+    expect(total).toBe(trips.length)
+    expect(totalUnfiltered).toBe(trips.length)
+  })
+
+  it('keeps the ids of the remaining trips, so a deep link still resolves', () => {
+    const now = Date.parse(middle.departsAt)
+    const { trips } = searchTrips({ ...QUERY, now })
+    for (const trip of trips) {
+      expect(getTrip(trip.id)?.departsAt).toBe(trip.departsAt)
+    }
+  })
+
+  it('returns the whole timetable when no time is given', () => {
+    expect(searchTrips(QUERY).total).toBe(timetable.length)
   })
 })

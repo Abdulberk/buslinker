@@ -35,7 +35,13 @@ function buildRows(date: string): readonly RouteRow[] {
     const destination = cityBySlug(to)
     if (!origin || !destination) return []
 
-    const result = searchTrips({ from: origin.id, to: destination.id, date, sort: 'price_asc' })
+    const result = searchTrips({
+      from: origin.id,
+      to: destination.id,
+      date,
+      sort: 'price_asc',
+      now: Date.now(),
+    })
     const cheapest = result.trips[0]
 
     return [

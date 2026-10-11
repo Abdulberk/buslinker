@@ -128,6 +128,7 @@ function buildSnapshot(operatorId: string, date: string): OperatorSnapshot {
       to: destination.id,
       date,
       filters: { operators: [operatorId] },
+      now: Date.now(),
       sort: 'price_asc',
     })
 

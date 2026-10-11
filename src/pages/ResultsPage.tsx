@@ -1,14 +1,15 @@
-import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Link, useParams, useSearchParams } from 'react-router'
+import { Link, useLocation, useParams, useSearchParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
-import { CompassIcon } from 'lucide-react'
+import { ArrowRight, CompassIcon, Pencil } from 'lucide-react'
 import { SearchForm } from '@/features/search-form/SearchForm'
 import { Button } from '@/shared/ui/button'
-import { Dialog, DialogClose, DialogContent } from '@/shared/ui/primitives'
+import { Dialog, DialogClose, DialogContent, DialogTrigger } from '@/shared/ui/primitives'
+import { VisuallyHidden } from '@/shared/ui/visually-hidden'
 import { cn } from '@/shared/lib/cn'
-import { formatDateLong, fromISODate, isValidISODate, toISODate } from '@/shared/lib/tr'
-import { useIsDesktop } from '@/shared/lib/use-media-query'
+import { formatDateLong, fromISODate, isValidISODate } from '@/shared/lib/tr'
+import { useIsDesktop, useMediaQuery } from '@/shared/lib/use-media-query'
 import {
   countActiveFilters,
   parseSearchState,
@@ -21,7 +22,7 @@ import type { SortKey, TripFilters } from '@/shared/api/mock-server'
 import { TripCard } from '@/features/trip-results/TripCard'
 import { FilterRail } from '@/features/trip-results/FilterRail'
 import { SortBar } from '@/features/trip-results/SortBar'
-import { DateStrip } from '@/features/trip-results/DateStrip'
+import { DateStrip, dateStripStart } from '@/features/trip-results/DateStrip'
 import { ActiveFilters } from '@/features/trip-results/ActiveFilters'
 import { ResultsEmpty, ResultsError, ResultsLoading } from '@/features/trip-results/ResultStates'
 
@@ -57,11 +58,14 @@ export default function ResultsPage() {
 
   if (!valid || !cities) return <InvalidSearch route={route} date={date} dateValid={dateValid} />
 
-  // Remounting on route change keeps every piece of local state (the sheet, the
-  // price draft, the announcement) honest without a pile of reset effects.
+  // Remounting on a new route keeps every piece of local state (the sheets,
+  // the price draft, the announcement) honest without a pile of reset effects.
+  // Another day on the same route does NOT remount: the queries then hold the
+  // previous day's results and strip on screen, dimmed, until the new ones
+  // land, instead of flashing the whole page to skeletons on every tap.
   return (
     <ResultsView
-      key={`${cities.from.id}-${cities.to.id}-${date}`}
+      key={`${cities.from.id}-${cities.to.id}`}
       from={cities.from}
       to={cities.to}
       date={date}
@@ -82,15 +86,26 @@ function ResultsView({ from, to, date }: { from: City; to: City; date: string })
   const isDesktop = useIsDesktop()
   const sheetOpen = sheetRequested && !isDesktop
 
+  // Below sm the search is a two-line summary and the form opens in a sheet.
+  // Only one form is ever mounted, so the two never share field ids.
+  const isWide = useMediaQuery('(min-width: 40rem)')
+  const location = useLocation()
+  // The sheet belongs to the location it was opened at: any navigation — a
+  // submitted search, another day — closes it without an effect.
+  const [searchSheetAt, setSearchSheetAt] = useState<string | null>(null)
+  const searchSheetOpen = searchSheetAt === location.key && !isWide
+
   const query = useQuery(tripSearchQuery({ from: from.id, to: to.id, date, filters, sort }))
-  const { data, isPending, isError, isFetching, refetch } = query
+  const { data, isPending, isError, isFetching, isPlaceholderData, refetch } = query
   const total = data?.total ?? 0
 
-  const datePrices = useQuery(datePricesQuery(from.id, to.id, date))
+  const datePrices = useQuery(datePricesQuery(from.id, to.id, dateStripStart(date)))
 
+  const resultsRef = useRef<HTMLElement>(null)
   const write = useCallback(
     (next: { sort: SortKey; filters: TripFilters }) => {
       setSearchParams(serializeSearchState(next), { replace: true, preventScrollReset: true })
+      revealTop(resultsRef.current)
     },
     [setSearchParams],
   )
@@ -120,11 +135,10 @@ function ResultsView({ from, to, date }: { from: City; to: City; date: string })
   const nearestDate = useMemo(() => {
     const days = datePrices.data
     if (!days) return undefined
-    // Istanbul, not the viewer: otherwise a day still on sale in Turkey is
-    // skipped as past, or a departed day is offered.
-    const today = toISODate(new Date())
+    // The strip never holds a past day, and on today it counts only coaches
+    // still on sale, so any day with a count can be offered as it is.
     const candidates = days
-      .filter((d) => d.count > 0 && d.date !== date && d.date >= today)
+      .filter((d) => d.count > 0 && d.date !== date)
       .sort(
         (a, b) =>
           Math.abs(fromISODate(a.date).getTime() - fromISODate(date).getTime()) -
@@ -146,7 +160,44 @@ function ResultsView({ from, to, date }: { from: City; to: City; date: string })
           <h1 className="sr-only">
             {from.name} — {to.name} otobüs bileti, {formatDateLong(date)}
           </h1>
-          <SearchForm variant="compact" initial={{ from, to, date }} />
+          {isWide ? (
+            // Keyed on the day: the form keeps its fields in local state, and
+            // a day picked in the strip no longer remounts the page.
+            <SearchForm key={date} variant="compact" initial={{ from, to, date }} />
+          ) : (
+            <Dialog
+              open={searchSheetOpen}
+              onOpenChange={(open) => setSearchSheetAt(open ? location.key : null)}
+            >
+              <div className="flex items-center gap-3 rounded-2xl bg-surface py-3 ps-4 pe-3 shadow-sm ring-1 ring-border">
+                {/* Repeats the heading above for sighted users, so it is not
+                    a heading itself. */}
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-1.5 font-display text-base font-semibold text-fg">
+                    <span className="truncate">{from.name}</span>
+                    <ArrowRight className="size-4 shrink-0 text-fg-muted" aria-hidden="true" />
+                    <VisuallyHidden> — </VisuallyHidden>
+                    <span className="truncate">{to.name}</span>
+                  </p>
+                  <p className="mt-0.5 truncate text-sm text-fg-secondary">
+                    {formatDateLong(date)}
+                  </p>
+                </div>
+                <DialogTrigger asChild>
+                  <Button variant="secondary" size="sm" className="shrink-0">
+                    <Pencil className="size-4" aria-hidden="true" />
+                    {t('results.change')}
+                    <VisuallyHidden>: {t('results.changeSearch')}</VisuallyHidden>
+                  </Button>
+                </DialogTrigger>
+              </div>
+              <DialogContent side="bottom" title={t('results.changeSearch')}>
+                <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+                  <SearchForm variant="compact" initial={{ from, to, date }} />
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
       </div>
 
@@ -167,9 +218,13 @@ function ResultsView({ from, to, date }: { from: City; to: City; date: string })
             {rail}
           </aside>
 
-          <section className="min-w-0" aria-label="Sefer sonuçları">
+          <section
+            ref={resultsRef}
+            className="min-w-0 scroll-mt-(--header-h,4rem) lg:scroll-mt-(--header-h,4.5rem)"
+            aria-label="Sefer sonuçları"
+          >
             <SortBar
-              total={total}
+              total={data?.total}
               sort={sort}
               onSortChange={onSortChange}
               onOpenFilters={() => setSheetRequested(true)}
@@ -247,8 +302,19 @@ function ResultsView({ from, to, date }: { from: City; to: City; date: string })
           </div>
           <div className="border-t border-border bg-surface px-5 py-4">
             <DialogClose asChild>
-              <Button variant="primary" size="lg" full>
-                {t('results.showAll', { count: total })}
+              <Button variant="primary" size="lg" full aria-busy={isPlaceholderData || undefined}>
+                {/* The count follows the filters live. Until a result exists,
+                    and when it is empty, there is no number worth showing. */}
+                <span
+                  className={cn(
+                    'transition-opacity duration-(--duration-base)',
+                    isPlaceholderData && 'opacity-70',
+                  )}
+                >
+                  {data && total > 0
+                    ? t('results.showAll', { count: total })
+                    : t('results.showResults')}
+                </span>
               </Button>
             </DialogClose>
           </div>
@@ -256,6 +322,20 @@ function ResultsView({ from, to, date }: { from: City; to: City; date: string })
       </Dialog>
     </>
   )
+}
+
+/**
+ * After a filter or sort change the list starts over, so its top is brought
+ * back into view — but only when it has scrolled away under the header. The
+ * section's `scroll-margin-top` is the header's height, which both places it
+ * and tells whether it is hidden. Instant under reduced motion.
+ */
+function revealTop(section: HTMLElement | null) {
+  if (!section) return
+  const margin = Number.parseFloat(getComputedStyle(section).scrollMarginTop) || 0
+  if (section.getBoundingClientRect().top >= margin) return
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  section.scrollIntoView({ block: 'start', behavior: reduce ? 'instant' : 'smooth' })
 }
 
 function InvalidSearch({

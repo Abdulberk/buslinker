@@ -59,8 +59,13 @@ export interface TripFilters {
   readonly priceMax?: number
 }
 
+/**
+ * No rating order: the cards stopped showing a rating, and an order the user
+ * cannot check against the list reads as arbitrary. An old `?sort=rating_desc`
+ * link falls back to the default through the URL parser.
+ */
 export type SortKey =
-  'dep_asc' | 'dep_desc' | 'price_asc' | 'price_desc' | 'duration_asc' | 'arr_asc' | 'rating_desc'
+  'dep_asc' | 'dep_desc' | 'price_asc' | 'price_desc' | 'duration_asc' | 'arr_asc'
 
 export interface FacetBucket {
   readonly value: string
@@ -81,6 +86,26 @@ export interface SearchResult {
     readonly toTerminals: readonly FacetBucket[]
   }
   readonly priceBounds: { readonly min: number; readonly max: number }
+  /**
+   * For each ACTIVE filter group, how many trips the search would return with
+   * that one group dropped and every other filter kept. This is what lets an
+   * empty result say which filter emptied it ("“Gece” filtresini kaldır · 3
+   * sefer") instead of only offering to clear everything. Groups that are not
+   * set are absent.
+   */
+  readonly relaxed: Partial<Record<FacetKey | 'price', number>>
+}
+
+/**
+ * Sales close this long before departure, as they do at the counter. A coach
+ * leaving in five minutes cannot be boarded by someone still choosing a seat,
+ * so it is not offered.
+ */
+export const SALES_CUTOFF_MS = 15 * 60_000
+
+/** True while a trip can still be sold at `now`. */
+export function onSale(trip: Pick<Trip, 'departsAt'>, now: number): boolean {
+  return Date.parse(trip.departsAt) - now > SALES_CUTOFF_MS
 }
 
 const AMENITY_IDS = AMENITIES.map((a) => a.id)
@@ -189,7 +214,7 @@ const PREDICATES = {
   toTerminals: (t: Trip, values: readonly string[]) => values.includes(t.toTerminalId),
 } as const
 
-type FacetKey = keyof typeof PREDICATES
+export type FacetKey = keyof typeof PREDICATES
 
 const FACET_KEYS = Object.keys(PREDICATES) as FacetKey[]
 
@@ -231,7 +256,30 @@ const SORTERS: Record<SortKey, (a: Trip, b: Trip) => number> = {
   price_desc: (a, b) => b.price - a.price || a.departsAt.localeCompare(b.departsAt),
   duration_asc: (a, b) => a.durationMin - b.durationMin || a.price - b.price,
   arr_asc: (a, b) => a.arrivesAt.localeCompare(b.arrivesAt),
-  rating_desc: (a, b) => b.rating - a.rating || a.price - b.price,
+}
+
+function withoutPrice(filters: TripFilters): TripFilters {
+  const next = { ...filters }
+  delete next.priceMin
+  delete next.priceMax
+  return next
+}
+
+/**
+ * Every trip on the timetable for that day, or only the ones still on sale.
+ *
+ * `now` is explicit rather than read from the clock in here. Callers that show
+ * trips to a traveller pass `Date.now()` (the query layer does, and so does
+ * every page that calls this directly), so a coach that has already left is
+ * never listed with a live "Koltuk Seç". Leaving it out returns the whole
+ * timetable, which is what fixtures pinned to a fixed date rely on.
+ */
+function tripsFor(from: string, to: string, date: string, now: number | undefined): Trip[] {
+  const all = generateTrips(from, to, date)
+  // Filtered AFTER the ids are assigned: an id is the trip's index in the
+  // full day, so `getTrip(id)` keeps resolving the same departure however
+  // many earlier ones have since left.
+  return now === undefined ? all : all.filter((trip) => onSale(trip, now))
 }
 
 export function searchTrips(params: {
@@ -240,8 +288,12 @@ export function searchTrips(params: {
   date: string
   filters?: TripFilters
   sort?: SortKey
+  /** The moment sales are judged against; see `tripsFor`. */
+  now?: number
 }): SearchResult {
-  const all = generateTrips(params.from, params.to, params.date)
+  // Departed trips go before anything else is computed, so the total, the
+  // facet counts and the price bounds all describe trips that can be bought.
+  const all = tripsFor(params.from, params.to, params.date, params.now)
   const filters = params.filters ?? {}
   const sort = params.sort ?? 'dep_asc'
 
@@ -271,10 +323,24 @@ export function searchTrips(params: {
 
   const prices = all.map((t) => t.price)
 
+  // Only active groups are relaxed; for an OR group this equals the sum of
+  // its bucket counts, but the AND group (amenities) and the price range have
+  // no buckets that add up, so all of them are counted the same direct way.
+  const relaxed: Partial<Record<FacetKey | 'price', number>> = {}
+  for (const key of FACET_KEYS) {
+    if (activeValues(filters, key).length > 0) {
+      relaxed[key] = applyFilters(all, filters, key).length
+    }
+  }
+  if (filters.priceMin !== undefined || filters.priceMax !== undefined) {
+    relaxed.price = applyFilters(all, withoutPrice(filters)).length
+  }
+
   return {
     trips,
     total: trips.length,
     totalUnfiltered: all.length,
+    relaxed,
     facets: {
       bands: [
         { value: 'morning', label: 'Sabah', count: bandCounts.get('morning') ?? 0 },
@@ -309,15 +375,36 @@ export function searchTrips(params: {
   }
 }
 
-/** Cheapest fare per day for the +/-3 day strip above the results. */
-export function datePrices(from: string, to: string, date: string, span = 3) {
-  const base = fromISODate(date)
-  const out: { date: string; minPrice: number | null; count: number }[] = []
-  for (let offset = -span; offset <= span; offset++) {
+export interface DayPrice {
+  readonly date: string
+  /** The cheapest fare that is still on sale that day, or null when none is. */
+  readonly minPrice: number | null
+  readonly count: number
+}
+
+/**
+ * Cheapest fare per day for `days` consecutive days from `start`.
+ *
+ * The caller chooses the window rather than this centring one on a date: the
+ * results strip starts at max(today, date − 3), and a strip centred on today
+ * spent three of its seven cells on days that can no longer be booked. With
+ * `now`, a day counts only the trips still on sale, so today's cell shows what
+ * is actually left — or "sefer yok" once the last coach has gone.
+ */
+export function datePrices(
+  from: string,
+  to: string,
+  start: string,
+  days = 7,
+  now?: number,
+): DayPrice[] {
+  const base = fromISODate(start)
+  const out: DayPrice[] = []
+  for (let offset = 0; offset < days; offset++) {
     const d = new Date(base)
     d.setDate(base.getDate() + offset)
     const iso = toISODateLocal(d)
-    const trips = generateTrips(from, to, iso)
+    const trips = tripsFor(from, to, iso, now)
     out.push({
       date: iso,
       minPrice: trips.length > 0 ? Math.min(...trips.map((t) => t.price)) : null,

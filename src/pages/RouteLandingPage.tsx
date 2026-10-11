@@ -14,7 +14,13 @@ import {
   operatorById,
   type City,
 } from '@/shared/api/catalog'
-import { datePrices, searchTrips, type SearchResult, type Trip } from '@/shared/api/mock-server'
+import {
+  datePrices,
+  searchTrips,
+  type DayPrice,
+  type SearchResult,
+  type Trip,
+} from '@/shared/api/mock-server'
 import {
   parseRouteParam,
   resultsPath,
@@ -34,7 +40,6 @@ import {
   fromISODate,
   pluralTr,
   toISODate,
-  toISODateLocal,
 } from '@/shared/lib/tr'
 
 /** How many of today's departures are previewed before the full list. */
@@ -47,21 +52,21 @@ const ratingFmt = new Intl.NumberFormat('tr-TR', {
   maximumFractionDigits: 1,
 })
 
-interface DayPrice {
-  readonly date: string
-  readonly minPrice: number | null
-  readonly count: number
+/**
+ * Today and the six days after it. Today's cell counts only the coaches still
+ * on sale, so late in the evening it shows what is left, or "sefer yok".
+ */
+function upcomingWeek(fromId: string, toId: string, today: string): readonly DayPrice[] {
+  return datePrices(fromId, toId, today, 7, Date.now())
 }
 
 /**
- * `datePrices` is centred on its anchor day, so asking for today would spend
- * three of the seven cells on days that can no longer be booked. Anchoring
- * three days ahead makes the window start today and run a full week forward.
+ * Today's departures that can still be bought. A coach that left this morning
+ * is not a departure to preview, and it would count towards "N sefer" and the
+ * cheapest fare on a page that offers the evening ones.
  */
-function upcomingWeek(fromId: string, toId: string, today: string): readonly DayPrice[] {
-  const anchor = fromISODate(today)
-  anchor.setDate(anchor.getDate() + 3)
-  return datePrices(fromId, toId, toISODateLocal(anchor), 3)
+function todaysTrips(fromId: string, toId: string, today: string): SearchResult {
+  return searchTrips({ from: fromId, to: toId, date: today, sort: 'dep_asc', now: Date.now() })
 }
 
 interface RouteStats {
@@ -284,10 +289,7 @@ function RouteLanding({ from, to }: { from: City; to: City }) {
   const today = useMemo(() => toISODate(new Date()), [])
   const days = useMemo(() => upcomingWeek(from.id, to.id, today), [from.id, to.id, today])
 
-  const result = useMemo(
-    () => searchTrips({ from: from.id, to: to.id, date: today, sort: 'dep_asc' }),
-    [from.id, to.id, today],
-  )
+  const result = useMemo(() => todaysTrips(from.id, to.id, today), [from.id, to.id, today])
   const stats = useMemo(() => summarise(result), [result])
   const km = useMemo(() => distanceKm(from, to), [from, to])
 

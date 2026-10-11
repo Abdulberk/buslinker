@@ -52,7 +52,11 @@ export interface FilterRailProps {
   sort: SortKey
   onChange: (filters: TripFilters) => void
   className?: string
-  /** Set on the mobile sheet so its heading is not a second one on the page. */
+  /**
+   * `p` on the mobile sheet. The sheet's own title already says "Filtreler",
+   * so the rail drops its heading there — it read twice, one under the other —
+   * and keeps only the clear-all action.
+   */
   headingLevel?: 'h2' | 'p'
 }
 
@@ -65,7 +69,7 @@ export function FilterRail({
 }: FilterRailProps) {
   const { t } = useTranslation()
   const activeCount = countActiveFilters(filters)
-  const Heading = headingLevel
+  const inSheet = headingLevel === 'p'
 
   if (!result) return <FilterRailSkeleton className={className} />
 
@@ -73,16 +77,21 @@ export function FilterRail({
 
   return (
     <div className={cn('text-fg', className)}>
-      <div className="flex items-center justify-between gap-3 pb-1">
-        <Heading className="font-display text-base font-bold text-fg">
-          {t('results.filters')}
-        </Heading>
+      <div
+        className={cn(
+          'flex items-center justify-between gap-3 pb-1',
+          inSheet && activeCount === 0 && 'hidden',
+        )}
+      >
+        {inSheet ? null : (
+          <h2 className="font-display text-base font-bold text-fg">{t('results.filters')}</h2>
+        )}
         {activeCount > 0 ? (
           <button
             type="button"
             onClick={() => onChange({})}
             className={cn(
-              'inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium',
+              'ms-auto inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium',
               'text-brand-fg transition-colors hover:bg-brand/8',
             )}
           >
@@ -92,7 +101,12 @@ export function FilterRail({
         ) : null}
       </div>
 
-      <Accordion type="multiple" defaultValue={DEFAULT_OPEN} className="border-t border-border">
+      <Accordion
+        type="multiple"
+        defaultValue={DEFAULT_OPEN}
+        // The sheet's header already draws a rule here.
+        className={cn(!inSheet && 'border-t border-border')}
+      >
         {GROUPS.map((group) => {
           const buckets = result.facets[group.key]
           // A single terminal is not a choice — the group would be decoration.
