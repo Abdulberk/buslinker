@@ -63,8 +63,12 @@ export function DialogContent({
     <D.Portal>
       <DialogOverlay />
       <D.Content
+        // Raised, like the popover and the menu below: in dark mode an overlay
+        // on plain `surface` was a step DARKER than the cards it opened over,
+        // which reads as a hole rather than a layer on top. In light mode the
+        // two tokens are the same white, so nothing changes there.
         className={cn(
-          'fixed z-50 flex flex-col bg-surface shadow-xl outline-none',
+          'fixed z-50 flex flex-col bg-surface-raised shadow-xl outline-none',
           'data-[state=closed]:animate-out data-[state=open]:animate-in',
           side === 'center' && [
             'top-1/2 left-1/2 w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2',
@@ -93,7 +97,7 @@ export function DialogContent({
             )}
           </div>
           <D.Close
-            className="tap-44 -m-1 rounded-lg p-1 text-fg-muted transition-colors hover:bg-surface-sunken hover:text-fg"
+            className="tap-44 -m-1 rounded-lg p-1 text-fg-muted transition-colors hover:bg-hover hover:text-fg"
             aria-label={t('common.close')}
           >
             <X className="size-5" aria-hidden="true" />
@@ -125,7 +129,7 @@ export function PopoverContent({
         align={align}
         sideOffset={sideOffset}
         className={cn(
-          'z-50 rounded-xl border border-border bg-surface p-2 shadow-lg outline-none',
+          'z-50 rounded-xl border border-border bg-surface-raised p-2 shadow-lg outline-none',
           'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
           'data-[state=closed]:animate-out data-[state=closed]:fade-out-0',
           className,
@@ -158,7 +162,7 @@ export function DropdownMenuContent({
       <DM.Content
         sideOffset={sideOffset}
         className={cn(
-          'z-50 min-w-56 rounded-xl border border-border bg-surface p-1.5 shadow-lg outline-none',
+          'z-50 min-w-56 rounded-xl border border-border bg-surface-raised p-1.5 shadow-lg outline-none',
           'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
           'data-[state=closed]:animate-out data-[state=closed]:fade-out-0',
           className,
@@ -179,7 +183,7 @@ export function DropdownMenuRadioItem({
       className={cn(
         'relative flex h-10 cursor-pointer items-center rounded-lg ps-9 pe-3 text-sm text-fg outline-none select-none',
         'transition-colors duration-(--duration-fast)',
-        'data-highlighted:bg-surface-sunken',
+        'data-highlighted:bg-hover',
         'data-[state=checked]:font-medium data-[state=checked]:text-brand-fg',
         className,
       )}
@@ -210,7 +214,7 @@ export function RadioGroupItem({ className, children, ...props }: ComponentProps
       className={cn(
         'group relative flex w-full items-center gap-3 rounded-xl border p-3 text-left',
         'transition-colors duration-(--duration-fast) ease-standard',
-        'border-border bg-surface hover:border-border-strong hover:bg-surface-sunken',
+        'border-border bg-transparent hover:border-border-strong hover:bg-hover',
         'data-[state=checked]:border-brand/45 data-[state=checked]:bg-brand/8',
         className,
       )}
@@ -297,7 +301,7 @@ export function ToggleGroupItem({ className, ...props }: ComponentProps<typeof T
       className={cn(
         'inline-flex h-9 items-center gap-1.5 rounded-full border border-border px-3.5',
         'text-sm font-medium text-fg-secondary transition-colors duration-(--duration-fast)',
-        'hover:bg-surface-sunken',
+        'hover:bg-hover',
         'data-[state=on]:border-brand/40 data-[state=on]:bg-brand/8 data-[state=on]:text-brand-fg',
         className,
       )}

@@ -128,10 +128,7 @@ export function PhoneField({
             setNational(next.national)
             emit(next.national, next.country)
           }}
-          className={cn(
-            'h-11 min-w-0 flex-1 rounded-r-lg bg-transparent px-3 text-base text-fg',
-            'placeholder:text-fg-subtle focus:outline-none',
-          )}
+          className="h-11 min-w-0 flex-1 rounded-r-lg bg-transparent px-3 text-base text-fg"
         />
       </div>
 
@@ -230,7 +227,7 @@ function CountryPicker({
           className={cn(
             'flex h-11 shrink-0 items-center gap-1 rounded-l-lg px-3',
             'text-base font-medium text-fg transition-colors duration-(--duration-fast)',
-            'hover:bg-surface-sunken focus:outline-none data-[state=open]:bg-surface-sunken',
+            'hover:bg-surface-sunken data-[state=open]:bg-surface-sunken',
           )}
         >
           <span data-numeric>+{dial}</span>
@@ -261,10 +258,7 @@ function CountryPicker({
               onKeyDown={onKeyDown}
               placeholder={t('phone.search')}
               aria-label={t('phone.search')}
-              className={cn(
-                'h-9 w-full rounded-md bg-surface-sunken pr-2 pl-8 text-sm text-fg',
-                'placeholder:text-fg-subtle focus:outline-none',
-              )}
+              className="h-9 w-full rounded-md bg-surface-sunken pr-2 pl-8 text-sm text-fg"
             />
           </div>
         </div>

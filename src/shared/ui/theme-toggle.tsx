@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useId, useMemo, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
+import { RadioGroup as RG } from 'radix-ui'
+import { Monitor, Moon, Sun } from 'lucide-react'
 import { interpolate } from 'flubber'
 import { cn } from '@/shared/lib/cn'
-import { useTheme } from '@/shared/lib/use-theme'
+import { useTheme, type ThemePreference } from '@/shared/lib/use-theme'
 import { Button } from '@/shared/ui/button'
 
 /**
@@ -56,6 +59,7 @@ function ease(t: number): number {
  * that says what pressing it does.
  */
 export function ThemeToggle({ className }: { className?: string }) {
+  const { t } = useTranslation()
   const { theme, toggle } = useTheme()
   const isDark = theme === 'dark'
 
@@ -115,7 +119,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       variant="ghost"
       size="icon-sm"
       onClick={toggle}
-      aria-label={isDark ? 'Açık temaya geç' : 'Koyu temaya geç'}
+      aria-label={isDark ? t('common.switchToLight') : t('common.switchToDark')}
       // 36px keeps the header compact; `tap-44` restores the 44px hit area.
       className={cn('tap-44', className)}
     >
@@ -145,5 +149,66 @@ export function ThemeToggle({ className }: { className?: string }) {
         <path ref={pathRef} d={isDark ? MOON_PATH : SUN_PATH} />
       </svg>
     </Button>
+  )
+}
+
+const PREFERENCES = [
+  { value: 'light', labelKey: 'common.themeLight', Icon: Sun },
+  { value: 'dark', labelKey: 'common.themeDark', Icon: Moon },
+  { value: 'system', labelKey: 'common.themeSystem', Icon: Monitor },
+] as const satisfies readonly {
+  value: ThemePreference
+  labelKey: string
+  Icon: typeof Sun
+}[]
+
+/**
+ * The appearance choice in the phone menu: Açık, Koyu or Sistem.
+ *
+ * The header's switch can only flip between light and dark, so once pressed
+ * there was no way back to following the phone — a visitor who tried dark at
+ * noon stayed dark at midnight. The menu has the room to offer all three, and
+ * `system` is the one that clears the stored choice.
+ *
+ * A radio group, not three toggle buttons: exactly one is always chosen. Radix
+ * supplies the single tab stop and the arrow keys. The chosen segment is
+ * marked by a raised fill, an edge and weight together, never by hue alone.
+ */
+export function ThemePreferenceControl({ className }: { className?: string }) {
+  const { t } = useTranslation()
+  const { preference, setPreference } = useTheme()
+  const labelId = useId()
+
+  return (
+    <div className={cn('flex flex-col gap-2', className)}>
+      <span id={labelId} className="text-sm font-medium text-fg-secondary">
+        {t('common.appearance')}
+      </span>
+      <RG.Root
+        value={preference}
+        onValueChange={(value) => setPreference(value as ThemePreference)}
+        aria-labelledby={labelId}
+        orientation="horizontal"
+        className="grid grid-cols-3 gap-1 rounded-xl bg-surface-sunken p-1"
+      >
+        {PREFERENCES.map(({ value, labelKey, Icon }) => (
+          <RG.Item
+            key={value}
+            value={value}
+            className={cn(
+              'inline-flex h-10 min-w-0 items-center justify-center gap-1.5 rounded-lg px-2',
+              'border border-transparent text-sm font-medium text-fg-secondary',
+              'transition-colors duration-(--duration-fast) ease-standard hover:text-fg',
+              'data-[state=checked]:border-border-strong data-[state=checked]:bg-surface',
+              'data-[state=checked]:font-semibold data-[state=checked]:text-fg',
+              'data-[state=checked]:shadow-xs',
+            )}
+          >
+            <Icon className="size-4 shrink-0" aria-hidden="true" />
+            <span className="truncate">{t(labelKey)}</span>
+          </RG.Item>
+        ))}
+      </RG.Root>
+    </div>
   )
 }

@@ -2,27 +2,36 @@ import { useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Outlet, ScrollRestoration, useLocation } from 'react-router'
 import { useLocale } from '@/shared/i18n/use-locale'
+import { isQuietNav } from '@/shared/lib/quiet-nav'
 import { SiteHeader } from '@/widgets/SiteHeader'
 import { SiteFooter } from '@/widgets/SiteFooter'
 import { RouteTransition } from './RouteTransition'
 
 export function AppLayout() {
-  const { pathname } = useLocation()
+  const location = useLocation()
+  const { pathname } = location
+  // react-router types navigation state as `any`; it is whatever the caller
+  // passed, so it is read as unknown and narrowed by isQuietNav.
+  const state: unknown = location.state
   const { t } = useTranslation()
   const { language, currency } = useLocale()
   const mainRef = useRef<HTMLElement>(null)
-  const isFirstRender = useRef(true)
+  // The path focus was last moved for. A "first render" flag is not enough:
+  // StrictMode runs every effect twice on mount, so the flag was spent on the
+  // first run and the second one focused <main> on page load.
+  const focusedPath = useRef(pathname)
 
   // On a client-side navigation the browser does not move focus, so a screen
   // reader keeps reading the old page. Move it to the new <main> — but not on
-  // the very first render, where focus belongs where the browser put it.
+  // first load, where focus belongs where the browser put it, and not on a
+  // quiet navigation (another day in the date strip), where the user is still
+  // working in the control they pressed.
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false
-      return
-    }
+    if (focusedPath.current === pathname) return
+    focusedPath.current = pathname
+    if (isQuietNav(state)) return
     mainRef.current?.focus()
-  }, [pathname])
+  }, [pathname, state])
 
   return (
     <div className="flex min-h-dvh flex-col bg-bg">

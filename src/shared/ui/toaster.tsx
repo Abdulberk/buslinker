@@ -106,12 +106,12 @@ export function Toaster(props: ToasterProps) {
           cancelButton: [
             'mt-2 h-8 shrink-0 self-start rounded-lg border border-border-strong bg-surface px-3',
             'text-xs font-medium text-fg-secondary',
-            'transition-colors duration-(--duration-fast) hover:bg-surface-sunken',
+            'transition-colors duration-(--duration-fast) hover:bg-hover',
           ].join(' '),
           closeButton: [
-            'grid size-7! place-items-center rounded-lg! border-0! bg-transparent! text-fg-subtle',
+            'grid size-7! place-items-center rounded-lg! border-0! bg-transparent! text-fg-muted',
             'transition-colors duration-(--duration-fast)',
-            'hover:bg-surface-sunken hover:text-fg',
+            'hover:bg-hover hover:text-fg',
           ].join(' '),
         },
       }}

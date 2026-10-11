@@ -111,8 +111,27 @@ Renk sistemindeki üç kritik ölçüm:
   `neutral-600`'e kayar.
 
 Marka kırmızısı ile tehlike kırmızısı 600 adımında ayırt edilemeyecek kadar yakındır. Ayrım renkle
-değil biçimle sağlanır: **karar bağlamı başına tek bir dolu marka rengi**. Sonuç sayfasındaki
-kartlar bu yüzden `brand-outline` kullanır — 20 kart, 20 kırmızı buton demek olurdu.
+değil biçimle sağlanır: marka kırmızısı **basılan şeydir** ve **karar bağlamı başına tek bir dolu
+marka rengi** vardır. Her sefer kartı kendi karar bağlamıdır: kartın "Koltuk Seç" düğmesi dolu
+olabilir, aynı karttaki ikinci bir eylem olamaz (`brand-outline`). Başlık bir karar bağlamı değildir;
+orada dolu kırmızı yoktur.
+
+Sonradan eklenen üç anlamsal jeton:
+
+- `chrome` — başlığın, telefondaki mod rayının ve yapışkan alt çubukların tek yüzeyi. Tarayıcı
+  çubuğu (`<meta name="theme-color">`) aynı değerle boyanır: `index.html` ilk boyama için, `use-theme.ts`
+  içindeki `CHROME_HEX` tema değişince. Üçü birlikte güncellenmelidir.
+- `logo` — yazı markasının kırmızısı (başlık, alt bilgi). Koyu temada `brand-500`.
+- `hover` — nötr kontrollerin üzerine gelme katmanı. `surface-sunken` bu iş için kullanılmaz: koyu
+  temada yüzeyin altında kalır, satır koyulaşıp görünmez olur.
+
+Odak halkası bir `outline`'dır (`ring` rengi, 2px boşluk) ve arasındaki hale `box-shadow` ile çizilir.
+Halka `shadow-*` / `ring-*` yardımcılarından etkilenmez; `outline-none` ise halkayı kapatır, yalnızca
+odağı kendisi gösteren kaplarda kullanılmalıdır.
+
+**Yazdırma:** koyu jetonlar ve bütün `dark:` sınıfları yalnızca ekranda geçerlidir, kâğıt her zaman
+açık temadır. Başlık, alt bilgi, atlama bağlantısı, rota perdesi, bildirimler ve `data-print-hide`
+taşıyan her şey gizlenir; `data-print-keep` taşıyan blok iki sayfaya bölünmez. Sayfa kenarı 12 mm.
 
 Cinsiyet asla yalnızca renkle kodlanmaz: dolgu, kenarlık, ♂/♀ işareti ve Türkçe `aria-label` olmak
 üzere dört kanal taşır. Mavi/pembe ayrımı tam olarak protanopi ve döteranopide çöken çifttir.
@@ -121,10 +140,24 @@ Cinsiyet asla yalnızca renkle kodlanmaz: dolgu, kenarlık, ♂/♀ işareti ve 
 
 Poppins bırakıldı. Sebep estetik değil: Türkçede i/ı sesbirimseldir (sık ≠ sik) ve Poppins l, I ve
 ı'yı birbirinden neredeyse ayırt edilemeyen üç düz gövde olarak çizer. Inter'in `cv05` (kuyruklu l)
-ve `cv08` (serifli I) özellikleri bu beş harfi ayırır; başlıklar için Archivo'nun genişlik ekseni
-uzun Türkçe başlıkları sarmak yerine daraltır.
+ve `cv08` (serifli I) özellikleri bu beş harfi ayırır; başlıkları Plus Jakarta Sans dizer.
+
+Inter kendi sunucumuzdan gelir (`public/fonts/InterVariable-latin-tr.woff2`). Google Fonts'un
+sunduğu kopyada `cv05` ve `cv08` yoktur, yani yukarıdaki ayrım hiçbir ekrana ulaşmıyordu. Dosya
+resmî değişken fontun Latin + Türkçe alt kümesidir ve bütün OpenType özelliklerini korur;
+`node scripts/subset-inter.mjs` ile yeniden üretilir. Lisans: `public/fonts/Inter-LICENSE.txt`.
 
 Satır yüksekliği başlıklarda 1.20'nin altına inmez — İ ve Ğ büyük harf yüksekliğinin üzerine taşar.
+
+### Gece seferleri ve sessiz gezinme
+
+00:00–05:59 arası kalkışlar (`isNightDeparture`) kartta, koltuk sayfasında ve bilette gecenin adıyla
+gösterilir: `nightOfLabel` → "Salı'yı Çarşamba'ya bağlayan gece". "Çarşamba 01:30" yazan bir bilet,
+yolcunun bir gün geç gelmesinin en yaygın sebebidir.
+
+Aynı sayfada yalnızca verinin değiştiği gezinmeler (tarih şeridinde başka bir gün gibi)
+`state={QUIET_NAV}` ile yapılır (`src/shared/lib/quiet-nav.ts`): odak `<main>`'e atlamaz, rota
+perdesi açılmaz, kullanıcı çalıştığı kontrolde kalır.
 
 ---
 

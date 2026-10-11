@@ -3,19 +3,33 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#D23B38" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#12100F" media="(prefers-color-scheme: dark)" />
+    <!-- The browser bar takes the header's own surface (--app-chrome), so on a
+         phone the bar and the header read as one. Kept in step with CHROME_HEX
+         in src/shared/lib/use-theme.ts, which also follows the in-app toggle. -->
+    <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1A222A" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
     <title>BusLinker — Otobüs Bileti</title>
     <meta
       name="description"
       content="Türkiye'nin dört bir yanına otobüs bileti. Sefer karşılaştır, koltuğunu seç, güvenle satın al."
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Inter is self-hosted (see the @font-face note in theme.css): the copy
+         Google serves drops the cv05/cv08 alternates Turkish depends on. The
+         preload lets body text swap in without waiting on the stylesheet. -->
+    <link
+      rel="preload"
+      href="/fonts/InterVariable-latin-tr.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300..800&family=Inter:opsz,wght@14..32,100..900&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300..800&display=swap"
     />
     <script>
       // Applies the stored theme before first paint so there is no flash.
@@ -25,6 +39,13 @@
           stored === 'dark' ||
           (stored !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)
         document.documentElement.classList.toggle('dark', dark)
+        // A stored choice can disagree with the OS, and the media-matched meta
+        // would then paint the bar in the other theme's colour.
+        if (stored === 'dark' || stored === 'light') {
+          for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
+            meta.content = dark ? '#1A222A' : '#FFFFFF'
+          }
+        }
       } catch {
         /* private mode / blocked storage — fall through to the light default */
       }

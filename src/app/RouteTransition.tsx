@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLocation } from 'react-router'
+import { isQuietNav } from '@/shared/lib/quiet-nav'
 
 /** Matches --animate-route-veil in theme.css; the overlay unmounts when it ends. */
 const VEIL_MS = 560
@@ -24,16 +25,23 @@ function prefersReducedMotion(): boolean {
  * new page has already swapped in underneath by the time the veil lifts.
  */
 export function RouteTransition() {
-  const { pathname } = useLocation()
+  const location = useLocation()
+  const { pathname } = location
+  // react-router types navigation state as `any`; it is whatever the caller
+  // passed, so it is read as unknown and narrowed by isQuietNav.
+  const state: unknown = location.state
   const [previous, setPrevious] = useState(pathname)
   const [veiling, setVeiling] = useState<string | null>(null)
 
   // Adjusting state during render is React's supported way to respond to a
   // changed input. An effect would paint the new page first and only then
   // raise the veil, which is the one frame the veil exists to cover.
+  //
+  // A quiet navigation is the same page with new data (another day in the
+  // date strip); washing the screen for it read as the page reloading.
   if (previous !== pathname) {
     setPrevious(pathname)
-    if (!prefersReducedMotion()) setVeiling(pathname)
+    if (!prefersReducedMotion() && !isQuietNav(state)) setVeiling(pathname)
   }
 
   useEffect(() => {
@@ -50,6 +58,7 @@ export function RouteTransition() {
       // riding out the one already running.
       key={veiling}
       aria-hidden="true"
+      data-print-hide
       // Translucent, not opaque: the page behind stays visible, so this reads
       // as a wash over the transition rather than a blank screen. The blur is
       // what keeps the mark legible over whatever happens to be underneath.

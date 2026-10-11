@@ -121,6 +121,11 @@ export function formatDateLong(date: Date | string): string {
   }).format(toDate(date))
 }
 
+/** `30 Kasım 2027` — a deadline or a date of record, where the year matters and the weekday is noise. */
+export function formatDateWithYear(date: Date | string): string {
+  return dt('dateWithYear', { day: 'numeric', month: 'long', year: 'numeric' }).format(toDate(date))
+}
+
 /** `4 Eylül Cum` */
 export function formatDateMedium(date: Date | string): string {
   return dt('dateMedium', { day: 'numeric', month: 'long', weekday: 'short' }).format(toDate(date))
@@ -287,6 +292,54 @@ const hourFmt = new Intl.DateTimeFormat('en-GB', {
 export function istanbulHour(value: Date | string): number {
   const part = hourFmt.formatToParts(toDate(value)).find((p) => p.type === 'hour')
   return Number(part?.value ?? 0) % 24
+}
+
+/**
+ * Accusative and dative of each weekday, in `Date#getDay` order (Sunday
+ * first). A table rather than the suffix helpers above: seven fixed words, and
+ * `Pazar'ı` / `Pazartesi'yi` are exactly the cases a rule has to special-case.
+ */
+const NIGHT_WEEKDAYS = [
+  { acc: 'Pazar’ı', dat: 'Pazar’a' },
+  { acc: 'Pazartesi’yi', dat: 'Pazartesi’ye' },
+  { acc: 'Salı’yı', dat: 'Salı’ya' },
+  { acc: 'Çarşamba’yı', dat: 'Çarşamba’ya' },
+  { acc: 'Perşembe’yi', dat: 'Perşembe’ye' },
+  { acc: 'Cuma’yı', dat: 'Cuma’ya' },
+  { acc: 'Cumartesi’yi', dat: 'Cumartesi’ye' },
+] as const
+
+const weekdayFmt = new Intl.DateTimeFormat('en-US', { timeZone: TIME_ZONE, weekday: 'short' })
+const WEEKDAY_INDEX: Record<string, number> = {
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+}
+
+/** A departure between 00:00 and 05:59 Istanbul time — the app's "Gece" band. */
+export function isNightDeparture(value: Date | string): boolean {
+  return istanbulHour(value) < 6
+}
+
+/**
+ * `Salı’yı Çarşamba’ya bağlayan gece` for a coach leaving at 01:30 on a
+ * Wednesday, or null for any departure from 06:00 on.
+ *
+ * A ticket that says "Çarşamba 01:30" is the single most common way to miss a
+ * coach in Turkey: the traveller reads it as Wednesday night and arrives a day
+ * late. Every Turkish ticketing site names the night instead, and so does
+ * this one — on the card, the seat page and the ticket alike.
+ */
+export function nightOfLabel(value: Date | string): string | null {
+  if (!isNightDeparture(value)) return null
+  const day = WEEKDAY_INDEX[weekdayFmt.format(toDate(value))] ?? 0
+  const eve = NIGHT_WEEKDAYS[(day + 6) % 7]!
+  const morning = NIGHT_WEEKDAYS[day]!
+  return `${eve.acc} ${morning.dat} bağlayan gece`
 }
 
 export function isValidISODate(iso: string): boolean {

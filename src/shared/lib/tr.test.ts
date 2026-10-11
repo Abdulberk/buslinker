@@ -7,9 +7,11 @@ import {
   formatDuration,
   formatPrice,
   formatTime,
+  isNightDeparture,
   isValidISODate,
   locativeTr,
   lowerTr,
+  nightOfLabel,
   slugifyTr,
   upperTr,
 } from './tr'
@@ -164,5 +166,26 @@ describe('Turkish case suffixes', () => {
       expect(dativeTr(city.name)).toMatch(/'y?(a|e)$/)
       expect(locativeTr(city.name)).toMatch(/'(d|t)(a|e)$/)
     }
+  })
+})
+
+describe('nightOfLabel', () => {
+  // 2026-09-02 is a Wednesday. Instants are written in UTC; Istanbul is UTC+3.
+  it('names the night a small-hours departure belongs to', () => {
+    expect(nightOfLabel('2026-09-01T22:30:00Z')).toBe('Salı’yı Çarşamba’ya bağlayan gece')
+  })
+
+  it('wraps the week: a Monday 03:00 departure is Sunday night', () => {
+    expect(nightOfLabel('2026-09-07T00:00:00Z')).toBe('Pazar’ı Pazartesi’ye bağlayan gece')
+  })
+
+  it('uses the y-buffer only after a vowel', () => {
+    expect(nightOfLabel('2026-09-05T23:59:00Z')).toBe('Cumartesi’yi Pazar’a bağlayan gece')
+  })
+
+  it('leaves daytime and evening departures alone', () => {
+    expect(nightOfLabel('2026-09-02T03:00:00Z')).toBeNull() // 06:00 Istanbul
+    expect(nightOfLabel('2026-09-02T20:59:00Z')).toBeNull() // 23:59 Istanbul
+    expect(isNightDeparture('2026-09-02T02:59:00Z')).toBe(true) // 05:59 Istanbul
   })
 })

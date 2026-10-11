@@ -65,7 +65,6 @@ export function Field({
           aria-describedby={error || hint ? messageId : undefined}
           className={cn(
             'h-11 w-full min-w-0 rounded-lg bg-transparent text-base text-fg',
-            'placeholder:text-fg-subtle',
             icon ? 'pl-10' : 'pl-3',
             isPassword ? 'pr-11' : 'pr-3',
             className,
@@ -83,7 +82,7 @@ export function Field({
             className={cn(
               'tap-44 absolute right-2 grid size-7 place-items-center rounded-md',
               'text-fg-muted transition-colors duration-(--duration-fast)',
-              'hover:bg-surface-sunken hover:text-fg',
+              'hover:bg-hover hover:text-fg',
             )}
           >
             <RevealIcon revealed={revealed} />
