@@ -46,7 +46,7 @@ export const LEGAL_DOCS: Record<LegalSlug, LegalDoc> = {
         heading: 'Aydınlatma metninin amacı',
         paragraphs: [
           '6698 sayılı Kişisel Verilerin Korunması Kanunu’nun 10. maddesi, kişisel verisi işlenen kişilerin bu işlemeden önce bilgilendirilmesini zorunlu tutar. Bu metin de söz konusu bilgilendirmenin nasıl kurgulanabileceğini göstermek için yazılmıştır.',
-          'Metin; hangi verilerin toplandığını, hangi amaçla ve hangi hukuki sebebe dayanılarak işlendiğini, kimlere aktarılabileceğini ve ilgili kişinin hangi haklara sahip olduğunu sırasıyla açıklar. Bir bölümü okumadan geçtiyseniz sağdaki içindekiler listesinden geri dönebilirsiniz.',
+          'Metin; hangi verilerin toplandığını, hangi amaçla ve hangi hukuki sebebe dayanılarak işlendiğini, kimlere aktarılabileceğini ve ilgili kişinin hangi haklara sahip olduğunu sırasıyla açıklar. Bir bölümü okumadan geçtiyseniz içindekiler listesinden ona geri dönebilirsiniz.',
         ],
       },
       {

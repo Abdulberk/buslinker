@@ -398,7 +398,6 @@ function NoteField({
         aria-describedby={`${messageId} ${counterId}`}
         className={cn(
           'w-full min-w-0 resize-y rounded-lg border border-border-strong bg-surface p-3 text-base text-fg',
-          'placeholder:text-fg-subtle',
           'transition-colors duration-(--duration-fast) ease-standard',
           'focus-within:border-brand hover:border-border-strong',
         )}

@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router'
-import { Compass, Home } from 'lucide-react'
+import { Home, TrendingUp } from 'lucide-react'
 import { Button } from '@/shared/ui/button'
 
 export default function NotFoundPage() {
@@ -32,10 +32,14 @@ export default function NotFoundPage() {
               Ana sayfa
             </Link>
           </Button>
+          {/* Not "/#arama": the home page has no element by that id, so the
+              link quietly did the same as the one beside it. The search form
+              is the first thing on the home page anyway; the second way out
+              goes somewhere else. */}
           <Button variant="secondary" size="lg" asChild>
-            <Link to="/#arama">
-              <Compass className="size-4" aria-hidden="true" />
-              Sefer ara
+            <Link to="/populer-seferler">
+              <TrendingUp className="size-4" aria-hidden="true" />
+              Popüler seferler
             </Link>
           </Button>
         </div>

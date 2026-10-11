@@ -2,7 +2,6 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { ArrowRight, CalendarDays, Mail, Ticket, XCircle } from 'lucide-react'
 import { PageHeader } from '@/shared/ui/page-header'
-import { Badge } from '@/shared/ui/badge'
 import { Button } from '@/shared/ui/button'
 import { Card, CardBody } from '@/shared/ui/card'
 import { AssetIcon, Illustration } from '@/shared/ui/asset-icon'
@@ -14,7 +13,6 @@ interface Topic {
   readonly body: string
   readonly to: string
   readonly linkLabel: string
-  readonly note?: string
 }
 
 const TOPICS: readonly Topic[] = [
@@ -22,30 +20,33 @@ const TOPICS: readonly Topic[] = [
     art: VALUE_ICON.bestPrice,
     title: 'Bilet alma',
     body: 'Sefer arama, sıralama, filtreler ve bilet alırken sorulan bilgiler.',
-    to: '/sss',
-    linkLabel: 'Sık sorulan sorulara gidin',
+    // Each FAQ topic opens on its own category rather than at the top of the
+    // whole list, where the reader would have to find it again.
+    to: '/sss#bilet-alma',
+    linkLabel: 'Bilet alma sorularını okuyun',
   },
   {
     art: VALUE_ICON.easyRefund,
     title: 'İptal ve iade',
     body: 'Hangi biletler iptal edilebilir, kesinti nasıl hesaplanır, iade ne zaman yansır.',
-    to: '/bilet-iptal',
-    linkLabel: 'Bilet iptal sayfasına gidin',
+    // The card promises answers, so it opens them. Cancelling a ticket is
+    // an action, and it has its own entry under "Hızlı işlemler" below.
+    to: '/sss#iptal-iade',
+    linkLabel: 'İptal ve iade sorularını okuyun',
   },
   {
     art: VALUE_ICON.comfortableTravel,
     title: 'Koltuk seçimi',
     body: '2+1 ve 2+2 düzenler, cinsiyet kuralı ve kapalı görünen koltukların nedeni.',
-    to: '/sss',
+    to: '/sss#koltuk-secimi',
     linkLabel: 'Koltuk sorularını okuyun',
   },
   {
     art: VALUE_ICON.securePayment,
     title: 'Ödeme',
     body: 'Ödeme adımının nasıl işlediğini anlatıyoruz; bu sürümde ödeme alınmaz.',
-    to: '/sss',
+    to: '/sss#odeme',
     linkLabel: 'Ödeme sorularını okuyun',
-    note: 'Yakında',
   },
   {
     art: VALUE_ICON.giftCards,
@@ -99,11 +100,14 @@ export default function HelpPage() {
     document.title = 'Yardım Merkezi | BusLinker'
   }, [])
 
-  // The live filter lives on the FAQ page, so this field is a signpost to it
-  // rather than a second search implementation.
+  // The live filter lives on the FAQ page, so this field hands the words over
+  // to it rather than being a second search implementation. They travel in the
+  // URL, which the FAQ reads as its own search: what was typed here is already
+  // in the field there, and already applied.
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    void navigate('/sss')
+    const words = query.trim()
+    void navigate(words ? `/sss?${new URLSearchParams({ q: words }).toString()}` : '/sss')
   }
 
   return (
@@ -138,7 +142,7 @@ export default function HelpPage() {
                   }}
                   placeholder="Örn. iptal, koltuk, PNR"
                   aria-describedby="yardim-arama-aciklama"
-                  className="h-11 w-full min-w-0 rounded-lg bg-transparent px-3 text-base text-fg placeholder:text-fg-subtle"
+                  className="h-11 w-full min-w-0 rounded-lg bg-transparent px-3 text-base text-fg"
                 />
               </div>
               <Button type="submit" size="md" className="shrink-0">
@@ -146,8 +150,8 @@ export default function HelpPage() {
               </Button>
             </div>
             <p id="yardim-arama-aciklama" className="mt-2 text-sm text-fg-muted">
-              Gönderdiğinizde sık sorulan sorular sayfasına geçersiniz; aramanızı oradaki canlı
-              filtreyle sürdürebilirsiniz.
+              Sık sorulan sorular sayfası, yazdığınız kelimelerle süzülmüş olarak açılır; aramanızı
+              orada değiştirebilirsiniz.
             </p>
           </form>
         </section>
@@ -171,14 +175,7 @@ export default function HelpPage() {
                       they are images rather than masked icons. */}
                   <Illustration src={topic.art} alt="" width={80} height={80} className="size-12" />
                   <div className="min-w-0">
-                    <h3 className="flex flex-wrap items-center gap-2 font-display text-base font-semibold text-fg">
-                      {topic.title}
-                      {topic.note ? (
-                        <Badge tone="neutral" size="sm">
-                          {topic.note}
-                        </Badge>
-                      ) : null}
-                    </h3>
+                    <h3 className="font-display text-base font-semibold text-fg">{topic.title}</h3>
                     <p className="mt-1.5 text-sm text-fg-secondary">{topic.body}</p>
                   </div>
                   <span className="mt-auto inline-flex items-center gap-1.5 pt-2 text-sm font-medium text-brand-fg">
@@ -199,7 +196,7 @@ export default function HelpPage() {
             Hızlı işlemler
           </h2>
           <p className="mt-2 max-w-prose text-base text-fg-secondary">
-            Yanıt aramak yerine doğrudan işlem yapmak isterseniz üç adımın tamamı buradan başlar.
+            Yanıt aramak yerine doğrudan işlem yapmak isterseniz buradan başlayabilirsiniz.
           </p>
 
           <ul className="mt-6 grid gap-4 sm:grid-cols-3">

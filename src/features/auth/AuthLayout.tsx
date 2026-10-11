@@ -1,8 +1,6 @@
 import type { ReactNode } from 'react'
-import { Link } from 'react-router'
 import { IMAGE, VALUE_ICON } from '@/shared/config/assets'
 import { Illustration } from '@/shared/ui/asset-icon'
-import { Logo } from '@/shared/ui/logo'
 
 /**
  * The shell both auth screens share.
@@ -30,12 +28,11 @@ export function AuthLayout({ title, subtitle, children, footer }: AuthLayoutProp
   return (
     <div className="app-container py-10 sm:py-14 lg:py-20">
       <div className="mx-auto grid max-w-5xl gap-10 lg:grid-cols-2 lg:items-center lg:gap-16">
+        {/* No logo above the title. The site header is on this page at every
+            width, so a second wordmark 80px under the first only pushed the
+            form further down a phone screen and doubled the way home. */}
         <div className="mx-auto w-full max-w-md">
-          <Link to="/" className="inline-flex rounded-lg text-brand-fg lg:hidden">
-            <Logo className="h-7" />
-          </Link>
-
-          <h1 className="mt-6 text-2xl text-balance-tr sm:text-3xl lg:mt-0">{title}</h1>
+          <h1 className="text-2xl text-balance-tr sm:text-3xl">{title}</h1>
           <p className="mt-2 text-base text-fg-secondary">{subtitle}</p>
 
           <div className="mt-7">{children}</div>

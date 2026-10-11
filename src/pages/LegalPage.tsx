@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
 import { FileText, ScrollText } from 'lucide-react'
-import { PageHeader, Prose } from '@/shared/ui/page-header'
+import { PageHeader, Prose, useScrollToHash } from '@/shared/ui/page-header'
 import { Button } from '@/shared/ui/button'
 import { formatDateLong, slugifyTr } from '@/shared/lib/tr'
 import { isLegalSlug, LEGAL_DOCS, LEGAL_SLUGS, type LegalDoc } from '@/shared/config/legal'
@@ -24,6 +24,10 @@ export default function LegalPage() {
   useEffect(() => {
     document.title = `${doc ? doc.title : 'Belge bulunamadı'} | BusLinker`
   }, [doc])
+
+  // A link straight to one section (the contents list writes them) that is
+  // opened fresh, or followed from another page.
+  useScrollToHash(doc !== undefined)
 
   const toc = useMemo(
     () =>
@@ -73,11 +77,11 @@ export default function LegalPage() {
 
               {doc.sections.map((section) => (
                 <section key={section.heading} aria-labelledby={sectionId(section.heading)}>
-                  {/* The sticky site header would otherwise sit on top of a
-                      freshly jumped-to heading. */}
-                  <h2 id={sectionId(section.heading)} className="scroll-mt-24">
-                    {section.heading}
-                  </h2>
+                  {/* No scroll margin of its own: the root's scroll-padding
+                      already keeps a jumped-to heading clear of the sticky
+                      header, and the two added together dropped it 176px down
+                      the screen, far enough to look like a missed jump. */}
+                  <h2 id={sectionId(section.heading)}>{section.heading}</h2>
                   {section.paragraphs.map((paragraph) => (
                     <p key={paragraph.slice(0, 40)}>{paragraph}</p>
                   ))}
@@ -92,7 +96,7 @@ export default function LegalPage() {
               ))}
             </Prose>
 
-            <div className="mt-12 max-w-prose rounded-xl border border-border bg-surface-sunken p-5">
+            <div className="mt-12 max-w-[68ch] rounded-xl border border-border bg-surface-sunken p-5">
               <h2 className="flex items-center gap-2 text-base">
                 <ScrollText className="size-4 shrink-0 text-fg-muted" aria-hidden="true" />
                 Diğer belgeler

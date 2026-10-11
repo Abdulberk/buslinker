@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useLocation, useSearchParams } from 'react-router'
 import { SearchX } from 'lucide-react'
-import { PageHeader } from '@/shared/ui/page-header'
+import { PageHeader, useScrollToHash } from '@/shared/ui/page-header'
 import { Button } from '@/shared/ui/button'
 import {
   Accordion,
@@ -12,6 +12,7 @@ import {
 import { AssetIcon } from '@/shared/ui/asset-icon'
 import { ICON } from '@/shared/config/assets'
 import { foldTr, pluralTr } from '@/shared/lib/tr'
+import { QUIET_NAV, isQuietNav } from '@/shared/lib/quiet-nav'
 
 interface Faq {
   readonly id: string
@@ -181,22 +182,64 @@ const CATEGORIES: readonly FaqCategory[] = [
 const ALL_COUNT = CATEGORIES.reduce((sum, category) => sum + category.items.length, 0)
 
 export default function FaqPage() {
-  const [query, setQuery] = useState('')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const location = useLocation()
+  const urlQuery = searchParams.get('q') ?? ''
+
+  // The search lives in the URL (?q=), so a filtered list can be linked to,
+  // survives a reload, and is what the help centre's search box opens.
+  //
+  // The field still keeps its own copy of the text. Driving a text input
+  // straight from the URL makes every keystroke wait on a navigation, and a
+  // late one can put back a letter the user has already deleted. So typing
+  // writes the URL, and the URL is read back only when it changed for some
+  // other reason — a link, the header's "SSS", the back button — which is
+  // exactly a navigation without QUIET_NAV, the state this page's own writes
+  // carry. Adjusted during render rather than in an effect, so the field and
+  // the list never draw one frame apart.
+  const [query, setQuery] = useState(urlQuery)
+  const [seenKey, setSeenKey] = useState(location.key)
+  if (location.key !== seenKey) {
+    setSeenKey(location.key)
+    if (!isQuietNav(location.state)) setQuery(urlQuery)
+  }
+
   const [open, setOpen] = useState('')
 
   useEffect(() => {
     document.title = 'Sık Sorulan Sorular | BusLinker'
   }, [])
 
+  // The help centre's topic cards link to a category, e.g. /sss#odeme.
+  useScrollToHash()
+
+  const updateQuery = (value: string) => {
+    setQuery(value)
+    // A previously opened answer may be filtered away; closing avoids an
+    // accordion that reopens something unexpected.
+    setOpen('')
+    const next = new URLSearchParams(searchParams)
+    if (value.trim()) next.set('q', value)
+    else next.delete('q')
+    // Replace, not push: one history entry per visit rather than one per
+    // letter, and no jump back to the top of the page while typing.
+    void setSearchParams(next, { replace: true, preventScrollReset: true, state: QUIET_NAV })
+  }
+
   const filtered = useMemo(() => {
-    const needle = foldTr(query)
-    if (!needle) return CATEGORIES
+    // Every word has to appear somewhere in the question or the answer, in any
+    // order. Matched as one string, "koltuk değiştir" — which is what the help
+    // centre's search box hands over — found nothing, though one answer is
+    // about exactly that.
+    const words = foldTr(query).split(/\s+/).filter(Boolean)
+    if (words.length === 0) return CATEGORIES
 
     return CATEGORIES.map((category) => ({
       ...category,
-      items: category.items.filter(
-        (item) => foldTr(item.question).includes(needle) || foldTr(item.answer).includes(needle),
-      ),
+      items: category.items.filter((item) => {
+        const text = `${foldTr(item.question)} ${foldTr(item.answer)}`
+        return words.every((word) => text.includes(word))
+      }),
     })).filter((category) => category.items.length > 0)
   }, [query])
 
@@ -224,13 +267,10 @@ export default function FaqPage() {
               type="search"
               value={query}
               onChange={(event) => {
-                setQuery(event.target.value)
-                // A previously opened answer may be filtered away; closing
-                // avoids an accordion that reopens something unexpected.
-                setOpen('')
+                updateQuery(event.target.value)
               }}
               placeholder="Örn. iptal, koltuk, PNR"
-              className="h-11 w-full min-w-0 rounded-lg bg-transparent px-3 text-base text-fg placeholder:text-fg-subtle"
+              className="h-11 w-full min-w-0 rounded-lg bg-transparent px-3 text-base text-fg"
             />
           </div>
           <p role="status" className="mt-2 text-xs text-fg-muted">
@@ -240,8 +280,42 @@ export default function FaqPage() {
           </p>
         </div>
 
+        {/* The way into a category without scrolling past the ones before it.
+            Plain fragment links, so the browser moves focus and scroll on its
+            own and the search in the URL is kept. Only the categories the
+            current search left standing are offered, so no chip ever points
+            at a heading that is not there. */}
+        {filtered.length > 1 ? (
+          <nav aria-label="Soru başlıkları" className="mt-6">
+            <ul className="flex flex-wrap gap-2">
+              {filtered.map((category) => (
+                <li key={category.id}>
+                  <a
+                    href={`#${category.id}`}
+                    className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-border-strong bg-surface px-3.5 text-sm text-fg-secondary transition-colors duration-(--duration-fast) hover:bg-hover hover:text-fg"
+                  >
+                    {category.title}
+                    <span className="text-xs text-fg-muted" data-numeric>
+                      {category.items.length}
+                      <span className="sr-only"> soru</span>
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ) : null}
+
         {filtered.length === 0 ? (
-          <EmptyState query={query} onClear={() => setQuery('')} />
+          <EmptyState
+            query={query}
+            onClear={() => {
+              updateQuery('')
+              // The button that was pressed goes away with the empty state;
+              // the field is where the next search starts.
+              document.getElementById('sss-arama')?.focus()
+            }}
+          />
         ) : (
           <Accordion
             type="single"
@@ -251,7 +325,7 @@ export default function FaqPage() {
             className="mt-10 flex flex-col gap-10"
           >
             {filtered.map((category) => (
-              <section key={category.id} aria-labelledby={`sss-${category.id}`}>
+              <section key={category.id} id={category.id} aria-labelledby={`sss-${category.id}`}>
                 <h2 id={`sss-${category.id}`} className="text-xl sm:text-2xl">
                   {category.title}
                 </h2>

@@ -99,12 +99,12 @@ export default function LoginPage() {
             <Checkbox name="remember" />
             Beni hatırla
           </label>
-          <a
-            href="#"
+          <Link
+            to="/sifremi-unuttum"
             className="text-sm font-medium text-brand-fg underline-offset-4 hover:underline"
           >
             Parolamı unuttum
-          </a>
+          </Link>
         </div>
 
         <Button type="submit" size="lg" full loading={submitting} className="mt-6">

@@ -7,7 +7,7 @@ import { Badge } from '@/shared/ui/badge'
 import { Button } from '@/shared/ui/button'
 import { CAMPAIGN_GRADIENT, CAMPAIGNS, type Campaign } from '@/shared/config/campaigns'
 import { campaignPath } from '@/shared/lib/search-params'
-import { formatDateLong, formatDateMedium } from '@/shared/lib/tr'
+import { formatDateLong, formatDateWithYear } from '@/shared/lib/tr'
 
 /** Ink for each tone's motif — low contrast, because it is texture not content. */
 /**
@@ -244,7 +244,7 @@ function CampaignDetail({ campaign }: { campaign: Campaign }) {
                 <CampaignCta campaign={campaign} />
               </div>
               <p className="mt-3 text-xs text-fg-muted">
-                Son geçerlilik: <span data-numeric>{formatDateMedium(campaign.validUntil)}</span>
+                Son geçerlilik: <span data-numeric>{formatDateWithYear(campaign.validUntil)}</span>
               </p>
             </div>
           </aside>
@@ -333,7 +333,9 @@ function CompactCampaignCard({ campaign }: { campaign: Campaign }) {
           {campaign.title}
         </h3>
         <div className="mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-1 pt-4 text-xs text-fg-muted">
-          <span data-numeric>{formatDateMedium(campaign.validUntil)}&apos;e kadar</span>
+          <span>
+            Son gün: <span data-numeric>{formatDateWithYear(campaign.validUntil)}</span>
+          </span>
           <span className="inline-flex items-center gap-1 font-medium text-brand-fg">
             İnceleyin
             <ArrowRight

@@ -143,15 +143,32 @@ export default function SignupPage() {
               aria-invalid={errors.terms ? true : undefined}
               className="mt-0.5"
             />
+            {/* Worded so no suffix hangs off a link: "Gizlilik Politikası'nı"
+                split the case ending from its noun at the link's edge, and a
+                screen reader listing links heard only the bare title. The
+                documents open in a new tab so the half-filled form survives
+                the reading, and the sentence after them says so before the
+                click rather than after it. */}
             <span>
-              <a href="#" className="font-medium text-brand-fg underline-offset-4 hover:underline">
+              <Link
+                to="/kullanim-kosullari"
+                target="_blank"
+                rel="noopener"
+                className="font-medium text-brand-fg underline underline-offset-4"
+              >
                 Kullanım Koşulları
-              </a>{' '}
-              ve{' '}
-              <a href="#" className="font-medium text-brand-fg underline-offset-4 hover:underline">
+              </Link>{' '}
+              ile{' '}
+              <Link
+                to="/gizlilik-politikasi"
+                target="_blank"
+                rel="noopener"
+                className="font-medium text-brand-fg underline underline-offset-4"
+              >
                 Gizlilik Politikası
-              </a>
-              &apos;nı okudum, onaylıyorum.
+              </Link>{' '}
+              metinlerini okudum, onaylıyorum.{' '}
+              <span className="text-xs text-fg-muted">(Bağlantılar yeni sekmede açılır.)</span>
             </span>
           </label>
           {errors.terms ? (

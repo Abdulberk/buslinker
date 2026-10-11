@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { Link } from 'react-router'
 import { ArrowRight } from 'lucide-react'
-import { PageHeader } from '@/shared/ui/page-header'
+import { PageHeader, useScrollToHash } from '@/shared/ui/page-header'
 import { OperatorLogo } from '@/shared/ui/operator-logo'
 import { CITIES, OPERATORS, POPULAR_ROUTES, cityBySlug } from '@/shared/api/catalog'
 import { cityPath, routePath } from '@/shared/lib/search-params'
@@ -89,6 +89,10 @@ export default function SitemapPage() {
   useEffect(() => {
     document.title = 'Site Haritası | BusLinker'
   }, [])
+
+  // The home page links to /site-haritasi#sehir-baslik. This page is a lazy
+  // chunk, so the router's own attempt to scroll ran before the target existed.
+  useScrollToHash()
 
   const routes = useMemo(
     () =>
