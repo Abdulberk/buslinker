@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { Info } from 'lucide-react'
 import { DECK_TOKENS, layoutDeck, type Geometry, type PlacedCell } from '@/entities/deck/geometry'
 import { getDeck } from '@/entities/deck/layouts'
 import {
@@ -8,7 +9,7 @@ import {
   type SeatMap as SeatMapData,
   type SeatPick,
 } from '@/entities/seat/model'
-import { allowedGenders, seatLabel } from '@/entities/seat/rules'
+import { planPick, seatLabel, type GenderOption } from '@/entities/seat/rules'
 import { cn } from '@/shared/lib/cn'
 import { useIsDesktop } from '@/shared/lib/use-media-query'
 
@@ -31,12 +32,12 @@ const TURNED_TOKENS = Object.freeze({
   padTop: 10,
   padBottom: 12,
 })
-import { lowerTr } from '@/shared/lib/tr'
+import { formatPrice } from '@/shared/lib/tr'
 import { GENDER_ART } from '@/shared/config/assets'
 import { Illustration } from '@/shared/ui/asset-icon'
 import { Popover, PopoverAnchor, PopoverContent } from '@/shared/ui/primitives'
 import { BusShell } from './BusShell'
-import { SeatGlyph } from './SeatGlyph'
+import { GenderMark, SeatGlyph } from './SeatGlyph'
 
 /**
  * The seat map.
@@ -81,10 +82,12 @@ export function SeatMap({ data, picks, onPick, onRemove, className }: SeatMapPro
     [data.deckId, wide],
   )
   const seatByKey = useMemo(() => new Map(data.seats.map((s) => [s.key, s])), [data.seats])
-  const pickedKeys = useMemo(() => new Set(picks.map((p) => p.key)), [picks])
+  const pickedGender = useMemo(() => new Map(picks.map((p) => [p.key, p.gender])), [picks])
 
   const [focusedKey, setFocusedKey] = useState<string>(() => initialFocusKey(geometry, seatByKey))
   const [pendingKey, setPendingKey] = useState<string | null>(null)
+  // Outlives `pendingKey`, which is already cleared when the chooser closes.
+  const askedFor = useRef<string | null>(null)
   const buttonRefs = useRef(new Map<string, HTMLButtonElement>())
   const shouldFocus = useRef(false)
 
@@ -198,20 +201,25 @@ export function SeatMap({ data, picks, onPick, onRemove, className }: SeatMapPro
     (cell: PlacedCell) => {
       const seat = cell.seatNo !== null ? seatByKey.get(cell.key) : undefined
       if (!seat) return
-      if (pickedKeys.has(seat.key)) {
+      if (pickedGender.has(seat.key)) {
         onRemove(seat.key)
         setPendingKey(null)
         return
       }
-      const gates = allowedGenders(seat, data.policy)
-      if (!gates.male && !gates.female) {
-        // Not sellable. The parent announces why; nothing opens.
-        if (!data.policy.hasGenderSelection) onPick(seat, 'S')
+      // Nothing to ask — no gender rule, or no answer could be added. The
+      // pick goes straight to the cart rules, which either add it or say why
+      // not; a sold seat or a full booking is explained on the tap instead of
+      // after a question whose every answer would have been refused.
+      const plan = planPick(picks, seat, data.policy)
+      if (plan.kind === 'commit') {
+        setPendingKey(null)
+        onPick(seat, plan.gender)
         return
       }
+      askedFor.current = seat.key
       setPendingKey(seat.key)
     },
-    [data.policy, onPick, onRemove, pickedKeys, seatByKey],
+    [data.policy, onPick, onRemove, pickedGender, picks, seatByKey],
   )
 
   const rows = useMemo(() => {
@@ -227,6 +235,7 @@ export function SeatMap({ data, picks, onPick, onRemove, className }: SeatMapPro
 
   const turned = geometry.orientation === 'horizontal'
   const pendingSeat = pendingKey ? seatByKey.get(pendingKey) : undefined
+  const pendingPlan = pendingSeat ? planPick(picks, pendingSeat, data.policy) : undefined
   const { w: W, h: H } = geometry.viewBox
   const pct = (value: number, total: number) => `${(value / total) * 100}%`
 
@@ -286,7 +295,8 @@ export function SeatMap({ data, picks, onPick, onRemove, className }: SeatMapPro
                 )
               }
 
-              const selected = pickedKeys.has(seat.key)
+              const pickGender = pickedGender.get(seat.key)
+              const selected = pickGender !== undefined
               const state = seatVisualState(seat, selected)
               const interactive = state === 'available' || selected
 
@@ -302,6 +312,7 @@ export function SeatMap({ data, picks, onPick, onRemove, className }: SeatMapPro
                   seat={seat}
                   state={state}
                   selected={selected}
+                  mark={markFor(state, pickGender)}
                   interactive={interactive}
                   tabIndex={focusedKey === cell.key ? 0 : -1}
                   style={style}
@@ -317,10 +328,10 @@ export function SeatMap({ data, picks, onPick, onRemove, className }: SeatMapPro
       </div>
 
       {/* The gender step. Turkish carriers ask for it after the seat is
-          chosen, and the illegal option is disabled rather than hidden so the
-          restriction is discoverable. */}
+          chosen, and the illegal option is shown switched off, with its reason
+          in plain text, rather than hidden — so the restriction is learnt. */}
       <Popover
-        open={pendingSeat !== undefined}
+        open={pendingPlan?.kind === 'ask'}
         onOpenChange={(open) => {
           if (!open) setPendingKey(null)
         }}
@@ -341,11 +352,31 @@ export function SeatMap({ data, picks, onPick, onRemove, className }: SeatMapPro
             }
           />
         </PopoverAnchor>
-        <PopoverContent align="center" side="right" className="w-auto p-1.5">
-          {pendingSeat ? (
+        <PopoverContent
+          align="center"
+          // Above or below the seat, never beside it: a side placement can only
+          // slide vertically, and beside a seat on a 390px phone the chooser
+          // ran off the screen's left edge. The padding keeps it clear of the
+          // sticky header and the phone's sticky bar.
+          side={turned ? 'top' : 'bottom'}
+          collisionPadding={{ top: 88, bottom: 96, left: 12, right: 12 }}
+          className="w-64 max-w-[calc(100vw-2rem)] p-3"
+          // The anchor is not a trigger, so Radix has nowhere to send focus on
+          // close and it fell to the page. Back to the seat keeps a keyboard
+          // user's place in the coach.
+          onCloseAutoFocus={(event) => {
+            event.preventDefault()
+            const key = askedFor.current
+            if (!key) return
+            setFocusedKey(key)
+            buttonRefs.current.get(key)?.focus({ preventScroll: true })
+          }}
+        >
+          {pendingSeat && pendingPlan?.kind === 'ask' ? (
             <GenderChoice
               seat={pendingSeat}
-              policy={data.policy}
+              options={pendingPlan.options}
+              singleSeatFee={pendingSeat.isSingle ? data.policy.singleSeatFee : 0}
               onChoose={(gender) => {
                 onPick(pendingSeat, gender)
                 setPendingKey(null)
@@ -371,6 +402,7 @@ function SeatButton({
   seat,
   state,
   selected,
+  mark,
   interactive,
   isPending,
   style,
@@ -382,6 +414,7 @@ function SeatButton({
   seat: Seat
   state: ReturnType<typeof seatVisualState>
   selected: boolean
+  mark: 'M' | 'F' | null
   interactive: boolean
   isPending: boolean
   style: React.CSSProperties
@@ -406,7 +439,10 @@ function SeatButton({
         'transition-transform duration-(--duration-fast) ease-standard',
         interactive && 'cursor-pointer hover:-translate-y-px active:scale-95',
         !interactive && 'cursor-not-allowed',
-        isPending && 'z-10 -translate-y-px',
+        // The seat being asked about stays marked while the chooser covers
+        // part of the coach — dashed, because it is not picked yet.
+        isPending &&
+          'z-10 -translate-y-px outline-2 outline-offset-2 outline-success outline-dashed',
       )}
       style={style}
       {...props}
@@ -414,21 +450,25 @@ function SeatButton({
       <SeatGlyph state={state} turned={turned} />
 
       {/* The number is HTML, not SVG text: it stays legible at any deck scale
-          instead of shrinking with the drawing. */}
+          instead of shrinking with the drawing. The gender mark sits under it
+          in the same colour, so occupied-male and occupied-female differ by
+          shape as well as hue, and a picked seat shows whom it was taken for. */}
       <span
-        data-numeric
         className={cn(
-          'pointer-events-none absolute font-semibold tabular-nums',
+          'pointer-events-none absolute flex flex-col items-center gap-px font-semibold',
           'text-[clamp(0.6875rem,2.6vw,0.875rem)] leading-none',
           seat.label.length > 2 && 'text-[clamp(0.5625rem,2vw,0.75rem)]',
         )}
         style={
           turned
             ? { color: SEAT_TEXT[state], marginRight: '0.2em' }
-            : { color: SEAT_TEXT[state], marginTop: '0.15em' }
+            : { color: SEAT_TEXT[state], marginTop: mark ? '0.35em' : '0.15em' }
         }
       >
-        {seat.label}
+        <span data-numeric className="tabular-nums">
+          {seat.label}
+        </span>
+        {mark ? <GenderMark gender={mark} className="size-[0.85em]" /> : null}
       </span>
 
       {selected ? (
@@ -460,24 +500,63 @@ const SEAT_TEXT: Record<string, string> = {
   disabled: 'var(--seat-disabled-text)',
 }
 
+/** Occupied seats show who sits there; picked ones show whom they were taken for. */
+function markFor(state: ReturnType<typeof seatVisualState>, picked: Gender | undefined) {
+  if (state === 'occupied-male') return 'M'
+  if (state === 'occupied-female') return 'F'
+  return picked === 'M' || picked === 'F' ? picked : null
+}
+
 function GenderChoice({
   seat,
-  policy,
+  options,
+  singleSeatFee,
   onChoose,
 }: {
   seat: Seat
-  policy: SeatMapData['policy']
+  options: readonly [GenderOption, GenderOption]
+  singleSeatFee: number
   onChoose: (gender: Gender) => void
 }) {
-  const gates = allowedGenders(seat, policy)
+  const id = useId()
+  // At most one answer is ever ruled out here — with both ruled out there is
+  // no question, and `planPick` commits instead — so one reason line serves.
+  const reason = options.find((o) => o.blockedBy !== null)?.blockedBy ?? null
+
   return (
-    <div
-      className="flex gap-1"
-      role="group"
-      aria-label={`${seat.label} numaralı koltuk için yolcu cinsiyeti`}
-    >
-      <GenderButton gender="M" enabled={gates.male} onChoose={onChoose} />
-      <GenderButton gender="F" enabled={gates.female} onChoose={onChoose} />
+    <div role="group" aria-labelledby={`${id}-title`} aria-describedby={`${id}-prompt`}>
+      <div className="flex items-baseline justify-between gap-3">
+        <p id={`${id}-title`} className="text-sm font-semibold text-fg">
+          {seat.label} numaralı koltuk
+        </p>
+        <p className="text-sm font-semibold text-fg tabular-nums">{formatPrice(seat.price)}</p>
+      </div>
+      <p className="mt-0.5 text-xs text-fg-muted">
+        {seat.isSingle ? 'Tekli koltuk' : seat.isWindow ? 'Pencere kenarı' : 'Koridor kenarı'}
+        {singleSeatFee > 0 ? (
+          <span className="tabular-nums"> · +{formatPrice(singleSeatFee)} tekli koltuk farkı</span>
+        ) : null}
+      </p>
+      <p id={`${id}-prompt`} className="mt-2 text-xs text-fg-secondary">
+        Yolcunun cinsiyetini seçin
+      </p>
+      <div className="mt-2 grid grid-cols-2 gap-2">
+        {options.map((option) => (
+          <GenderButton
+            key={option.gender}
+            gender={option.gender}
+            enabled={option.blockedBy === null}
+            describedBy={option.blockedBy === null ? undefined : `${id}-reason`}
+            onChoose={onChoose}
+          />
+        ))}
+      </div>
+      {reason ? (
+        <p id={`${id}-reason`} className="mt-2.5 flex gap-1.5 text-xs text-fg-secondary">
+          <Info className="mt-px size-3.5 shrink-0 text-fg-muted" aria-hidden="true" />
+          {reason}
+        </p>
+      ) : null}
     </div>
   )
 }
@@ -485,10 +564,12 @@ function GenderChoice({
 function GenderButton({
   gender,
   enabled,
+  describedBy,
   onChoose,
 }: {
   gender: 'M' | 'F'
   enabled: boolean
+  describedBy: string | undefined
   onChoose: (gender: Gender) => void
 }) {
   const label = gender === 'M' ? 'Erkek' : 'Kadın'
@@ -507,19 +588,24 @@ function GenderButton({
         : GENDER_ART.femalePassive
 
   return (
+    // `aria-disabled` rather than `disabled`: the switched-off answer stays
+    // focusable, so a screen-reader user reaches it and hears the reason
+    // through `aria-describedby` instead of finding one button missing.
     <button
       type="button"
-      disabled={!enabled}
-      onClick={() => onChoose(gender)}
-      title={enabled ? undefined : `Bu koltuk ${lowerTr(label)} yolculara satılamaz`}
+      aria-disabled={!enabled || undefined}
+      aria-describedby={describedBy}
+      onClick={() => {
+        if (enabled) onChoose(gender)
+      }}
       className={cn(
-        'flex min-w-18 flex-col items-center gap-1 rounded-lg px-3 py-2 text-xs font-medium',
+        'flex flex-col items-center gap-1 rounded-lg border px-3 py-2 text-xs font-medium',
         'transition-colors duration-(--duration-fast)',
         enabled
           ? gender === 'M'
-            ? 'text-(--seat-male-text) hover:bg-(--seat-male-fill)'
-            : 'text-(--seat-female-text) hover:bg-(--seat-female-fill)'
-          : 'cursor-not-allowed text-fg-subtle',
+            ? 'border-border text-(--seat-male-text) hover:bg-(--seat-male-fill)'
+            : 'border-border text-(--seat-female-text) hover:bg-(--seat-female-fill)'
+          : 'cursor-not-allowed border-dashed border-border text-fg-subtle',
       )}
     >
       <Illustration src={art} alt="" width={64} height={64} className="size-9" />

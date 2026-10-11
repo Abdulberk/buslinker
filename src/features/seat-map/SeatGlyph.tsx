@@ -1,4 +1,5 @@
 import type { SeatVisualState } from '@/entities/seat/model'
+import { cn } from '@/shared/lib/cn'
 
 /**
  * One seat, drawn once.
@@ -43,6 +44,15 @@ const STROKE: Record<SeatVisualState, string> = {
  */
 const LINE = 1.2
 
+/**
+ * A withheld seat in dark mode. Its own tokens put it within a few points of
+ * lightness of the coach body, so on the dark deck it simply vanished. Sunk
+ * below the body and outlined at the strength of a free seat, it reads as a
+ * seat that is there but not on offer, and the dimmed number says the rest.
+ * Classes, because a CSS rule outranks the presentation attributes below.
+ */
+const WITHHELD_DARK = 'dark:fill-surface-sunken dark:stroke-border-strong'
+
 const BODY_PATH =
   'M10.5 2.25 H29.5 A5 5 0 0 1 34.5 7.25 V10 Q36.5 10 36.5 12 V34.75 A7 7 0 0 1 29.5 41.75 H10.5 A7 7 0 0 1 3.5 34.75 V12 Q3.5 10 5.5 10 V7.25 A5 5 0 0 1 10.5 2.25 Z'
 
@@ -62,6 +72,7 @@ export function SeatGlyph({
 }) {
   const stroke = STROKE[state]
   const isOccupied = state === 'occupied-male' || state === 'occupied-female'
+  const withheld = state === 'disabled' ? WITHHELD_DARK : undefined
 
   return (
     <svg
@@ -93,6 +104,7 @@ export function SeatGlyph({
       <g transform={turned ? 'translate(44 0) rotate(90)' : undefined}>
         <path
           d={BODY_PATH}
+          className={withheld}
           fill={FILL[state]}
           stroke={stroke}
           strokeWidth={LINE}
@@ -106,6 +118,7 @@ export function SeatGlyph({
           the shape read as a seat rather than a rounded rectangle. */}
         <path
           d="M6.5 13.5 Q20 16.5 33.5 13.5"
+          className={state === 'disabled' ? 'dark:stroke-border-strong' : undefined}
           fill="none"
           stroke={stroke}
           strokeWidth={LINE}
@@ -121,6 +134,7 @@ export function SeatGlyph({
           width="5"
           height="21"
           rx="2.5"
+          className={withheld}
           fill={FILL[state]}
           stroke={stroke}
           strokeWidth={LINE}
@@ -132,6 +146,7 @@ export function SeatGlyph({
           width="5"
           height="21"
           rx="2.5"
+          className={withheld}
           fill={FILL[state]}
           stroke={stroke}
           strokeWidth={LINE}
@@ -143,13 +158,18 @@ export function SeatGlyph({
 }
 
 /**
- * The gender mark on an occupied seat. Colour is the fourth channel here, not
- * the first: the fills differ by a barely-perceptible amount, so the glyph is
- * what actually carries the information.
+ * The gender mark on an occupied or picked seat. Colour is the fourth channel
+ * here, not the first: the fills differ by a barely-perceptible amount, so the
+ * glyph is what actually carries the information (WCAG 1.4.1).
  */
-export function GenderMark({ gender }: { gender: 'M' | 'F' }) {
+export function GenderMark({ gender, className }: { gender: 'M' | 'F'; className?: string }) {
   return (
-    <svg viewBox="0 0 12 12" className="size-3" aria-hidden="true" focusable="false">
+    <svg
+      viewBox="0 0 12 12"
+      className={cn('size-3 shrink-0', className)}
+      aria-hidden="true"
+      focusable="false"
+    >
       {gender === 'M' ? (
         <>
           <circle cx="4.6" cy="7.4" r="3" fill="none" stroke="currentColor" strokeWidth="1.4" />

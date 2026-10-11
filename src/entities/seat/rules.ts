@@ -127,6 +127,61 @@ export function allowedGenders(seat: Seat, policy: SeatPolicy): { male: boolean;
   }
 }
 
+/** One button in the gender chooser. */
+export interface GenderOption {
+  readonly gender: 'M' | 'F'
+  /** Null when this answer can be added; otherwise the sentence shown beside the buttons. */
+  readonly blockedBy: string | null
+}
+
+/**
+ * What a click on a seat that is not yet picked should do.
+ *
+ *  - `commit` means there is nothing to ask. Either the carrier has no gender
+ *    rule, or no answer could be added — the seat is sold, the limit is
+ *    reached, or the seat's lock and the booking's single gender rule out both
+ *    answers. Adding it at once lets `canAddToCart` explain the refusal before
+ *    the traveller is asked a question whose every answer would be turned down.
+ *  - `ask` means at least one answer works, and each option carries its own
+ *    reason when it does not, so the chooser can show why instead of hinting.
+ */
+export type PickPlan =
+  | { readonly kind: 'commit'; readonly gender: Gender }
+  | { readonly kind: 'ask'; readonly options: readonly [GenderOption, GenderOption] }
+
+export function planPick(picks: readonly SeatPick[], seat: Seat, policy: SeatPolicy): PickPlan {
+  if (!policy.hasGenderSelection) return { kind: 'commit', gender: 'S' }
+
+  const male = canAddToCart(picks, seat, 'M', policy)
+  const female = canAddToCart(picks, seat, 'F', policy)
+
+  if (!male.ok && !female.ok) {
+    // Seat-level refusals read the same for either answer. When both refusals
+    // are about gender, answering with the booking's own gender yields the
+    // message that names this seat's lock — the part the traveller can act on.
+    const party = picks.find((p) => p.gender !== 'S')?.gender
+    return { kind: 'commit', gender: party === 'F' ? 'F' : 'M' }
+  }
+
+  // Seat-level checks run before the gender checks in `canAddToCart`, so a
+  // refusal that reaches this point is always one of the two gender rules.
+  return {
+    kind: 'ask',
+    options: [
+      { gender: 'M', blockedBy: male.ok ? null : genderReason(male.error) },
+      { gender: 'F', blockedBy: female.ok ? null : genderReason(female.error) },
+    ],
+  }
+}
+
+function genderReason(error: CartError): string {
+  if (error.code === 'GENDER_BLOCKED') {
+    const who = error.allowed === 'M' ? 'erkek' : 'kadın'
+    return `Yan koltukta ${who} yolcu oturduğu için bu koltuk yalnızca ${who} yolculara satılabilir.`
+  }
+  return 'Bu firmada bir biletteki yolcuların hepsi aynı cinsiyetten olmalı.'
+}
+
 export interface PriceLine {
   readonly label: string
   readonly amount: number

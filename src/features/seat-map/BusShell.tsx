@@ -21,13 +21,19 @@ export function BusShell({ geometry }: { geometry: Geometry }) {
   // side — the cells and fixtures are already in the turned space, so only
   // this group moves. `translate(0 h) rotate(-90)` is the same quarter turn
   // anticlockwise the geometry applied to the cells.
-  const shellTurn =
-    geometry.orientation === 'horizontal' ? `translate(0 ${viewBox.h}) rotate(-90)` : undefined
+  const turned = geometry.orientation === 'horizontal'
+  const shellTurn = turned ? `translate(0 ${viewBox.h}) rotate(-90)` : undefined
+  // Inside the turned group the drawing is upright again, so anything drawn
+  // there (the grille included) works in upright lengths.
+  const upright = turned ? { w: viewBox.h, h: viewBox.w } : { w: viewBox.w, h: viewBox.h }
 
   return (
     <svg
       viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
-      className="pointer-events-none absolute inset-0 size-full"
+      // `overflow-visible`: the wheels straddle the body's outline by design,
+      // half outside the box. With the default clip their outer half was cut
+      // away and the shell painted over the rest, so no wheel was ever seen.
+      className="pointer-events-none absolute inset-0 size-full overflow-visible"
       aria-hidden="true"
       focusable="false"
       preserveAspectRatio="none"
@@ -59,12 +65,16 @@ export function BusShell({ geometry }: { geometry: Geometry }) {
             width={w.w}
             height={w.h}
             rx={w.w / 2}
-            fill="var(--color-deck-chrome)"
+            fill="var(--color-deck-shell-border)"
           />
         ))}
 
+        {/* Dark mode lifts the body to the raised surface and sinks the aisle
+            below it: the deck tokens had the floor lighter than the body, so
+            the aisle read as a ridge and the coach as a hole in the card. */}
         <path
           d={chrome.shellPath}
+          className="dark:fill-surface-raised"
           fill="var(--color-deck-shell)"
           stroke="var(--color-deck-shell-border)"
           strokeWidth="1.75"
@@ -88,6 +98,7 @@ export function BusShell({ geometry }: { geometry: Geometry }) {
           width={chrome.floor.w}
           height={chrome.floor.h}
           rx={chrome.floor.w / 2}
+          className="dark:fill-surface-sunken"
           fill="var(--color-deck-floor)"
         />
 
@@ -111,6 +122,22 @@ export function BusShell({ geometry }: { geometry: Geometry }) {
           stroke="var(--color-deck-shell-border)"
           strokeWidth="1.5"
         />
+
+        {/* Rear engine grille, in the strip behind the last row. Drawn in the
+            upright group so it turns with the coach: outside it, the grille
+            stayed along the bottom edge — the driver's side — once the deck
+            lay down. Four bars fit the turned deck's shorter tail pad. */}
+        {Array.from({ length: 4 }, (_, i) => (
+          <line
+            key={i}
+            x1={upright.w * 0.3}
+            x2={upright.w * 0.7}
+            y1={upright.h - 10 + i * 2.2}
+            y2={upright.h - 10 + i * 2.2}
+            stroke="var(--color-deck-chrome)"
+            strokeWidth="0.75"
+          />
+        ))}
       </g>
 
       {/* Doors, WCs and stairwells — drawn from the merged fixture boxes, so a
@@ -121,7 +148,6 @@ export function BusShell({ geometry }: { geometry: Geometry }) {
           // edge once the deck is turned. A solid threshold on that edge and
           // treads stepping away from it are what make the opening read as a
           // door rather than as a missing pair of seats.
-          const turned = geometry.orientation === 'horizontal'
           const steps = 3
           return (
             <g key={f.key}>
@@ -227,19 +253,6 @@ export function BusShell({ geometry }: { geometry: Geometry }) {
           />
         )
       })}
-
-      {/* Rear engine grille. */}
-      {Array.from({ length: 5 }, (_, i) => (
-        <line
-          key={i}
-          x1={viewBox.w * 0.3}
-          x2={viewBox.w * 0.7}
-          y1={viewBox.h - 13 + i * 2.4}
-          y2={viewBox.h - 13 + i * 2.4}
-          stroke="var(--color-deck-chrome)"
-          strokeWidth="0.75"
-        />
-      ))}
     </svg>
   )
 }

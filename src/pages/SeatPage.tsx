@@ -8,12 +8,13 @@ import { DEFAULT_POLICY } from '@/entities/seat/model'
 import { maxSeatsFor, quote } from '@/entities/seat/rules'
 import { useBookingStore } from '@/features/booking/store'
 import { SeatMap } from '@/features/seat-map/SeatMap'
+import { GenderMark } from '@/features/seat-map/SeatGlyph'
 import { SeatLegend } from '@/features/seat-map/SeatLegend'
-import { SelectionRail } from '@/features/seat-map/SelectionRail'
+import { NightLabel, SelectionRail } from '@/features/seat-map/SelectionRail'
 import { cityById, operatorById } from '@/shared/api/catalog'
 import { seatMapQuery, tripQuery } from '@/shared/api/queries'
 import { checkoutPath, resultsPath } from '@/shared/lib/search-params'
-import { formatDateLong, formatPrice, formatTime, toISODate } from '@/shared/lib/tr'
+import { formatDateLong, formatPrice, formatTime, nightOfLabel, toISODate } from '@/shared/lib/tr'
 import { Button } from '@/shared/ui/button'
 import { OperatorLogo } from '@/shared/ui/operator-logo'
 import { Skeleton } from '@/shared/ui/skeleton'
@@ -132,48 +133,56 @@ export default function SeatPage() {
 
   const operator = operatorById(trip.operatorId)
   const continueDisabled = picks.length === 0
+  const night = nightOfLabel(trip.departsAt)
 
   return (
     <>
       {liveRegion}
 
       <div className="app-container pt-6 pb-8 sm:pt-8">
-        <Button variant="ghost" size="sm" asChild className="-ml-3">
-          <Link to={backHref}>
-            <ArrowLeft className="size-4" aria-hidden="true" />
-            Seferlere dön
-          </Link>
-        </Button>
+        {/* The rail starts level with the back link rather than below the
+            heading: on a 1280×800 screen that is most of what brings the total
+            and the button above the fold (the rail's pinned footer does the
+            rest). Sticky under the 72px header with a little air. */}
+        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-6">
+          <div className="min-w-0">
+            <Button variant="ghost" size="sm" asChild className="-ml-3">
+              <Link to={backHref}>
+                <ArrowLeft className="size-4" aria-hidden="true" />
+                Seferlere dön
+              </Link>
+            </Button>
 
-        <header className="mt-4">
-          <h1 className="font-display text-2xl font-semibold text-balance-tr text-fg sm:text-3xl">
-            {routeLabel} koltuk seçimi
-          </h1>
-          <div className="mt-2 flex items-center gap-3">
-            <OperatorLogo operatorId={trip.operatorId} className="size-14" />
-            <p className="text-sm text-fg-secondary">
-              {operator?.name ?? 'Sefer'} · {formatDateLong(trip.departsAt)} ·{' '}
-              <span className="tabular-nums">
-                {formatTime(trip.departsAt)} – {formatTime(trip.arrivesAt)}
-              </span>
-            </p>
-          </div>
-        </header>
+            <header className="mt-4">
+              <h1 className="font-display text-2xl font-semibold text-balance-tr text-fg sm:text-3xl">
+                {routeLabel} koltuk seçimi
+              </h1>
+              <div className="mt-2 flex items-center gap-3">
+                <OperatorLogo operatorId={trip.operatorId} className="size-12 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm text-fg-secondary">
+                    {operator?.name ?? 'Sefer'} · {formatDateLong(trip.departsAt)} ·{' '}
+                    <span className="tabular-nums">
+                      {formatTime(trip.departsAt)} – {formatTime(trip.arrivesAt)}
+                    </span>
+                  </p>
+                  {night ? <NightLabel className="mt-1.5">{night}</NightLabel> : null}
+                </div>
+              </div>
+            </header>
 
-        <div role="alert" aria-atomic="true" className="mt-6 empty:mt-0">
-          {errorMessage ? (
-            <p className="flex items-start gap-2 rounded-lg border border-danger/25 bg-danger-tint p-3 text-sm text-danger-fg">
-              <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-              <span>{errorMessage}</span>
-            </p>
-          ) : null}
-        </div>
+            <div role="alert" aria-atomic="true" className="mt-5 empty:mt-0">
+              {errorMessage ? (
+                <p className="flex items-start gap-2 rounded-lg border border-danger/25 bg-danger-tint p-3 text-sm text-danger-fg">
+                  <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                  <span>{errorMessage}</span>
+                </p>
+              ) : null}
+            </div>
 
-        <div className="mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-6">
-          <div className="grid gap-6">
             <section
               aria-labelledby="deck-title"
-              className="rounded-xl border border-border bg-surface-raised p-4 shadow-sm sm:p-6 lg:p-5"
+              className="mt-5 rounded-xl border border-border bg-surface-raised p-4 shadow-sm sm:p-6 lg:p-5 dark:bg-surface"
             >
               {/* Both stay in the document: the section is labelled by the heading,
                   and the keyboard hint is exactly what a screen-reader user needs
@@ -185,25 +194,18 @@ export default function SeatPage() {
                 Bir koltuğa dokunun, ardından yolcunun cinsiyetini seçin. Klavyeyle ok tuşlarını
                 kullanabilirsiniz.
               </p>
+              {/* The key sits above the coach: read before the first tap, not
+                  found under the deck after a refused one. */}
+              <SeatLegend
+                hasGenderSelection={seatMap.policy.hasGenderSelection}
+                sunSide={seatMap.sunSide}
+              />
               <SeatMap
                 data={seatMap}
                 picks={picks}
                 onPick={handlePick}
                 onRemove={handleRemove}
                 className="mt-6"
-              />
-            </section>
-
-            <section
-              aria-labelledby="legend-title"
-              className="rounded-xl border border-border bg-surface p-4"
-            >
-              <h2 id="legend-title" className="text-sm font-semibold text-fg">
-                Açıklamalar
-              </h2>
-              <SeatLegend
-                hasGenderSelection={seatMap.policy.hasGenderSelection}
-                className="mt-3 sm:max-w-md"
               />
             </section>
           </div>
@@ -217,12 +219,12 @@ export default function SeatPage() {
             onRemove={handleRemove}
             onContinue={handleContinue}
             continueDisabled={continueDisabled}
-            className="lg:sticky lg:top-6"
+            className="lg:sticky lg:top-22"
           />
         </div>
       </div>
 
-      <div className="sticky bottom-0 z-40 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden">
+      <div className="sticky bottom-0 z-40 border-t border-border bg-chrome pb-[env(safe-area-inset-bottom)] lg:hidden">
         <div className="app-container flex items-center gap-3 py-2.5 sm:gap-4 sm:py-3">
           {continueDisabled ? (
             // Kept short: the full sentence wrapped to three lines beside the
@@ -231,10 +233,31 @@ export default function SeatPage() {
               Önce bir koltuk seçin
             </p>
           ) : (
-            <div className="shrink-0">
-              <p className="text-2xs text-fg-muted">Toplam</p>
-              <p className="font-display text-lg font-semibold text-fg tabular-nums">
-                {formatPrice(currentQuote.total)}
+            // Seats stacked over the total rather than beside it: four picks
+            // with their marks and the total in one line left the button too
+            // narrow for its label at 320px.
+            <div className="min-w-0 shrink-0">
+              <ul
+                aria-label="Seçilen koltuklar"
+                className="flex flex-wrap items-center gap-x-2 text-xs font-semibold text-fg-secondary"
+              >
+                {picks.map((pick) => (
+                  <li key={pick.key} className="inline-flex items-center gap-0.5">
+                    <span className="tabular-nums">{pick.label}</span>
+                    {pick.gender === 'S' ? null : (
+                      <>
+                        <GenderMark gender={pick.gender} className="size-2.5" />
+                        <span className="sr-only">{pick.gender === 'M' ? 'erkek' : 'kadın'}</span>
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-0.5 flex items-baseline gap-1.5">
+                <span className="text-2xs text-fg-muted">Toplam</span>
+                <span className="font-display text-lg leading-tight font-semibold text-fg tabular-nums">
+                  {formatPrice(currentQuote.total)}
+                </span>
               </p>
             </div>
           )}
@@ -269,10 +292,7 @@ function LoadingState() {
       <Skeleton className="mt-4 h-9 w-72 max-w-full" />
       <Skeleton className="mt-3 h-4 w-56 max-w-full" />
       <div className="mt-8 grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-6">
-        <div className="grid gap-6">
-          <Skeleton className="h-144 w-full rounded-xl" />
-          <Skeleton className="h-28 w-full rounded-xl" />
-        </div>
+        <Skeleton className="h-144 w-full rounded-xl" />
         <Skeleton className="h-120 w-full rounded-xl" />
       </div>
     </div>

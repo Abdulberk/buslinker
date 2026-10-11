@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_POLICY, type Seat, type SeatPick, type SeatPolicy } from './model'
-import { allowedGenders, canAddToCart, maxSeatsFor, quote, seatLabel } from './rules'
+import { allowedGenders, canAddToCart, maxSeatsFor, planPick, quote, seatLabel } from './rules'
 
 const seat = (over: Partial<Seat> = {}): Seat => ({
   key: 'r0c0',
@@ -226,5 +226,67 @@ describe('seatLabel', () => {
   it('never mentions selection', () => {
     expect(seatLabel(seat())).not.toContain('seçili')
     expect(seatLabel(seat())).not.toContain('seçildi')
+  })
+})
+
+describe('planPick', () => {
+  it('adds straight away when the carrier has no gender rule', () => {
+    expect(planPick([], seat(), policy({ hasGenderSelection: false }))).toEqual({
+      kind: 'commit',
+      gender: 'S',
+    })
+  })
+
+  it('asks, with both answers open, for a free seat', () => {
+    const plan = planPick([], seat(), policy())
+    expect(plan.kind).toBe('ask')
+    if (plan.kind === 'ask') expect(plan.options.every((o) => o.blockedBy === null)).toBe(true)
+  })
+
+  // The reason is shown, not tucked into a tooltip, so it must name the cause.
+  it('explains a gender-locked seat on the answer it rules out', () => {
+    const plan = planPick(
+      [],
+      seat({ availableFor: 'F', unavailableReason: 'GENDER_BLOCKED' }),
+      policy(),
+    )
+    expect(plan.kind).toBe('ask')
+    if (plan.kind === 'ask') {
+      const [male, female] = plan.options
+      expect(male.blockedBy).toContain('kadın yolcu')
+      expect(female.blockedBy).toBeNull()
+    }
+  })
+
+  it('explains the single-gender rule before the traveller answers', () => {
+    const plan = planPick(
+      [pick({ gender: 'M' })],
+      seat({ key: 'y' }),
+      policy({ mixedGenders: false }),
+    )
+    expect(plan.kind).toBe('ask')
+    if (plan.kind === 'ask') {
+      expect(plan.options[0].blockedBy).toBeNull()
+      expect(plan.options[1].blockedBy).toContain('aynı cinsiyetten')
+    }
+  })
+
+  // Asking a question whose every answer is refused is the bug this prevents.
+  it('does not ask once the seat limit is reached', () => {
+    const picks = ['a', 'b', 'c', 'd'].map((key) => pick({ key }))
+    const plan = planPick(picks, seat({ key: 'e' }), policy())
+    expect(plan.kind).toBe('commit')
+    if (plan.kind === 'commit') {
+      expect(canAddToCart(picks, seat({ key: 'e' }), plan.gender, policy()).ok).toBe(false)
+    }
+  })
+
+  it('does not ask when the lock and the single-gender rule leave no answer', () => {
+    const picks = [pick({ gender: 'M' })]
+    const locked = seat({ key: 'y', availableFor: 'F', unavailableReason: 'GENDER_BLOCKED' })
+    const plan = planPick(picks, locked, policy({ mixedGenders: false }))
+    expect(plan).toEqual({ kind: 'commit', gender: 'M' })
+    const result = canAddToCart(picks, locked, 'M', policy({ mixedGenders: false }))
+    expect(!result.ok && result.error.code).toBe('GENDER_BLOCKED')
   })
 })
