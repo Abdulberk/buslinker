@@ -3,6 +3,8 @@ import { SearchForm } from '@/features/search-form/SearchForm'
 import { ICON, IMAGE } from '@/shared/config/assets'
 import { cn } from '@/shared/lib/cn'
 import { AssetIcon } from '@/shared/ui/asset-icon'
+import { HeroStreak } from './HeroStreak'
+import { ResumeSearch } from './ResumeSearch'
 
 /**
  * Only the bus search exists, so the other three modes render as genuinely
@@ -66,9 +68,16 @@ export function Hero() {
       // half on the sky and half on the page and the depth, not a line, is
       // what separates the hero from what follows. The hairline under the
       // section goes for the same reason.
+      //
+      // The cut is measured from the section's bottom, so a returning
+      // visitor's resume card under the panel would push the panel up onto
+      // the sky. When the card is there (`data-resume`), the cut moves down
+      // by its block, which is a fixed height from lg for exactly this
+      // reason (see the card's placement below).
       className={cn(
         'relative isolate border-b border-border bg-chrome sm:bg-bg sm:hero-band',
         'sm:-mt-16 sm:pt-16 lg:-mt-18 lg:border-b-0 lg:pt-18 lg:[--band-cut:7rem]',
+        'lg:[--resume-block:8rem] lg:has-data-resume:[--band-cut:calc(7rem+var(--resume-block))]',
       )}
     >
       <div
@@ -105,6 +114,9 @@ export function Hero() {
             WebkitMaskComposite: 'source-in',
           }}
         />
+
+        {/* From lg, a shooting star across the band; see HeroStreak. */}
+        <HeroStreak />
       </div>
 
       <div className="app-container pt-1.5 sm:pt-14 sm:pb-16 lg:pt-14 lg:pb-18">
@@ -228,6 +240,17 @@ export function Hero() {
           </div>
 
           <SearchForm variant="hero" className="mt-3 sm:mt-0" />
+
+          {/* Returning visitors only; it renders nothing for a first visit.
+              On a phone it stands in the sky sheet under "Bilet Bul"; from sm
+              it sits under the search card, held to a card's width at the
+              left edge rather than stretched under the whole form, and from
+              lg that puts it on the page's ground below the band. There its
+              block, the gap above it included, is a fixed height that the
+              section adds to the band's cut: the card is shorter than the
+              block, and anything that makes it taller spills into the padding
+              below instead of lifting the panel off the cut. */}
+          <ResumeSearch className="pt-5 sm:max-w-md lg:h-(--resume-block)" />
         </div>
       </div>
     </section>
