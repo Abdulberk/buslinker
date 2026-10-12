@@ -120,8 +120,8 @@ export function DateStrip({ from, to, date, className }: DateStripProps) {
                 <li key={day.date} className={ITEM}>
                   <Link
                     to={resultsPath(from.slug, to.slug, day.date, searchParams)}
-                    // Same page, new day: no route veil, and focus stays on the
-                    // cell that was tapped.
+                    // Same page, new day: focus stays on the cell that was
+                    // tapped instead of jumping to <main>.
                     state={QUIET_NAV}
                     replace={isCurrent}
                     preventScrollReset

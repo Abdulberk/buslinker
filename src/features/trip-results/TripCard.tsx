@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
-import { Link } from 'react-router'
+import { Link, useLocation, useViewTransitionState } from 'react-router'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   Armchair,
   BedDouble,
@@ -34,6 +35,8 @@ import {
 import { amenityById, cityById, operatorById } from '@/shared/api/catalog'
 import type { AmenityId } from '@/shared/api/catalog'
 import { seatPath } from '@/shared/lib/search-params'
+import { morphFrom } from '@/shared/lib/quiet-nav'
+import { seatMapQuery, tripQuery } from '@/shared/api/queries'
 import type { Trip } from '@/shared/api/mock-server'
 
 /**
@@ -62,6 +65,16 @@ const CARD_LIFT = cn(
 const CARD_BOX_STYLE: CSSProperties = {
   contentVisibility: 'auto',
   containIntrinsicSize: '0 var(--card-min-h)',
+}
+
+/**
+ * The tapped card while it morphs into the seat page's header, which carries
+ * the same name; theme.css sets the morph's pace. A name must be unique on the
+ * page, so only that one card wears it, and only while the transition runs.
+ */
+const MORPHING_BOX_STYLE: CSSProperties = {
+  ...CARD_BOX_STYLE,
+  viewTransitionName: 'trip-card',
 }
 
 const GRID = cn(
@@ -111,6 +124,12 @@ export interface TripCardProps {
 
 export function TripCard({ trip, className }: TripCardProps) {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const seatHref = seatPath(trip.id)
+  const morphing = useViewTransitionState(seatHref)
+  // The list as it stands — filters, sort, date — so the seat page's back link
+  // can step back to exactly this rather than open a fresh copy of it.
+  const { pathname, search } = useLocation()
   const operator = operatorById(trip.operatorId)
   const fromCity = cityById(trip.fromCityId)
   const toCity = cityById(trip.toCityId)
@@ -139,8 +158,21 @@ export function TripCard({ trip, className }: TripCardProps) {
   const amenityLabels = iconAmenities.map((id) => amenityById(id)?.label ?? id)
   const scarce = trip.seatsLeft <= 5
 
+  // The card already holds the trip. Handing it to the seat page's cache puts
+  // that page's header, where this card lands, on screen in the transition's
+  // first frame; a fetch would leave the morph nothing to land on. The seat
+  // map is asked for now too, rather than once the page has mounted.
+  const handOver = () => {
+    const { queryKey } = tripQuery(trip.id)
+    if (queryClient.getQueryData(queryKey) === undefined) queryClient.setQueryData(queryKey, trip)
+    void queryClient.prefetchQuery(seatMapQuery(trip.id))
+  }
+
   return (
-    <article className={cn(CARD_BOX, CARD_LIFT, className)} style={CARD_BOX_STYLE}>
+    <article
+      className={cn(CARD_BOX, CARD_LIFT, className)}
+      style={morphing ? MORPHING_BOX_STYLE : CARD_BOX_STYLE}
+    >
       {/* No hairline and no shadow of its own: the box above carries both. */}
       <Card className="flex w-full flex-col overflow-hidden border-0 shadow-none">
         <div className={GRID}>
@@ -272,7 +304,12 @@ export function TripCard({ trip, className }: TripCardProps) {
             </div>
 
             <Button asChild variant="primary" size="md" className="shrink-0">
-              <Link to={seatPath(trip.id)}>
+              <Link
+                to={seatHref}
+                viewTransition
+                state={morphFrom(pathname + search)}
+                onClick={handOver}
+              >
                 {t('results.select')}
                 <VisuallyHidden>
                   {` — ${departure} ${fromCity?.name ?? ''} ${toCity?.name ?? ''} seferi, ${formatPrice(trip.price)}`}

@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { useCallback, useEffect, useMemo, type CSSProperties } from 'react'
+import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ArrowLeft, TriangleAlert } from 'lucide-react'
@@ -13,11 +13,19 @@ import { SeatLegend } from '@/features/seat-map/SeatLegend'
 import { NightLabel, SelectionRail } from '@/features/seat-map/SelectionRail'
 import { cityById, operatorById } from '@/shared/api/catalog'
 import { seatMapQuery, tripQuery } from '@/shared/api/queries'
+import { MORPH_NAV, morphedFrom } from '@/shared/lib/quiet-nav'
 import { checkoutPath, resultsPath } from '@/shared/lib/search-params'
 import { formatDateLong, formatPrice, formatTime, nightOfLabel, toISODate } from '@/shared/lib/tr'
 import { Button } from '@/shared/ui/button'
 import { OperatorLogo } from '@/shared/ui/operator-logo'
 import { Skeleton } from '@/shared/ui/skeleton'
+
+/**
+ * The trip summary at the top is where a results card lands when it opens
+ * this page: the two share this view-transition name (see TripCard), and
+ * theme.css sets the pace of the morph between them.
+ */
+const TRIP_MORPH: CSSProperties = { viewTransitionName: 'trip-card' }
 
 /**
  * Seat selection.
@@ -28,9 +36,18 @@ import { Skeleton } from '@/shared/ui/skeleton'
  * an ASSERTIVE alert plus a toast — the sighted user gets the toast, everyone
  * gets the alert, and nobody gets `window.alert`.
  */
+/** React Router keeps the position in the session in `history.state.idx`. */
+function canStepBack(): boolean {
+  const state: unknown = window.history.state
+  if (typeof state !== 'object' || state === null) return false
+  const { idx } = state as { idx?: unknown }
+  return typeof idx === 'number' && idx > 0
+}
+
 export default function SeatPage() {
   const { tripId = '' } = useParams<{ tripId: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
 
   const enabled = tripId !== ''
   const tripResult = useQuery({ ...tripQuery(tripId), enabled })
@@ -108,6 +125,9 @@ export default function SeatPage() {
     </div>
   )
 
+  // The results page this entry was opened from, if a trip card opened it.
+  const cameFrom = morphedFrom(location.state as unknown)
+
   const backHref =
     trip && fromCity && toCity
       ? resultsPath(fromCity.slug, toCity.slug, toISODate(new Date(trip.departsAt)))
@@ -122,7 +142,12 @@ export default function SeatPage() {
     )
   }
 
-  if (!trip || !seatMap) {
+  // The header needs only the trip, so it is drawn as soon as there is one and
+  // just the coach and the rail wait for the seat map. Coming from a results
+  // card the trip is already cached, and the header is where the card's morph
+  // lands: held back for the seat map, it was not there when the transition
+  // captured the page, and the card had nothing to land on.
+  if (!trip) {
     return (
       <>
         {liveRegion}
@@ -147,13 +172,27 @@ export default function SeatPage() {
         <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-6">
           <div className="min-w-0">
             <Button variant="ghost" size="sm" asChild className="-ml-3">
-              <Link to={backHref}>
+              <Link
+                to={cameFrom ?? backHref}
+                viewTransition
+                state={MORPH_NAV}
+                onClick={(event) => {
+                  // Opened from a trip card: step back, so the router replays
+                  // the morph in reverse and the list comes back with its
+                  // filters and scroll position, the card where it was left.
+                  // Opened any other way, the link opens the day's results and
+                  // still morphs into the card if it is on screen.
+                  if (!cameFrom || !canStepBack()) return
+                  event.preventDefault()
+                  void navigate(-1)
+                }}
+              >
                 <ArrowLeft className="size-4" aria-hidden="true" />
                 Seferlere dön
               </Link>
             </Button>
 
-            <header className="mt-4">
+            <header className="mt-4" style={TRIP_MORPH}>
               <h1 className="font-display text-2xl font-semibold text-balance-tr text-fg sm:text-3xl">
                 {routeLabel} koltuk seçimi
               </h1>
@@ -180,47 +219,58 @@ export default function SeatPage() {
               ) : null}
             </div>
 
-            <section
-              aria-labelledby="deck-title"
-              className="mt-5 rounded-xl border border-border bg-surface-raised p-4 shadow-sm sm:p-6 lg:p-5 dark:bg-surface"
-            >
-              {/* Both stay in the document: the section is labelled by the heading,
-                  and the keyboard hint is exactly what a screen-reader user needs
-                  and a sighted one does not. */}
-              <h2 id="deck-title" className="sr-only">
-                Koltuk planı
-              </h2>
-              <p className="sr-only">
-                Bir koltuğa dokunun, ardından yolcunun cinsiyetini seçin. Klavyeyle ok tuşlarını
-                kullanabilirsiniz.
-              </p>
-              {/* The key sits above the coach: read before the first tap, not
-                  found under the deck after a refused one. */}
-              <SeatLegend
-                hasGenderSelection={seatMap.policy.hasGenderSelection}
-                sunSide={seatMap.sunSide}
-              />
-              <SeatMap
-                data={seatMap}
-                picks={picks}
-                onPick={handlePick}
-                onRemove={handleRemove}
-                className="mt-6"
-              />
-            </section>
+            {seatMap ? (
+              <section
+                aria-labelledby="deck-title"
+                className="mt-5 rounded-xl border border-border bg-surface-raised p-4 shadow-sm sm:p-6 lg:p-5 dark:bg-surface"
+              >
+                {/* Both stay in the document: the section is labelled by the heading,
+                    and the keyboard hint is exactly what a screen-reader user needs
+                    and a sighted one does not. */}
+                <h2 id="deck-title" className="sr-only">
+                  Koltuk planı
+                </h2>
+                <p className="sr-only">
+                  Bir koltuğa dokunun, ardından yolcunun cinsiyetini seçin. Klavyeyle ok tuşlarını
+                  kullanabilirsiniz.
+                </p>
+                {/* The key sits above the coach: read before the first tap, not
+                    found under the deck after a refused one. */}
+                <SeatLegend
+                  hasGenderSelection={seatMap.policy.hasGenderSelection}
+                  sunSide={seatMap.sunSide}
+                />
+                <SeatMap
+                  data={seatMap}
+                  picks={picks}
+                  onPick={handlePick}
+                  onRemove={handleRemove}
+                  className="mt-6"
+                />
+              </section>
+            ) : (
+              <div className="mt-5" aria-busy="true">
+                <span className="sr-only">Koltuk planı yükleniyor</span>
+                <Skeleton className="h-144 w-full rounded-xl" />
+              </div>
+            )}
           </div>
 
-          <SelectionRail
-            trip={trip}
-            seatMap={seatMap}
-            picks={picks}
-            quote={currentQuote}
-            maxSeats={maxSeats}
-            onRemove={handleRemove}
-            onContinue={handleContinue}
-            continueDisabled={continueDisabled}
-            className="lg:sticky lg:top-22"
-          />
+          {seatMap ? (
+            <SelectionRail
+              trip={trip}
+              seatMap={seatMap}
+              picks={picks}
+              quote={currentQuote}
+              maxSeats={maxSeats}
+              onRemove={handleRemove}
+              onContinue={handleContinue}
+              continueDisabled={continueDisabled}
+              className="lg:sticky lg:top-22"
+            />
+          ) : (
+            <Skeleton className="h-120 w-full rounded-xl" />
+          )}
         </div>
       </div>
 

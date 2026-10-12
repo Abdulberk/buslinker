@@ -281,7 +281,6 @@
 
   --animate-rise: rise var(--duration-slow) var(--ease-out) both;
   --animate-seat-pop: seat-pop 220ms var(--ease-spring) both;
-  --animate-route-veil: route-veil 560ms var(--ease-standard) forwards;
   --animate-sonar: sonar 1150ms var(--ease-out) infinite;
 
   @keyframes rise {
@@ -292,23 +291,6 @@
     to {
       opacity: 1;
       transform: none;
-    }
-  }
-  /* The route veil covers, holds, then lifts. It never waits on anything:
-     the page underneath has already swapped, so a longer hold would be a
-     delay pretending to be a load. */
-  @keyframes route-veil {
-    0% {
-      opacity: 0;
-    }
-    16% {
-      opacity: 1;
-    }
-    64% {
-      opacity: 1;
-    }
-    100% {
-      opacity: 0;
     }
   }
   /* Rings leave the tittle at r=5.5 and travel out, as the mark itself does
@@ -793,7 +775,6 @@
     header[role='banner'],
     footer[role='contentinfo'],
     a[href='#main'],
-    .animate-route-veil,
     [data-sonner-toaster],
     [data-print-hide] {
       display: none !important;
@@ -844,6 +825,44 @@
       transition-property: opacity, color, background-color, border-color, box-shadow !important;
       scroll-behavior: auto !important;
     }
+  }
+}
+
+/* ==========================================================================
+   VIEW TRANSITIONS
+   ========================================================================== */
+
+/* A trip card opening the seat page morphs into that page's header; the two
+   share the name `trip-card` (TripCard.tsx, SeatPage.tsx). The group moves and
+   resizes the box from one to the other while the images inside cross-fade,
+   all on the header capsule's pairing: --ease-out starts quick, so the card
+   answers the tap at once, and settles long, which is what reads as liquid. */
+::view-transition-group(trip-card),
+::view-transition-old(trip-card),
+::view-transition-new(trip-card) {
+  animation-duration: var(--duration-slower);
+  animation-timing-function: var(--ease-out);
+}
+
+/* The rest of the page only cross-fades, and briefly. On the browser's 250ms
+   `ease` the results list lingered behind the arriving page, competing with
+   the one element that should hold the eye. */
+::view-transition-group(root),
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--duration-base);
+  animation-timing-function: var(--ease-standard);
+}
+
+/* The base layer's reduced-motion rule cannot reach these: `*` does not match
+   pseudo-elements, and a shortened morph would still travel across the screen.
+   So there is none at all, and the new page simply replaces the old, exactly
+   as in a browser without view transitions. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }
 

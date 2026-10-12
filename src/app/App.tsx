@@ -4,14 +4,13 @@ import { createBrowserRouter, RouterProvider } from 'react-router'
 import { Toaster } from '@/shared/ui/toaster'
 import { TooltipProvider } from '@/shared/ui/primitives'
 import { AppLayout } from './AppLayout'
-import { lazyRoute } from './lazy-route'
+import { lazyRoute, reloadForNewRelease } from './lazy-route'
 import { AccountLayout } from '@/pages/account/AccountLayout'
 import { RouteError } from './RouteError'
 import { PageFallback } from './PageFallback'
 
 const HomePage = lazyRoute(() => import('@/pages/HomePage'))
 const ResultsPage = lazyRoute(() => import('@/pages/ResultsPage'))
-const SeatPage = lazyRoute(() => import('@/pages/SeatPage'))
 const CheckoutPage = lazyRoute(() => import('@/pages/CheckoutPage'))
 const LoginPage = lazyRoute(() => import('@/pages/LoginPage'))
 const SignupPage = lazyRoute(() => import('@/pages/SignupPage'))
@@ -74,6 +73,28 @@ const withSuspense = (element: React.ReactNode) => (
   <Suspense fallback={<PageFallback />}>{element}</Suspense>
 )
 
+/**
+ * The seat page, loaded by the router rather than by Suspense.
+ *
+ * A trip card opens this page in a view transition, morphing into its header,
+ * and the transition captures whatever the new page renders first. Behind
+ * lazyRoute that was the Suspense fallback, with no header for the card to
+ * land on. A route-level lazy is loaded before the navigation commits, so the
+ * first render is the page itself.
+ *
+ * A failed load gets lazyRoute's recovery: reload for the new release while
+ * the budget allows, holding the navigation open until the reload lands, and
+ * otherwise rethrow so the boundary's RouteError says what happened.
+ */
+function loadSeatPage() {
+  return import('@/pages/SeatPage')
+    .catch((error: unknown) => {
+      if (!reloadForNewRelease()) throw error
+      return new Promise<never>(() => {})
+    })
+    .then((module) => ({ Component: module.default }))
+}
+
 const router = createBrowserRouter([
   {
     element: <AppLayout />,
@@ -99,7 +120,14 @@ const router = createBrowserRouter([
           { path: 'otobus-bileti/:route', element: withSuspense(<RouteLandingPage />) },
           { path: 'sehir/:slug', element: withSuspense(<CityPage />) },
           { path: 'sefer/:tripId', element: withSuspense(<TripDetailPage />) },
-          { path: 'koltuk/:tripId', element: withSuspense(<SeatPage />) },
+          {
+            path: 'koltuk/:tripId',
+            lazy: loadSeatPage,
+            // Shown on a direct load or refresh of this path, while the router
+            // fetches the page before its first render. Within the app there
+            // is no fallback: the page being left stays up until it arrives.
+            hydrateFallbackElement: <PageFallback />,
+          },
           { path: 'odeme/:tripId', element: withSuspense(<CheckoutPage />) },
           { path: 'odeme/:tripId/onay', element: withSuspense(<CheckoutSuccessPage />) },
           { path: 'giris', element: withSuspense(<LoginPage />) },
