@@ -9,6 +9,7 @@ import type { City } from '@/shared/api/catalog'
 import { resultsPath } from '@/shared/lib/search-params'
 import { toISODate } from '@/shared/lib/tr'
 import { cn } from '@/shared/lib/cn'
+import { useIsDesktop } from '@/shared/lib/use-media-query'
 import { Button } from '@/shared/ui/button'
 import { CityCombobox } from './CityCombobox'
 import { DateField } from './DateField'
@@ -47,6 +48,15 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
   const navigate = useNavigate()
   const { t } = useTranslation()
   const hero = variant === 'hero'
+  /**
+   * From lg the hero form is the results page's strip, scaled up: one panel,
+   * the fields in a row divided by hairlines, nothing boxed inside it. Four
+   * outlined boxes with uppercase captions over them read as a form to fill
+   * in; one row reads as a question to ask. Below lg the hero keeps its own
+   * layouts — the phone's cards, the tablet's stacked card.
+   */
+  const strip = useIsDesktop()
+  const heroStrip = hero && strip
   const fieldSize = hero ? 'lg' : 'md'
 
   // Read once, on mount. A hero form with no trip of its own opens holding the
@@ -150,13 +160,15 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
    * value; from sm they share the date label's line, so the row of fields
    * does not grow a line for them.
    */
-  const dateChips = (layout: 'stack' | 'inline') => (
+  const dateChips = (layout: 'stack' | 'inline' | 'cell') => (
     <div
       role="group"
       aria-label={t('search.quickDates')}
       className={cn(
         'shrink-0 gap-1',
-        layout === 'stack' ? 'flex flex-col sm:hidden' : '-mt-1 hidden sm:flex',
+        layout === 'stack' && 'flex flex-col sm:hidden',
+        layout === 'inline' && '-mt-1 hidden sm:flex',
+        layout === 'cell' && 'flex flex-col justify-center',
       )}
     >
       {[
@@ -172,7 +184,7 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
             onClick={() => setDate(chip.iso)}
             className={cn(
               'border text-xs transition-colors duration-(--duration-fast)',
-              layout === 'stack' ? 'rounded-lg px-2.5 py-1' : 'h-6 rounded-full px-2.5',
+              layout === 'inline' ? 'h-6 rounded-full px-2.5' : 'rounded-lg px-2.5 py-1',
               // Weight and edge change with the colour, so the pressed chip
               // reads as chosen without telling two hues apart.
               pressed
@@ -201,8 +213,8 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
       recent={recent.from}
       error={invalid === 'from' ? t('search.fromError') : undefined}
       size={fieldSize}
-      flush={hero}
-      bare={!hero}
+      flush={hero && !heroStrip}
+      bare={!hero || heroStrip}
       ref={fromRef}
     />
   )
@@ -221,8 +233,8 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
       recent={recent.to}
       error={invalid === 'to' ? t('search.toError') : undefined}
       size={fieldSize}
-      flush={hero}
-      bare={!hero}
+      flush={hero && !heroStrip}
+      bare={!hero || heroStrip}
       ref={toRef}
     />
   )
@@ -234,13 +246,13 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
       value={date}
       onChange={setDate}
       size={fieldSize}
-      flush={hero}
-      bare={!hero}
-      labelAside={hero ? dateChips('inline') : undefined}
+      flush={hero && !heroStrip}
+      bare={!hero || heroStrip}
+      labelAside={hero && !heroStrip ? dateChips('inline') : undefined}
     />
   )
 
-  if (!hero) {
+  if (!hero || heroStrip) {
     // One surface and nothing boxed inside it. Cells are separated by
     // hairlines rather than outlined; hover and focus tint the cell, not a
     // box. Below sm the cells stack and the hairlines turn horizontal. The
@@ -251,8 +263,12 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
         onSubmit={onSubmit}
         aria-label={t('search.formLabel')}
         className={cn(
-          'flex flex-col overflow-visible rounded-2xl bg-surface shadow-md sm:flex-row sm:items-stretch',
+          'flex flex-col overflow-visible bg-surface sm:flex-row sm:items-stretch',
           'dark:ring-1 dark:ring-border',
+          // In the hero the strip is the panel that rises out of the band: a
+          // larger radius, a deeper shadow and an inner gutter, so its cells
+          // tint as rounded tiles inside it rather than running to its edge.
+          heroStrip ? 'rounded-3xl p-2 shadow-xl' : 'rounded-2xl shadow-md',
           className,
         )}
       >
@@ -261,6 +277,7 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
             'relative min-w-0 px-4 py-1 transition-colors duration-(--duration-fast)',
             'focus-within:bg-surface-sunken/60 hover:bg-surface-sunken/60',
             'flex-1 rounded-t-2xl sm:basis-0 sm:rounded-l-2xl sm:rounded-tr-none',
+            heroStrip && 'px-5',
           )}
         >
           {fromField}
@@ -280,6 +297,7 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
             'relative min-w-0 px-4 py-1 transition-colors duration-(--duration-fast)',
             'focus-within:bg-surface-sunken/60 hover:bg-surface-sunken/60',
             'flex-1 border-t border-border sm:basis-0 sm:border-t-0 sm:border-l sm:pl-8',
+            heroStrip && 'pr-5 sm:pl-9',
           )}
         >
           {toField}
@@ -290,19 +308,31 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
             'relative min-w-0 px-4 py-1 transition-colors duration-(--duration-fast)',
             'focus-within:bg-surface-sunken/60 hover:bg-surface-sunken/60',
             'border-t border-border sm:basis-52 sm:border-t-0 sm:border-l',
+            heroStrip && 'px-5 sm:basis-60',
           )}
         >
           {dateField}
         </div>
 
-        <div className="flex shrink-0 items-stretch p-2 sm:pl-3">
+        {/* Today and tomorrow, stacked in a cell of their own beside the
+            date they set, so the strip does not grow a line for them. */}
+        {heroStrip ? (
+          <div className="flex shrink-0 items-center border-l border-border px-3">
+            {dateChips('cell')}
+          </div>
+        ) : null}
+
+        <div className={cn('flex shrink-0 items-stretch', heroStrip ? 'pl-2' : 'p-2 sm:pl-3')}>
           <Button
             type="submit"
-            size="md"
+            size={heroStrip ? 'lg' : 'md'}
             variant="primary"
-            className="w-full rounded-xl px-5 sm:h-auto sm:w-auto"
+            className={cn(
+              'w-full sm:w-auto',
+              heroStrip ? 'h-auto px-8' : 'rounded-xl px-5 sm:h-auto',
+            )}
           >
-            <AssetIcon src={ICON.magnify} className="size-4" />
+            <AssetIcon src={ICON.magnify} className={heroStrip ? 'size-5' : 'size-4'} />
             <span>{t('search.submit')}</span>
           </Button>
         </div>

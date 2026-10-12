@@ -378,6 +378,12 @@
   --app-sheet-top: color-mix(in oklab, var(--app-info) 14%, var(--app-bg));
   --app-sheet-bottom: color-mix(in oklab, var(--app-info) 5%, var(--app-bg));
 
+  /* The desktop hero's band: the same sky as the phone's sheet, a step
+     deeper, since on a wide screen it carries the header, the heading and
+     the coach rather than only the form. */
+  --app-band-top: color-mix(in oklab, var(--app-info) 17%, var(--app-bg));
+  --app-band-bottom: color-mix(in oklab, var(--app-info) 9%, var(--app-bg));
+
   /* The tile the two-tone illustrations stand on (ArtTile). The same sky as
      the sheet: at 10% it vanished into the white card it sits on. */
   --app-art-tile: color-mix(in oklab, var(--app-info) 16%, var(--app-surface));
@@ -483,6 +489,8 @@
        14% mix would sit above the cards standing on it. */
     --app-sheet-top: color-mix(in oklab, var(--app-info) 5%, var(--app-bg));
     --app-sheet-bottom: var(--app-bg);
+    --app-band-top: color-mix(in oklab, var(--app-info) 7%, var(--app-bg));
+    --app-band-bottom: color-mix(in oklab, var(--app-info) 3%, var(--app-bg));
     /* Light in dark too. The illustrations are drawn in slate and brick for a
        light ground, and their slate half measured 1.3–1.8:1 on a dark card;
        the art stays as drawn and the tile gives it the ground it was drawn
@@ -861,8 +869,21 @@
   padding-inline: var(--app-pad);
 }
 
+/* Named without a `bg-` prefix on purpose: tailwind-merge (cn) reads any
+   bg-* class as a background colour, and silently dropped the `sm:bg-bg`
+   written beside this one, leaving the section white under the band.
+
+   The desktop hero's band (see --app-band-top). It stops --band-cut short of
+   the section's bottom, which is set to land on the middle of the search
+   panel, so the panel sits half on the sky and half on the page. */
+@utility hero-band {
+  background-image: linear-gradient(180deg, var(--app-band-top) 0%, var(--app-band-bottom) 100%);
+  background-repeat: no-repeat;
+  background-size: 100% calc(100% - var(--band-cut, 0px));
+}
+
 /* The ground of the phone hero's search sheet (see --app-sheet-top). */
-@utility bg-hero-sheet {
+@utility hero-sheet {
   background-image: linear-gradient(180deg, var(--app-sheet-top) 0%, var(--app-sheet-bottom) 100%);
 }
 

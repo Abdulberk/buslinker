@@ -29,8 +29,8 @@ export function PopularRoutes() {
       />
 
       {/* Two across on a phone, four from md. At 820px two columns made eight
-          wide, mostly empty cards; four of them still fit "İstanbul → Antalya"
-          and a four-digit fare. */}
+          wide, mostly empty cards. Four do not always fit a pair of names on
+          one line, so the route wraps (see RouteCard) instead of truncating. */}
       <ul className="mt-6 grid grid-cols-2 gap-2 sm:mt-8 sm:gap-3 md:grid-cols-4">
         {routes.map((route) => (
           <li key={`${route.from.slug}-${route.to.slug}`}>
@@ -64,13 +64,18 @@ function RouteCard({ route, date }: { route: RouteStats; date: string }) {
         'group @container flex h-full flex-col justify-between gap-2 p-3 sm:gap-4 sm:p-4',
       )}
     >
-      <span className="flex items-center gap-1.5 font-display text-sm font-semibold text-fg sm:gap-2 sm:text-base">
-        <span className="truncate">{from.name}</span>
-        <ArrowRight
-          className="size-3.5 shrink-0 text-fg-subtle transition-colors duration-(--duration-fast) group-hover:text-brand-fg sm:size-4"
-          aria-hidden="true"
-        />
-        <span className="truncate">{to.name}</span>
+      {/* Wraps rather than truncating: "İstanb… → Anka…" told nobody where the
+          coach goes. The arrow stays with the departure city, so a long pair
+          breaks as "İstanbul →" over "Ankara" and still reads as a route. */}
+      <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 font-display text-sm font-semibold text-fg sm:gap-x-2 sm:text-base">
+        <span className="inline-flex items-center gap-1.5 whitespace-nowrap sm:gap-2">
+          {from.name}
+          <ArrowRight
+            className="size-3.5 shrink-0 text-fg-subtle transition-colors duration-(--duration-fast) group-hover:text-brand-fg sm:size-4"
+            aria-hidden="true"
+          />
+        </span>
+        <span className="whitespace-nowrap">{to.name}</span>
       </span>
 
       {/* One row when the card can hold the count and the fare side by side,

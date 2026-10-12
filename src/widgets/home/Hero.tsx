@@ -58,40 +58,33 @@ export function Hero() {
       // On a phone the section itself is the header's chrome, and that ground
       // lives on the sheet below instead (see the sheet's comment).
       //
-      // From sm the hero has its own heading, artwork and single card, and
-      // keeps the page ground. It also slides up under the header by exactly
-      // the header's height and pads the same amount back, so the wash and
-      // the map run on behind the header while the content stays where it
-      // was.
+      // From sm the hero stands on a band of sky — the phone sheet's, a step
+      // deeper — that runs up behind the transparent header: the section
+      // slides up under the header by exactly its height and pads the same
+      // amount back, so the content stays where it was. From lg the band
+      // stops halfway down the search panel (--band-cut), so the panel sits
+      // half on the sky and half on the page and the depth, not a line, is
+      // what separates the hero from what follows. The hairline under the
+      // section goes for the same reason.
       className={cn(
-        'relative isolate border-b border-border bg-chrome sm:bg-bg',
-        'sm:-mt-16 sm:pt-16 lg:-mt-18 lg:pt-18',
+        'relative isolate border-b border-border bg-chrome sm:bg-bg sm:hero-band',
+        'sm:-mt-16 sm:pt-16 lg:-mt-18 lg:border-b-0 lg:pt-18 lg:[--band-cut:7rem]',
       )}
     >
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
       >
-        {/* A whisper of cool wash so the hero still separates from the page
-            below it. The heavy red gradient that used to sit here competed
-            with the CTA and tinted the coach. Not on a phone: there the strip
-            above the sheet has to be exactly the header's chrome, and a tint
-            would show as a seam under the bar. */}
-        <div
-          className="absolute inset-0 hidden sm:block"
-          style={{
-            background:
-              'linear-gradient(180deg, color-mix(in oklab, var(--color-info) 7%, transparent) 0%, transparent 62%)',
-          }}
-        />
-
         {/* The dotted world map from the original design. Masked rather than
             drawn, so it takes a token colour, stays a texture rather than a
-            picture, and follows the theme instead of needing a dark twin. */}
+            picture, and follows the theme instead of needing a dark twin.
+            The colour is the band's own blue, not the brand red it used to
+            be: red dots on a blue sky were a second accent competing with
+            the one red thing on the screen meant to be pressed. */}
         <div
           // Desktop only. On a phone the map has no room to be a backdrop —
           // it lands directly behind the search card and reads as a red haze.
-          className="absolute inset-0 hidden text-brand/40 sm:block dark:text-brand/50"
+          className="absolute inset-0 hidden text-info/22 sm:block dark:text-info/25"
           style={{
             backgroundColor: 'currentColor',
             // Three masks intersected: the map itself; a vertical fade that
@@ -139,7 +132,7 @@ export function Hero() {
             header, a bordered mode rail, then the ground — and drew a hairline
             between each; the curve now does the separating, with no line at
             all, and the header is left as nothing but the logo and its three
-            tiles. The sheet's ground is a cool sky wash (bg-hero-sheet) — the
+            tiles. The sheet's ground is a cool sky wash (hero-sheet) — the
             flat grey it started on read as dirty under white cards — and in
             dark it is only a trace, so the cards still stand above it.
 
@@ -150,22 +143,21 @@ export function Hero() {
         <div
           className={cn(
             'sm:mt-10',
-            'max-sm:-mx-(--app-pad) max-sm:rounded-t-[1.75rem] max-sm:bg-hero-sheet',
+            'max-sm:-mx-(--app-pad) max-sm:rounded-t-[1.75rem] max-sm:hero-sheet',
             'max-sm:px-(--app-pad) max-sm:pt-4 max-sm:pb-12',
           )}
         >
-          <div className="relative">
+          <div className="relative sm:pb-4">
             <div
               role="group"
               aria-label="Seyahat türü"
               className={cn(
-                // On a phone a segmented control at the top of the sheet: one
-                // white pill track with the four modes sharing its width, so
-                // nothing scrolls. From sm a row of folder tabs on the search
-                // card again, which scrolls if it must.
-                'scrollbar-none flex gap-1 sm:overflow-x-auto',
-                'max-sm:rounded-full max-sm:bg-surface max-sm:p-1 max-sm:shadow-xs',
-                'max-sm:ring-1 max-sm:ring-border',
+                // A segmented control: one white pill track. On a phone the
+                // four modes share its width, so nothing scrolls; from sm the
+                // track hugs its segments and sits above the search panel, the
+                // same control on every screen instead of folder tabs on one
+                // and pills on the other.
+                'flex gap-1 rounded-full bg-surface p-1 shadow-xs ring-1 ring-border sm:inline-flex',
               )}
             >
               {TRAVEL_MODES.map(({ id, label, icon, available }) => (
@@ -178,12 +170,10 @@ export function Hero() {
                   title={available ? undefined : `${label} aramaları yakında açılıyor`}
                   className={cn(
                     'group relative flex items-center',
-                    // A phone gets four equal segments, icon beside label; from
-                    // sm the tabs take their own width back, stack icon over
-                    // label, and the folder shape returns.
-                    'max-sm:h-10 max-sm:flex-1 max-sm:basis-0 max-sm:justify-center',
-                    'max-sm:gap-1.5 max-sm:rounded-full max-sm:px-1',
-                    'sm:min-w-28 sm:shrink-0 sm:flex-col sm:gap-1 sm:rounded-t-xl sm:px-5 sm:pt-3 sm:pb-3.5',
+                    // A phone gets four equal segments; from sm each takes its
+                    // own width.
+                    'h-10 justify-center gap-1.5 rounded-full',
+                    'flex-1 basis-0 px-1 sm:flex-none sm:basis-auto sm:px-4',
                     'transition-colors duration-(--duration-fast) ease-standard',
                     // The selected segment is a tinted pill, not a solid one:
                     // the red fill on this screen belongs to "Bilet Bul". The
@@ -191,38 +181,21 @@ export function Hero() {
                     // and no hover at all: a hover tint is a promise that
                     // pressing does something. From sm the "Yakında" caption
                     // explains them, so the label can come up a step.
-                    available
-                      ? 'text-brand-fg max-sm:bg-brand/10 sm:bg-surface sm:shadow-[0_-2px_12px_oklch(0.36_0.045_245/0.06)]'
-                      : 'cursor-not-allowed text-fg-subtle sm:text-fg-muted',
+                    available ? 'bg-brand/10 text-brand-fg' : 'cursor-not-allowed text-fg-subtle',
                   )}
                 >
                   {/* Below 360 four icon-and-label segments no longer fit the
                       track, and the words are what say which mode is which. */}
-                  <AssetIcon src={icon} className="size-4.5 max-[360px]:hidden sm:size-7" />
+                  <AssetIcon src={icon} className="size-4.5 max-[360px]:hidden" />
                   <span className="text-sm font-semibold">{label}</span>
-                  {/* Plain caption, not a badge: a pill inside a tab made the
-                      row lumpy and fought the tab's own shape.
-
-                      Not on a phone. It is a whole line under every tab, and
-                      the line is what made the bar tall; the disabled modes
-                      are already dimmed, inert and announced as such. The
-                      desktop tabs have the room, so they keep the words. */}
-                  <span
-                    className={cn(
-                      'hidden text-2xs leading-none font-medium sm:block',
-                      available ? 'text-transparent' : 'text-fg-subtle',
-                    )}
-                  >
-                    {available ? '·' : 'Yakında'}
-                  </span>
-                  {available ? (
-                    <span
-                      aria-hidden="true"
-                      // The folder tab's top edge, from sm. A phone's pill is
-                      // its own marker and needs no bar.
-                      className="absolute inset-x-4 top-0 hidden h-0.5 rounded-full bg-brand sm:block"
-                    />
-                  ) : null}
+                  {/* From sm the unavailable modes say why, inside the pill.
+                      Not on a phone, where the four segments share one width
+                      and the dimmed, inert label already says it. */}
+                  {available ? null : (
+                    <span className="hidden text-2xs font-medium text-fg-subtle sm:inline">
+                      Yakında
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -254,7 +227,7 @@ export function Hero() {
             </picture>
           </div>
 
-          <SearchForm variant="hero" className="mt-3 rounded-tl-none sm:mt-0" />
+          <SearchForm variant="hero" className="mt-3 sm:mt-0" />
         </div>
       </div>
     </section>
