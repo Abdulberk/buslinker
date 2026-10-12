@@ -239,12 +239,16 @@ export function SearchForm({ variant = 'hero', initial, className }: SearchFormP
     />
   )
 
+  // Once both ends of the trip are known, the calendar can price its days.
+  const route = from && to && from.id !== to.id ? { from: from.id, to: to.id } : undefined
+
   const dateField = (
     <DateField
       id={`${variant}-date`}
       label={t('search.date')}
       value={date}
       onChange={setDate}
+      route={route}
       size={fieldSize}
       flush={hero && !heroStrip}
       bare={!hero || heroStrip}

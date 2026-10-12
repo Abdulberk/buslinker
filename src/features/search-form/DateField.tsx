@@ -1,9 +1,15 @@
 import 'react-day-picker/style.css'
 
-import { useId, useRef, useState } from 'react'
+import { createContext, useContext, useId, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { DayPicker, getDefaultClassNames } from 'react-day-picker'
+import {
+  DayButton,
+  DayPicker,
+  getDefaultClassNames,
+  type DayButtonProps,
+  type Modifiers,
+} from 'react-day-picker'
 import { tr } from 'date-fns/locale'
 import { ChevronDown } from 'lucide-react'
 import {
@@ -21,12 +27,14 @@ import { AssetIcon } from '@/shared/ui/asset-icon'
 import {
   formatDateLong,
   formatDateMedium,
+  formatPrice,
   formatWeekdayShort,
   fromISODate,
   isValidISODate,
   toISODate,
   toISODateLocal,
 } from '@/shared/lib/tr'
+import { fareCalendarFor, fareOn, type FareCalendar } from './fare-calendar'
 
 export interface DateFieldProps {
   /** ISO `YYYY-MM-DD`. */
@@ -52,6 +60,12 @@ export interface DateFieldProps {
    * the city boxes beside it.
    */
   labelAside?: ReactNode
+  /**
+   * City ids, once both ends of the trip are chosen. With a route every
+   * selectable day of the next two months carries its lowest fare, and each
+   * month's cheapest day is marked; without one the picker shows dates alone.
+   */
+  route?: { from: string; to: string } | undefined
   className?: string | undefined
 }
 
@@ -90,12 +104,81 @@ const TR_LABELS = {
   labelMonthDropdown: () => 'Ay seç',
   labelYearDropdown: () => 'Yıl seç',
   labelWeekday: (date: Date) => formatWeekdayShort(date),
-  labelDayButton: (date: Date, modifiers?: { today?: boolean; selected?: boolean }) => {
+  labelDayButton: (date: Date, modifiers?: Modifiers) => {
     const parts = [formatDateLong(date)]
     if (modifiers?.today) parts.unshift('Bugün')
     if (modifiers?.selected) parts.push('seçili')
     return parts.join(', ')
   },
+}
+
+type DayLabels = typeof TR_LABELS
+
+/**
+ * The route's fares, read by each day button. Handed down through context
+ * rather than closed over by a component built per route, so `components`
+ * stays one module constant and DayPicker's own memo, which is keyed on it,
+ * survives a change of fares.
+ */
+const FareContext = createContext<FareCalendar | null>(null)
+
+/**
+ * The library's day button with the day's lowest fare under its number. It
+ * wraps `DayButton` rather than drawing its own, because that component is
+ * what moves focus to the day the arrow keys land on.
+ */
+function FareDayButton({ day, modifiers, children, ...props }: DayButtonProps) {
+  const calendar = useContext(FareContext)
+  if (!calendar) {
+    return (
+      <DayButton day={day} modifiers={modifiers} {...props}>
+        {children}
+      </DayButton>
+    )
+  }
+  const fare = fareOn(calendar, day.isoDate, modifiers)
+  return (
+    <DayButton day={day} modifiers={modifiers} {...props}>
+      {children}
+      {/* Every cell keeps the fare line, empty or not, so the numbers sit at
+          one height along a row. 10px under the sheet's 44px buttons, 11px in
+          the popover's 48px ones: the sheet is what DateField shows below sm.
+          Under 360px the seven columns are 41px wide, narrower than a
+          four-digit lira fare at 10px, so the fare steps down once more there
+          rather than run into its neighbour's. The fare is part of the
+          button's aria-label, so this is visual only. A good deal is told by
+          weight as well as by the green; on the chosen day's red fill both
+          give way to the on-brand white. */}
+      <span
+        aria-hidden="true"
+        data-numeric
+        className={cn(
+          'min-h-[1em] text-[0.625rem] leading-none tracking-tight whitespace-nowrap',
+          'max-[359px]:text-[0.5625rem] max-[359px]:tracking-tighter sm:text-[0.6875rem]',
+          modifiers.selected
+            ? 'font-semibold text-on-brand'
+            : fare?.best
+              ? 'font-semibold text-success-fg'
+              : 'font-normal text-fg-muted',
+        )}
+      >
+        {fare ? formatPrice(fare.price) : null}
+      </span>
+    </DayButton>
+  )
+}
+
+const DAY_COMPONENTS = { DayButton: FareDayButton }
+
+/** The key to the green fares, shown only when some day carries one. */
+function FareLegend({ className }: { className?: string }) {
+  const { t } = useTranslation()
+  return (
+    <p className={cn('flex items-center gap-1.5 text-xs text-fg-secondary', className)}>
+      <span aria-hidden="true" className="size-2 shrink-0 rounded-full bg-success" />
+      {t('search.fareLegend')}
+    </p>
+  )
 }
 
 function addDays(iso: string, days: number): string {
@@ -132,11 +215,18 @@ interface PanelProps {
   onPick: (iso: string) => void
 }
 
+interface CalendarProps extends PanelProps {
+  /** The route's fares, or null to show dates alone. */
+  fares: FareCalendar | null
+  /** TR_LABELS, with each day's fare added to its name once there are fares. */
+  labels: DayLabels
+}
+
 /**
  * Lives in its own component so that closing the popover — which unmounts the
  * Radix content — also discards a half-typed date and its error.
  */
-function DatePanel({ value, min, onPick }: PanelProps) {
+function DatePanel({ value, min, onPick, fares, labels }: CalendarProps) {
   const { t } = useTranslation()
   const inputId = useId()
   const errorId = `${inputId}-error`
@@ -170,9 +260,23 @@ function DatePanel({ value, min, onPick }: PanelProps) {
     onPick(iso)
   }
 
+  // With fares every week grows by a line, and stacked under the typed date
+  // the calendar no longer fits above the hero's date field on a 900px
+  // screen, where the popover opens upwards and its top was cut off. So the
+  // typed date and the quick dates move to a column beside the calendar: the
+  // popover grows wider rather than taller. The DOM order stays as it is, so
+  // the typed date is still the first stop for the keyboard.
+  const wide = fares !== null
+
   return (
-    <div className="flex flex-col gap-3">
-      <div>
+    <div
+      className={
+        wide
+          ? 'grid grid-cols-[auto_11rem] grid-rows-[auto_1fr] items-start gap-x-4 gap-y-3'
+          : 'flex flex-col gap-3'
+      }
+    >
+      <div className={cn(wide && 'col-start-2 row-start-1')}>
         <label htmlFor={inputId} className="mb-1 block text-xs font-medium text-fg-secondary">
           {t('search.dateTyped')}
         </label>
@@ -214,57 +318,70 @@ function DatePanel({ value, min, onPick }: PanelProps) {
         )}
       </div>
 
-      <div className="border-t border-border pt-1">
-        <DayPicker
-          mode="single"
-          locale={tr}
-          labels={TR_LABELS}
-          weekStartsOn={1}
-          navLayout="around"
-          showOutsideDays
-          selected={selected}
-          defaultMonth={selected}
-          startMonth={minDate}
-          endMonth={lastDate}
-          disabled={{ before: minDate }}
-          onSelect={(day) => {
-            if (!day) return
-            setError(null)
-            onPick(toISODateLocal(day))
-          }}
-          style={PICKER_VARS}
-          classNames={{
-            root: cn(defaults.root, 'text-sm'),
-            month: `${defaults.month} w-full`,
-            caption_label: `${defaults.caption_label} font-display text-base font-semibold text-fg`,
-            button_previous: `${defaults.button_previous} rounded-lg text-fg-secondary hover:bg-hover`,
-            button_next: `${defaults.button_next} rounded-lg text-fg-secondary hover:bg-hover`,
-            // Not the library's class: its fill is the accent, which is the
-            // brand red now. The arrows take the button's own text colour, a
-            // neutral that clears 3:1 against the panel in both themes.
-            chevron: 'inline-block fill-current',
-            weekday: `${defaults.weekday} pb-1 text-2xs font-semibold text-fg-muted`,
-            day: 'p-0.5 text-center align-middle',
-            day_button: cn(
-              'flex size-9 items-center justify-center rounded-lg text-sm text-fg',
-              'transition-colors duration-(--duration-fast) hover:bg-hover',
-            ),
-            // Today is outlined rather than tinted: colour alone would clash
-            // with the selected fill on the day that is both.
-            today:
-              '[&_button]:font-semibold [&_button]:ring-1 [&_button]:ring-border-strong [&_button]:ring-inset',
-            outside: '[&_button]:text-fg-subtle',
-            selected: cn(
-              '[&_button]:bg-brand [&_button]:font-semibold [&_button]:text-on-brand',
-              '[&_button]:hover:bg-brand-hover',
-            ),
-            disabled: 'opacity-40 [&_button]:cursor-default [&_button]:hover:bg-transparent',
-            hidden: 'invisible',
-          }}
-        />
+      <div
+        className={
+          wide
+            ? 'col-start-1 row-span-2 row-start-1 border-r border-border pr-4'
+            : 'border-t border-border pt-1'
+        }
+      >
+        {fares && fares.best.size > 0 ? <FareLegend className="px-1 pb-1" /> : null}
+        <FareContext value={fares}>
+          <DayPicker
+            mode="single"
+            locale={tr}
+            labels={labels}
+            components={DAY_COMPONENTS}
+            weekStartsOn={1}
+            navLayout="around"
+            showOutsideDays
+            selected={selected}
+            defaultMonth={selected}
+            startMonth={minDate}
+            endMonth={lastDate}
+            disabled={{ before: minDate }}
+            onSelect={(day) => {
+              if (!day) return
+              setError(null)
+              onPick(toISODateLocal(day))
+            }}
+            style={PICKER_VARS}
+            classNames={{
+              root: cn(defaults.root, 'text-sm'),
+              month: `${defaults.month} w-full`,
+              caption_label: `${defaults.caption_label} font-display text-base font-semibold text-fg`,
+              button_previous: `${defaults.button_previous} rounded-lg text-fg-secondary hover:bg-hover`,
+              button_next: `${defaults.button_next} rounded-lg text-fg-secondary hover:bg-hover`,
+              // Not the library's class: its fill is the accent, which is the
+              // brand red now. The arrows take the button's own text colour, a
+              // neutral that clears 3:1 against the panel in both themes.
+              chevron: 'inline-block fill-current',
+              weekday: `${defaults.weekday} pb-1 text-2xs font-semibold text-fg-muted`,
+              day: 'p-0.5 text-center align-middle',
+              day_button: cn(
+                'flex items-center justify-center rounded-lg text-sm text-fg',
+                'transition-colors duration-(--duration-fast) hover:bg-hover',
+                // A fare needs a line of its own under the number, and a
+                // four-digit lira fare needs the width.
+                fares ? 'size-12 flex-col gap-1 leading-none' : 'size-9',
+              ),
+              // Today is outlined rather than tinted: colour alone would clash
+              // with the selected fill on the day that is both.
+              today:
+                '[&_button]:font-semibold [&_button]:ring-1 [&_button]:ring-border-strong [&_button]:ring-inset',
+              outside: '[&_button]:text-fg-subtle',
+              selected: cn(
+                '[&_button]:bg-brand [&_button]:font-semibold [&_button]:text-on-brand',
+                '[&_button]:hover:bg-brand-hover',
+              ),
+              disabled: 'opacity-40 [&_button]:cursor-default [&_button]:hover:bg-transparent',
+              hidden: 'invisible',
+            }}
+          />
+        </FareContext>
       </div>
 
-      <div className="border-t border-border pt-3">
+      <div className={cn('border-t border-border pt-3', wide && 'col-start-2 row-start-2')}>
         <QuickDates
           value={value}
           min={min}
@@ -330,7 +447,7 @@ const WEEKDAYS = Array.from({ length: 7 }, (_, i) => new Date(2024, 0, 1 + i))
  * date box stays a desktop affordance: on a phone it was a keyboard between
  * the person and the calendar.
  */
-function DateSheet({ value, min, onPick }: PanelProps) {
+function DateSheet({ value, min, onPick, fares, labels }: CalendarProps) {
   const defaults = getDefaultClassNames()
   const selected = isValidISODate(value) ? fromISODate(value) : fromISODate(min)
   const minDate = fromISODate(min)
@@ -346,6 +463,8 @@ function DateSheet({ value, min, onPick }: PanelProps) {
     <>
       <div className="shrink-0 px-4 pt-3 pb-2">
         <QuickDates value={value} min={min} onPick={onPick} />
+        {/* Above the scroll, so the key stays in view while the months pass. */}
+        {fares && fares.best.size > 0 ? <FareLegend className="mt-2.5" /> : null}
       </div>
 
       <div
@@ -360,52 +479,57 @@ function DateSheet({ value, min, onPick }: PanelProps) {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-        <DayPicker
-          mode="single"
-          locale={tr}
-          labels={TR_LABELS}
-          weekStartsOn={1}
-          hideNavigation
-          hideWeekdays
-          numberOfMonths={months}
-          selected={selected}
-          defaultMonth={minDate}
-          startMonth={minDate}
-          endMonth={lastDate}
-          disabled={{ before: minDate }}
-          modifiers={{ weekend: { dayOfWeek: [0, 6] } }}
-          modifiersClassNames={{ weekend: 'bg-info/8' }}
-          onSelect={(day) => {
-            if (day) onPick(toISODateLocal(day))
-          }}
-          style={PICKER_VARS}
-          classNames={{
-            root: cn(defaults.root, 'w-full text-base'),
-            months: 'flex flex-col',
-            month: 'w-full',
-            // Sticks while its days scroll under it, on the sheet's own
-            // surface so the rows do not show through.
-            month_caption:
-              'sticky top-0 z-10 -mx-4 flex justify-center bg-surface-raised px-4 pt-4 pb-2',
-            caption_label: 'font-display text-base font-semibold text-fg',
-            month_grid: 'w-full table-fixed border-collapse',
-            day: 'p-0.5 text-center align-middle',
-            day_button: cn(
-              'mx-auto flex size-11 items-center justify-center rounded-xl text-base text-fg',
-              'transition-colors duration-(--duration-fast) hover:bg-hover',
-            ),
-            today:
-              '[&_button]:font-semibold [&_button]:ring-1 [&_button]:ring-border-strong [&_button]:ring-inset',
-            selected: cn(
-              '[&_button]:bg-brand [&_button]:font-semibold [&_button]:text-on-brand',
-              '[&_button]:hover:bg-brand-hover',
-            ),
-            disabled:
-              '[&_button]:cursor-default [&_button]:text-fg-subtle [&_button]:hover:bg-transparent',
-            outside: 'invisible',
-            hidden: 'invisible',
-          }}
-        />
+        <FareContext value={fares}>
+          <DayPicker
+            mode="single"
+            locale={tr}
+            labels={labels}
+            components={DAY_COMPONENTS}
+            weekStartsOn={1}
+            hideNavigation
+            hideWeekdays
+            numberOfMonths={months}
+            selected={selected}
+            defaultMonth={minDate}
+            startMonth={minDate}
+            endMonth={lastDate}
+            disabled={{ before: minDate }}
+            modifiers={{ weekend: { dayOfWeek: [0, 6] } }}
+            modifiersClassNames={{ weekend: 'bg-info/8' }}
+            onSelect={(day) => {
+              if (day) onPick(toISODateLocal(day))
+            }}
+            style={PICKER_VARS}
+            classNames={{
+              root: cn(defaults.root, 'w-full text-base'),
+              months: 'flex flex-col',
+              month: 'w-full',
+              // Sticks while its days scroll under it, on the sheet's own
+              // surface so the rows do not show through.
+              month_caption:
+                'sticky top-0 z-10 -mx-4 flex justify-center bg-surface-raised px-4 pt-4 pb-2',
+              caption_label: 'font-display text-base font-semibold text-fg',
+              month_grid: 'w-full table-fixed border-collapse',
+              day: 'p-0.5 text-center align-middle',
+              day_button: cn(
+                'mx-auto flex size-11 items-center justify-center rounded-xl text-base text-fg',
+                'transition-colors duration-(--duration-fast) hover:bg-hover',
+                // The fare stacks under the number inside the same 44px target.
+                fares && 'flex-col gap-1 leading-none',
+              ),
+              today:
+                '[&_button]:font-semibold [&_button]:ring-1 [&_button]:ring-border-strong [&_button]:ring-inset',
+              selected: cn(
+                '[&_button]:bg-brand [&_button]:font-semibold [&_button]:text-on-brand',
+                '[&_button]:hover:bg-brand-hover',
+              ),
+              disabled:
+                '[&_button]:cursor-default [&_button]:text-fg-subtle [&_button]:hover:bg-transparent',
+              outside: 'invisible',
+              hidden: 'invisible',
+            }}
+          />
+        </FareContext>
       </div>
     </>
   )
@@ -421,6 +545,7 @@ export function DateField({
   flush,
   bare,
   labelAside,
+  route,
   className,
 }: DateFieldProps) {
   const { t } = useTranslation()
@@ -431,6 +556,34 @@ export function DateField({
   const labelId = `${id}-label`
   const min = minDate && isValidISODate(minDate) ? minDate : toISODate(new Date())
   const shown = isValidISODate(value) ? value : min
+
+  // Keyed on the ids, not the route object the form rebuilds on every render:
+  // the sixty days are priced once per pair of cities, here rather than in
+  // the panels, so opening the picker again does not price them again.
+  const routeFrom = route?.from
+  const routeTo = route?.to
+  const fares = useMemo(
+    () => (routeFrom && routeTo ? fareCalendarFor(routeFrom, routeTo, min) : null),
+    [routeFrom, routeTo, min],
+  )
+
+  // A screen reader hears the fare the sighted reader sees under the number,
+  // and the green as words. Built once per set of fares: `labels` is one of
+  // the props DayPicker's own memo is keyed on.
+  const labels = useMemo<DayLabels>(() => {
+    if (!fares) return TR_LABELS
+    return {
+      ...TR_LABELS,
+      labelDayButton: (date, modifiers) => {
+        const name = TR_LABELS.labelDayButton(date, modifiers)
+        const fare = fareOn(fares, toISODateLocal(date), modifiers ?? {})
+        if (!fare) return name
+        const parts = [name, t('search.dayFare', { price: formatPrice(fare.price) })]
+        if (fare.best) parts.push(t('search.dayFareBest'))
+        return parts.join(', ')
+      },
+    }
+  }, [fares, t])
 
   const trigger = (
     <button
@@ -527,6 +680,8 @@ export function DateField({
             <DateSheet
               value={shown}
               min={min}
+              fares={fares}
+              labels={labels}
               onPick={(iso) => {
                 onChange(iso)
                 setOpen(false)
@@ -540,7 +695,17 @@ export function DateField({
           <PopoverContent
             ref={contentRef}
             align="start"
-            className="w-auto max-w-[calc(100vw-2rem)] p-3"
+            // The priced panel is twice as wide, so it is often pushed back
+            // from the window's edge; this keeps a gutter when it is, rather
+            // than leaving it flush against the edge.
+            collisionPadding={fares ? 16 : 0}
+            className={cn(
+              'w-auto max-w-[calc(100vw-2rem)] p-3',
+              // Should a short window still leave the priced panel too little
+              // room, it scrolls inside the popover rather than running off
+              // the screen, where nothing could bring its top back.
+              fares && 'max-h-(--radix-popover-content-available-height) overflow-y-auto',
+            )}
             aria-label={t('search.pickDate', { label })}
             onOpenAutoFocus={(event) => {
               // The first focusable thing in the panel is the typed-date input.
@@ -558,6 +723,8 @@ export function DateField({
             <DatePanel
               value={shown}
               min={min}
+              fares={fares}
+              labels={labels}
               onPick={(iso) => {
                 onChange(iso)
                 setOpen(false)
