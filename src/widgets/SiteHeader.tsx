@@ -185,18 +185,25 @@ export function SiteHeader() {
       <div
         ref={sentinelRef}
         aria-hidden="true"
-        className="pointer-events-none absolute top-0 left-0 h-2 w-px"
+        // 24px tall: the bar changes once a scroll is meant, not on the
+        // pixel or two a trackpad drifts at rest.
+        className="pointer-events-none absolute top-0 left-0 h-6 w-px"
       />
       <header
         role="banner"
         className={cn(
-          'sticky top-0 z-30 border-b pt-[env(safe-area-inset-top)]',
-          'transition-[background-color,border-color,box-shadow] duration-(--duration-base) ease-standard',
-          // One opaque surface, `chrome`, which the browser bar is painted
-          // with too — never a 90% glass: content sliding under a translucent
-          // header turned its text into a smear over whatever passed beneath.
+          // From lg the bar keeps one height in both states — the capsule
+          // below changes inside it — so the page under a sticky header
+          // never jumps as it forms.
+          'sticky top-0 z-30 border-b pt-[env(safe-area-inset-top)] lg:h-[4.5625rem]',
+          'transition-[background-color,border-color,box-shadow] duration-(--duration-slow) ease-out',
+          // Below lg one opaque surface, `chrome`, which the browser bar is
+          // painted with too — never a 90% glass: content sliding under a
+          // translucent full-width bar turned its text into a smear. From lg
+          // the full-width bar dissolves once scrolled and the capsule
+          // inside it takes over (see below).
           scrolled
-            ? 'border-border bg-chrome shadow-sm'
+            ? 'border-border bg-chrome shadow-sm lg:border-transparent lg:bg-transparent lg:shadow-none'
             : isHome
               ? // Home, at rest. On a phone the hero continues the chrome under
                 // the bar and its search sheet rises out of it on rounded
@@ -211,9 +218,33 @@ export function SiteHeader() {
         {/* The gutter takes the larger of the page gutter and the safe-area
             inset, so in landscape on a notched phone the logo and the menu
             clear the cut-out instead of sliding under it. */}
-        <div className="mx-auto flex h-16 w-full max-w-app items-center gap-2 pr-[max(var(--app-pad),env(safe-area-inset-right))] pl-[max(var(--app-pad),env(safe-area-inset-left))] lg:h-18">
+        <div
+          className={cn(
+            'mx-auto flex h-16 w-full max-w-app items-center gap-2 lg:h-18',
+            'pr-[max(var(--app-pad),env(safe-area-inset-right))] pl-[max(var(--app-pad),env(safe-area-inset-left))]',
+            // From lg, once scrolled, the bar draws in from the window's
+            // edges into a floating capsule of frosted chrome — narrower,
+            // shorter, rounded, lifted by its shadow — and opens back out to
+            // the full-width bar at the top of the page. Every property that
+            // changes moves together on the long ease-out, which starts quick
+            // and settles soft, so the change reads as one fluid motion
+            // rather than a switch. Glass is safe here where it was not on the
+            // full-width bar: the page stays visible around the capsule, and
+            // the heavy blur turns what passes under it into colour, not text.
+            // Reduced motion is honoured by the global rule in theme.css.
+            'lg:transition-[max-width,height,margin,padding,border-radius,background-color,box-shadow,backdrop-filter]',
+            'lg:duration-(--duration-slower) lg:ease-out',
+            scrolled &&
+              'lg:mt-2.5 lg:h-14 lg:max-w-[calc(var(--container-app)-5rem)] lg:rounded-2xl lg:bg-chrome/80 lg:pr-5 lg:pl-6 lg:shadow-lg lg:ring-1 lg:ring-border/70 lg:backdrop-blur-xl lg:backdrop-saturate-150',
+          )}
+        >
           <Link to="/" className="flex shrink-0 items-center rounded-lg text-logo">
-            <Logo className="h-7 sm:h-8" />
+            <Logo
+              className={cn(
+                'h-7 sm:h-8 lg:transition-[height] lg:duration-(--duration-slower) lg:ease-out',
+                scrolled && 'lg:h-7',
+              )}
+            />
           </Link>
 
           <nav aria-label={t('nav.main')} className="ml-6 hidden items-center gap-1 lg:flex">
